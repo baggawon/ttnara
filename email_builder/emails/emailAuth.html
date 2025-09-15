@@ -1,0 +1,76 @@
+---
+title: "${title}"
+preheader: ""
+bodyClass: bg-slate-50
+---
+
+<x-main>
+  <push name="head">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" media="screen"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap">
+  </push>
+  <div class="bg-slate-50 sm:px-4 font-notoSansKR">
+    <table align="center" class="m-0 mx-auto">
+      <tr>
+        <td class="w-[552px] max-w-full">
+          <x-spacer height="24px" />
+
+          <table class="w-full">
+            <tr>
+              <td class="py-6 px-9 sm:p-6 bg-white [border:1px_solid_theme(colors.slate.200)] rounded-lg">
+                <h1 class="text-3xl text-slate-900 font-semibold">
+                  <a href="https://ttnara.com" class="text-white relative mr-2">
+                    <img src="https://ttnara.com/favicon-96x96.png"
+                      src-production="https://ttnara.com/favicon-96x96.png" class="w-[40px] h-[40px]" alt="테더나라">
+                  </a>
+                  테더나라
+                </h1>
+
+                <x-spacer height="24px" />
+
+                <p class="text-slate-900 text-base">
+                  안녕하세요,<br>
+                  테더나라 이메일 인증 요청을 확인하였습니다.<br>
+                  아래 인증번호를 사용하여 이메일 인증 절차를 계속 진행해 주세요.
+                </p>
+                <p class="text-slate-900 text-base">
+                  이 인증번호는 ${time}분 동안 유효합니다.<br>
+                  만약 이 요청을 하지 않았다면, 이 이메일을 무시하셔도 좋습니다.
+                </p>
+                <x-divider />
+
+                <p class="text-[#020817] text-base font-bold mb-2">
+                  인증 번호: ${authCode}
+                </p>
+                <p class="text-[#020817] text-base font-bold mb-2">
+                  요청일: ${date}
+                </p>
+
+                <x-divider />
+
+                <p class="m-0 text-xs/5 text-slate-600 mso-break-all">
+                  본 이메일은 발신전용 주소입니다.<br>
+                  문의사항은 <a href="mailto:contact@ttnara.com" class="text-slate-800">contact@ttnara.com
+                  </a>
+                  로 연락주시기 바랍니다.
+                </p>
+              </td>
+            </tr>
+          </table>
+
+          <table class="w-full">
+            <tr>
+              <td class="py-6 px-9 sm:px-6">
+                <p class="m-0 text-xs text-slate-500">
+                  &copy; {{ new Date().getFullYear() }} 테더나라. ALL RIGHTS RESERVED.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</x-main>

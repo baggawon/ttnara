@@ -1,0 +1,98 @@
+name: Test Docker Image CI
+
+on:
+  push:
+    branches: ["dev_image"]
+    tags: ["*"]
+
+env:
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: |
+    ${{ secrets.DOCKER_USERNAME }}/baggawon602
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code 🛎️
+        uses: actions/checkout@v4
+
+      - name: Log into registry docker hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Make envfile
+        uses: SpicyPizza/create-envfile@v2.0
+        with:
+          envkey_DEBUG: false
+          envkey_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+          envkey_DIRECT_URL: postgres://postgres:postgres@localhost:5432/postgres
+          envkey_NEXTAUTH_URL: https://www.google.com
+          envkey_CLIENT_URL: CLIENT_URL
+          envkey_NEXTAUTH_SECRET: cfaec9df-1392-4b79-b57b-62fa58f6f0ff
+          envkey_AWS_ACCESS_KEY_ID: a123
+          envkey_AWS_SECRET_ACCESS_KEY: b123
+          envkey_AWS_REGION: b123
+          envkey_AWS_S3_BUCKET_NAME: b123
+          envkey_CLOUDFRONT_DOMAIN: b123
+          envkey_CLOUDFRONT_KEY_PAIR_ID: b123
+          envkey_VAPID_SUBJECT: mailto:noreply@example.com
+          envkey_VAPID_PRIVATE_KEY: sKyQnDuQOZzrzBJhF14nIpom5QTzewTDZDvcNrOKHWA
+          envkey_CLIENT_VAPID_PUBLIC_KEY: BDdKkDB5l5Pm3uqgt30xh5FRQE4tKbKrx0x3cDiGclFKQ1SO-VDMOoNh4SqGDpNSl9C0zmWVhGE2NbBS9cOYx-w
+          file_name: .config_env
+
+      - name: Set up Docker Buildx 🚀
+        uses: docker/setup-buildx-action@v3
+
+      - name: get-npm-version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            platypus_dev_${{ steps.package-version.outputs.current-version }}
+            platypus_dev_test
+            platypus_dev_latest
+
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: bash
+        run: echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
+
+      - uses: actions/cache@v4
+        id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ${{ steps.npm-cache-dir.outputs.dir }}
+            ./node_modules
+          key: ${{ runner.os }}-next-platypus-dev-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-next-platypus-dev-
+
+      - name: Get npm cache directory
+        id: npm-cache-check
+        shell: bash
+        if: ${{ steps.npm-cache.outputs.cache-hit != 'true' }}
+        run: npm ci --force && echo "npm install"
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }} # Don't push on PR
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=gha
+            type=registry,ref=${{ env.IMAGE_NAME }}:latest
+          cache-to: type=gha,mode=max
+          pull: true

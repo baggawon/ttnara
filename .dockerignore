@@ -1,0 +1,9 @@
+/__tests__
+/tests
+/.github
+next-env.d.ts
+playwright.config.ts
+README.md
+Dockerfile
+components.json
+jest.config.js

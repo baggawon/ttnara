@@ -1,0 +1,38 @@
+[package]
+name = "loop_server"
+version = "0.1.1"
+edition = "2021"
+
+[dependencies]
+serde_json = "1.0.140"
+serde = { version = "1.0.219", features = ["derive"] }
+atomic_http = { version = "0.5.4", features = ["response_file", "env"] }
+tokio = { version = "1.44.2", features = ["full"] }
+strum = { version = "0.27.1", features = ["derive"] }
+strum_macros = "0.27.1"
+chrono = { version = "0.4.40", features = ["clock", "serde"] }
+async-trait = "0.1.88"
+urlencoding = "2.1.3"
+dotenv = "0.15.0"
+reqwest = { version = "0.12.15", features = [
+    "json",
+    "rustls-tls",
+    "http2",
+    "gzip",
+    "charset",
+], default-features = false }
+google-sheets4 = "6.0.0+20240621"
+yup-oauth2 = "11.0.0"
+hyper = "1.6.0"
+hyper-rustls = { version = "0.27.5", default-features = false, features = [
+    "native-tokio",
+    "ring",
+    "http1",
+    "webpki-tokio",
+] }
+rustls = { version = "0.23.26", features = ["ring"] }
+sea-orm = { version = "1.1.10", features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
+    "macros",
+] }

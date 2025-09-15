@@ -1,0 +1,290 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 웹킷 브라우저 (예: 크롬, 사파리)용 */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox 브라우저용 */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+:root,
+:root.light {
+  --radius: 0.5rem;
+  --background: 0 0% 98%;
+  --foreground: 222.2 84% 4.9%;
+
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  --success: 157 61% 46%;
+  --success-foreground: 0 0% 100%;
+
+  --fail: 352 91% 62%;
+  --fail-foreground: 0 0% 100%;
+
+  --ring: 215 20.2% 65.1%;
+}
+
+:root.dark {
+  --radius: 0.5rem;
+  --background: 225 14% 11%;
+  --foreground: 210 40% 98%;
+
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+
+  --popover: 225 14% 11%;
+  --popover-foreground: 210 40% 98%;
+
+  --card: 225 14% 11%;
+  --card-foreground: 210 40% 98%;
+
+  --border: 214 14% 20%;
+  --input: 214 14% 20%;
+
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+
+  --secondary: 214 14% 20%;
+  --secondary-foreground: 210 40% 98%;
+
+  --accent: 214 14% 20%;
+  --accent-foreground: 210 40% 98%;
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 85.7% 97.3%;
+  --success: 144 100% 55%;
+  --destructive-foreground: 210 40% 98%;
+
+  --ring: 214 14% 20%;
+}
+
+* {
+  font-family:
+    "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    Roboto,
+    "Helvetica Neue",
+    "Segoe UI",
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    "Malgun Gothic",
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol",
+    sans-serif;
+}
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+/* 
+h5 {
+  @apply text-[15px] font-bold text-center;
+}
+
+h4 {
+  @apply text-[2vw] font-bold text-center;
+}
+
+h3 {
+  @apply text-[3vw] font-bold text-center;
+}
+
+p {
+  @apply text-[13px] font-bold text-center;
+} */
+
+.gradient {
+  background-image: linear-gradient(-225deg, #cbbacc 0%, #2580b3 100%);
+}
+
+.gradient2 {
+  background-color: #f39f86;
+  background-image: linear-gradient(315deg, #f39f86 0%, #f9d976 74%);
+}
+
+.gradient3 {
+  background-image: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+}
+
+.browser-mockup {
+  border-top: 2em solid rgba(230, 230, 230, 0.7);
+  position: relative;
+  height: 50vh;
+  /* height: 360px; */
+}
+
+.browser-mockup:before {
+  display: block;
+  position: absolute;
+  content: "";
+  top: -1.25em;
+  left: 1em;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background-color: #f44;
+  box-shadow:
+    0 0 0 2px #f44,
+    1.5em 0 0 2px #9b3,
+    3em 0 0 2px #fb5;
+}
+
+.browser-mockup > * {
+  display: block;
+}
+
+/* ckeditor */
+
+.ck-editor__editable {
+  min-height: 500px;
+}
+
+.ck.ck-toolbar.ck-toolbar_grouping > .ck-toolbar__items {
+  flex-wrap: wrap !important;
+}
+
+.ck.ck-editor__main > .ck-editor__editable {
+  @apply !bg-card;
+}
+
+.ck-reset_all :not(.ck-reset_all-excluded *) {
+  @apply !text-foreground;
+}
+
+.ck.ck-toolbar .ck.ck-toolbar__separator {
+  @apply !bg-input;
+}
+
+.ck.ck-toolbar,
+.ck.ck-dialog,
+.ck.ck-input,
+.ck.ck-label,
+.ck.ck-splitbutton.ck-splitbutton_open
+  > .ck-button:not(.ck-on):not(.ck-disabled):not(:hover),
+.ck.ck-button.ck-on,
+.ck.ck-dropdown__panel,
+.ck.ck-list,
+.ck.ck-button.ck-list-item-button:not(:hover) {
+  @apply !bg-card;
+}
+
+.ck.ck-tooltip {
+  @apply !bg-background drop-shadow-lg border;
+}
+
+.ck.ck-tooltip,
+.ck.ck-editor__top .ck-sticky-panel .ck-sticky-panel__content,
+.ck.ck-editor__main > .ck-editor__editable:not(.ck-focused) {
+  @apply !border-input;
+}
+
+.ck.ck-editor__top .ck-sticky-panel .ck-sticky-panel__content,
+.ck.ck-reset_all,
+.ck-reset_all :not(.ck-reset_all-excluded *) {
+  @apply !rounded-t-md;
+}
+
+.ck.ck-editor__main > .ck-editor__editable:not(.ck-focused) {
+  @apply !rounded-b-md;
+}
+
+/* slider */
+
+.slick-dots li.slick-active button:before {
+  @apply !text-primary;
+}
+
+.slick-dots li button:before {
+  @apply !text-primary;
+}
+
+/* general */
+
+h1 {
+  @apply text-[1.5rem] font-bold leading-none;
+}
+
+h2 {
+  @apply text-[1.5rem] font-bold leading-none;
+}
+
+h3 {
+  @apply text-[1.17rem] font-bold leading-none;
+}
+
+h4 {
+  @apply text-[1rem] font-bold leading-none;
+}
+
+h5 {
+  @apply text-[0.83rem] font-bold leading-none;
+}
+
+p {
+  @apply text-[0.8125rem] leading-none;
+}
+
+@layer base {
+  :root {
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+  .dark {
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

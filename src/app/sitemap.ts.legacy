@@ -1,0 +1,23 @@
+import type { MetadataRoute } from "next";
+
+// Default static entries that we know won't change
+const staticUrls: MetadataRoute.Sitemap = [
+  {
+    url: process.env.CLIENT_URL || "https://ttnara.com",
+    lastModified: new Date().toISOString(),
+    changeFrequency: "daily",
+    priority: 1.0,
+  },
+  {
+    url: `${process.env.CLIENT_URL || "https://ttnara.com"}/board/tether`,
+    lastModified: new Date().toISOString(),
+    changeFrequency: "daily",
+    priority: 0.8,
+  },
+];
+
+// Split the sitemap into multiple files if needed
+export default function sitemap(): MetadataRoute.Sitemap {
+  // Return static URLs - these will be generated at build time
+  return staticUrls;
+}
