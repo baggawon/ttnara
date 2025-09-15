@@ -1,5 +1,5 @@
-import "app/globals.css";
-import "app/fonts.css";
+import "@/app/globals.css";
+import "@/app/fonts.css";
 import Providers from "@/components/1_atoms/Provider";
 import { version } from "@/helpers/config";
 import { Inter } from "next/font/google";
