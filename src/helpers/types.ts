@@ -4,7 +4,6 @@ import type {
   message_history,
   user,
   profile,
-  thread,
 } from "@prisma/client";
 
 export enum ValidateEmailStatus {
@@ -128,6 +127,11 @@ export enum ApiRoute {
   adminPartnersCreate = "/api/admin_di2u3k2j/partners/create",
   adminPartnersUpdate = "/api/admin_di2u3k2j/partners/update",
   adminPartnersDelete = "/api/admin_di2u3k2j/partners/delete",
+  adminPopupRead = "/api/admin_di2u3k2j/popup/read",
+  adminPopupCreate = "/api/admin_di2u3k2j/popup/create",
+  adminPopupUpdate = "/api/admin_di2u3k2j/popup/update",
+  adminPopupDelete = "/api/admin_di2u3k2j/popup/delete",
+  popupList = "/api/popup/list",
   sitemap = "/api/sitemap",
 }
 
@@ -162,6 +166,7 @@ export enum QueryKey {
   topicSettings = "topicSettings",
   user = "user",
   partners = "partners",
+  popups = "popups",
 }
 
 export type Profile = Pick<

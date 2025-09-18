@@ -534,3 +534,26 @@ model partner {
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
 }
+
+model popup {
+  id                    Int      @id @default(autoincrement())
+  title                 String   @db.VarChar(200)
+  content               String   @db.Text
+  image_cloud_front_url String?  @db.Text
+  image_aws_url         String?  @db.Text
+  link_url              String?  @db.Text
+  link_target           String   @default("_blank") @db.VarChar(20)
+  position              String   @default("center") @db.VarChar(20) // center, top-left, top-right, bottom-left, bottom-right
+  width                 Int      @default(400)
+  height                Int      @default(500)
+  start_date            DateTime
+  end_date              DateTime
+  is_active             Boolean  @default(true)
+  show_on_mobile        Boolean  @default(true)
+  show_on_desktop       Boolean  @default(true)
+  cookie_days           Int      @default(1) // 팝업을 다시 보지 않기 쿠키 유효기간
+  show_hide_option      Boolean  @default(true) // "오늘 하루 보지 않기" 옵션 표시 여부
+  display_order         Int      @default(1)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+}

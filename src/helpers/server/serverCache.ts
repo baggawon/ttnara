@@ -14,6 +14,7 @@ export enum CacheKey {
   Tether = "tether",
   TradeRanks = "tradeRanks",
   Partners = "partners",
+  Popups = "popups",
 }
 
 class AppCache {
@@ -45,6 +46,7 @@ class AppCache {
         this.refreshCache(CacheKey.Tether),
         this.refreshCache(CacheKey.TradeRanks),
         this.refreshCache(CacheKey.Partners),
+        this.refreshCache(CacheKey.Popups),
       ]);
 
       return true;
@@ -223,6 +225,20 @@ class AppCache {
             })
           );
           this.cache.set("partners", partners ?? []);
+          break;
+        case "popups":
+          const now = new Date();
+          const popups = await handleConnect((prisma) =>
+            prisma.popup.findMany({
+              where: {
+                is_active: true,
+                start_date: { lte: now },
+                end_date: { gte: now },
+              },
+              orderBy: [{ display_order: "asc" }, { created_at: "desc" }],
+            })
+          );
+          this.cache.set("popups", popups ?? []);
           break;
       }
     } catch (error) {

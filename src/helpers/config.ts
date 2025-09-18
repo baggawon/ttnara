@@ -1,7 +1,11 @@
 import { SearchType } from "@/helpers/types";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-export const version = require("../../package.json").version;
+export let version = "";
+
+async function fetchVersion() {
+  version = (await import("../../package.json")).version;
+}
+fetchVersion();
 
 export const PAGESIZES = [5, 10, 20, 50, 100];
 

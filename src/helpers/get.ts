@@ -312,3 +312,27 @@ export const adminPartnersGet = async (
 
   return null;
 };
+
+export const adminPopupsGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminPopupRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const popupListGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.popupList, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};

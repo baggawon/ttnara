@@ -34,8 +34,10 @@ jobs:
           envkey_NEXTAUTH_URL: https://www.google.com
           envkey_CLIENT_URL: CLIENT_URL
           envkey_NEXTAUTH_SECRET: cfaec9df-1392-4b79-b57b-62fa58f6f0ff
-          envkey_AWS_ACCESS_KEY_ID: a123
-          envkey_AWS_SECRET_ACCESS_KEY: b123
+          envkey_AWS_ACCESS_KEY: a123
+          envkey_AWS_SECRET_KEY: b123
+          envkey_AWS_S3_ACCESS_KEY: a123
+          envkey_AWS_S3_SECRET_KEY: b123
           envkey_AWS_REGION: b123
           envkey_AWS_S3_BUCKET_NAME: b123
           envkey_CLOUDFRONT_DOMAIN: b123

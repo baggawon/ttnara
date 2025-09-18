@@ -1,20 +1,20 @@
 "use client";
 
-import type { partner } from "@prisma/client";
+import type { popup } from "@prisma/client";
 import type {
-  PartnersListResponse,
-  PartnersReadProps,
-} from "@/app/api/admin_di2u3k2j/partners/read";
+  PopupListResponse,
+  PopupReadProps,
+} from "@/app/api/admin_di2u3k2j/popup/read";
 import type { CustomColumDef } from "@/components/2_molecules/Table/DataTable";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
 
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
-import { adminPartnersGet } from "@/helpers/get";
+import { adminPopupsGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -32,7 +32,7 @@ import { useToast } from "@/components/ui/use-toast";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-export interface AdminPartnersMethods {
+export interface AdminPopupMethods {
   page: string;
   pageSize: string;
   is_active: string;
@@ -48,52 +48,55 @@ type PaginationProps = {
   search?: string;
 };
 
-const deletePartners = async (ids: number[]) => {
-  const result = await postJson(ApiRoute.adminPartnersDelete, { ids });
+const deletePopups = async (ids: number[]) => {
+  const result = await postJson(ApiRoute.adminPopupDelete, { ids });
   if (!result.isSuccess) {
-    throw new Error("Failed to delete partners");
+    throw new Error("Failed to delete popups");
   }
   return result;
 };
 
-export const useAdminPartnersListHook = () => {
+export const useAdminPopupListHook = () => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-  const [editingPartner, setEditingPartner] = useState<partner | null>(null);
+  const [editingPopup, setEditingPopup] = useState<popup | null>(null);
 
-  const [pagination, setPagination] = useState<PartnersReadProps>({
+  const [pagination, setPagination] = useState<PopupReadProps>({
     page: 1,
     pageSize: 10,
   });
 
-  const { data: partnersData, status } = useGetQuery<
-    PartnersListResponse,
-    PartnersReadProps
+  const { data: popupData, status } = useGetQuery<
+    PopupListResponse,
+    PopupReadProps
   >(
     {
-      queryKey: [{ [QueryKey.partners]: pagination }],
+      queryKey: [{ [QueryKey.popups]: pagination }],
     },
-    adminPartnersGet,
+    adminPopupsGet,
     pagination
   );
 
-  const isLoading = status === "pending" || partnersData === null;
+  const isLoading = status === "pending" || popupData === null;
   const { toast } = useToast();
   const { queryClient } = useLoadingHandler();
-  const deletePartnersMutation = useMutation({
-    mutationFn: deletePartners,
-    onSuccess: () => {
-      toast({
-        id: ToastData.partnerDelete,
-        type: "success",
-      });
+
+  const deletePopupsMutation = useMutation({
+    mutationFn: deletePopups,
+    onSuccess: (data) => {
+      if (data?.hasMessage) {
+        toast({
+          id: data.hasMessage,
+          type: "success",
+        });
+      }
       setSelectedIds([]);
-      refreshCache(queryClient, QueryKey.partners);
+      refreshCache(queryClient, QueryKey.popups);
     },
     onError: (error: Error) => {
       toast({
-        id: ToastData.partnerDeleteFailed,
+        id: ToastData.unknown,
         type: "error",
       });
     },
@@ -120,7 +123,7 @@ export const useAdminPartnersListHook = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allIds = partnersData?.partners?.map((p) => p.id) || [];
+      const allIds = popupData?.popups?.map((p) => p.id) || [];
       setSelectedIds(allIds);
     } else {
       setSelectedIds([]);
@@ -135,37 +138,35 @@ export const useAdminPartnersListHook = () => {
     }
   };
 
-  const handleEdit = (partner: partner) => {
-    setEditingPartner(partner);
+  const handleEdit = (popup: popup) => {
+    setEditingPopup(popup);
     setIsEditSheetOpen(true);
   };
 
   const handleDelete = () => {
     if (selectedIds.length === 0) {
       toast({
-        id: ToastData.partnerDeleteFailed,
+        id: ToastData.unknown,
         type: "error",
       });
       return;
     }
 
-    if (confirm(`Delete ${selectedIds.length} selected item(s)?`)) {
-      deletePartnersMutation.mutate(selectedIds);
+    if (confirm(`${selectedIds.length}개의 팝업을 삭제하시겠습니까?`)) {
+      deletePopupsMutation.mutate(selectedIds);
     }
   };
 
   const allSelected = useMemo(() => {
-    const partners = partnersData?.partners ?? [];
-    return (
-      partners.length > 0 && partners.every((p) => selectedIds.includes(p.id))
-    );
-  }, [selectedIds, partnersData?.partners]);
+    const popups = popupData?.popups ?? [];
+    return popups.length > 0 && popups.every((p) => selectedIds.includes(p.id));
+  }, [selectedIds, popupData?.popups]);
 
   const someSelected = useMemo(() => {
     return selectedIds.length > 0 && !allSelected;
   }, [selectedIds.length, allSelected]);
 
-  const columns: CustomColumDef<partner>[] = setDefaultColumn([
+  const columns: CustomColumDef<popup>[] = setDefaultColumn([
     {
       id: "select",
       header: ({ table }) => (
@@ -190,70 +191,76 @@ export const useAdminPartnersListHook = () => {
       cellClassName: "!max-w-[40px]",
     },
     {
-      accessorKey: "name",
-      headerTitle: "이름",
-      headerClassName: "!min-w-[120px]",
-    },
-    {
-      accessorKey: "url",
-      headerTitle: "URL",
-      headerClassName: "!min-w-[200px]",
-      cell: (props) => (
-        <a
-          href={props.getValue() as string}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:underline truncate block max-w-[200px]"
-        >
-          {props.getValue() as string}
-        </a>
-      ),
-    },
-    {
-      accessorKey: "public_banner_image_url",
-      headerTitle: "배너 이미지",
-      headerClassName: "!max-w-[80px]",
-      cellClassName: "!max-w-[80px]",
-      cell: (props) => {
-        const imageUrl = props.getValue() as string;
-        return imageUrl ? (
-          <Image
-            src={`https://` + imageUrl}
-            alt="Banner"
-            className="w-12 h-12 object-cover rounded"
-            width={48}
-            height={48}
-            unoptimized
-          />
-        ) : (
-          <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs">
-            No Banner
+      accessorKey: "title",
+      headerTitle: "제목",
+      headerClassName: "!min-w-[150px]",
+      cell: ({ row }) => {
+        const popup = row.original;
+        const now = new Date();
+        const isExpired = new Date(popup.end_date) < now;
+        const isNotStarted = new Date(popup.start_date) > now;
+
+        return (
+          <div className="flex items-center gap-2">
+            <span>{popup.title}</span>
+            {!popup.is_active && <Badge variant="secondary">비활성</Badge>}
+            {isExpired && <Badge variant="destructive">만료</Badge>}
+            {isNotStarted && <Badge variant="outline">대기중</Badge>}
           </div>
         );
       },
     },
     {
-      accessorKey: "public_partner_image_url",
-      headerTitle: "파트너 이미지",
+      accessorKey: "position",
+      headerTitle: "위치",
+      headerClassName: "!max-w-[100px]",
+      cellClassName: "!max-w-[100px]",
+      convertValue: (value) => {
+        const positions: Record<string, string> = {
+          center: "중앙",
+          "top-left": "상단 왼쪽",
+          "top-right": "상단 오른쪽",
+          "bottom-left": "하단 왼쪽",
+          "bottom-right": "하단 오른쪽",
+        };
+        return positions[value as string] || value;
+      },
+    },
+    {
+      accessorKey: "start_date",
+      headerTitle: "시작일",
+      headerClassName: "!max-w-[120px]",
+      cellClassName: "!max-w-[120px]",
+      convertValue: (value) =>
+        dayjs(value).tz("Asia/Seoul").format("MM-DD HH:mm"),
+    },
+    {
+      accessorKey: "end_date",
+      headerTitle: "종료일",
+      headerClassName: "!max-w-[120px]",
+      cellClassName: "!max-w-[120px]",
+      convertValue: (value) =>
+        dayjs(value).tz("Asia/Seoul").format("MM-DD HH:mm"),
+    },
+    {
+      accessorKey: "device",
+      headerTitle: "기기",
       headerClassName: "!max-w-[80px]",
       cellClassName: "!max-w-[80px]",
-      cell: (props) => {
-        const imageUrl = props.getValue() as string;
-        return imageUrl ? (
-          <Image
-            src={`https://` + imageUrl}
-            alt="Partner"
-            className="w-12 h-12 object-cover rounded"
-            width={48}
-            height={48}
-            unoptimized
-          />
-        ) : (
-          <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs">
-            No Partner
-          </div>
-        );
+      cell: ({ row }) => {
+        const popup = row.original;
+        const devices = [];
+        if (popup.show_on_desktop) devices.push("PC");
+        if (popup.show_on_mobile) devices.push("모바일");
+        return <span className="text-xs">{devices.join(", ")}</span>;
       },
+    },
+    {
+      accessorKey: "cookie_days",
+      headerTitle: "쿠키",
+      headerClassName: "!max-w-[60px]",
+      cellClassName: "!max-w-[60px]",
+      convertValue: (value) => `${value}일`,
     },
     {
       accessorKey: "display_order",
@@ -262,33 +269,18 @@ export const useAdminPartnersListHook = () => {
       cellClassName: "!max-w-[60px]",
     },
     {
-      accessorKey: "is_active",
-      headerTitle: "활성화",
-      headerClassName: "!max-w-[60px]",
-      cellClassName: "!max-w-[60px]",
-      convertValue: (value) => (value ? "Active" : "Inactive"),
-    },
-    {
-      accessorKey: "created_at",
-      headerTitle: "생성일",
-      headerClassName: "!max-w-[100px]",
-      cellClassName: "!max-w-[100px]",
-      convertValue: (value) =>
-        dayjs(value).tz("Asia/Seoul").format("YYYY-MM-DD"),
-    },
-    {
       accessorKey: "control",
       headerClassName: "!max-w-[80px]",
       cellClassName: "!max-w-[80px]",
       headerTitle: "작업",
       cell: ({ row }) => {
-        const rowPartner = row.original as partner;
+        const rowPopup = row.original as popup;
         return (
           <Button
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => handleEdit(rowPartner)}
+            onClick={() => handleEdit(rowPopup)}
           >
             수정
           </Button>
@@ -297,7 +289,7 @@ export const useAdminPartnersListHook = () => {
     },
   ]);
 
-  const methods = useForm<AdminPartnersMethods>({
+  const methods = useForm<AdminPopupMethods>({
     defaultValues: {
       page: "1",
       pageSize: "10",
@@ -311,16 +303,16 @@ export const useAdminPartnersListHook = () => {
   return {
     columns,
     methods,
-    partnersData,
+    popupData,
     isLoading,
     selectedIds,
     isCreateSheetOpen,
     setIsCreateSheetOpen,
     isEditSheetOpen,
     setIsEditSheetOpen,
-    editingPartner,
+    editingPopup,
     updatePagination,
     handleDelete,
-    deletePartnersMutation,
+    deletePopupsMutation,
   };
 };

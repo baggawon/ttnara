@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]";
 import { HydrationBoundary } from "@tanstack/react-query";
 import { PartnerBanners } from "@/components/1_atoms/PartnerBanners";
+import { PopupDisplay } from "@/components/3_organisms/PopupDisplay";
 
 export default async function Layout(props: { children: ReactNode }) {
   const queries = await getDehydratedQueries([
@@ -35,6 +36,8 @@ export default async function Layout(props: { children: ReactNode }) {
       <MainFooterWidget />
       {/* Mobile Only bottom nav menu */}
       <MobileBottomNav />
+      {/* Popup Display */}
+      <PopupDisplay />
     </main>
   );
 }

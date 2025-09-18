@@ -3,28 +3,18 @@ import Link from "next/link";
 
 import {
   Menubar,
-  MenubarCheckboxItem,
   MenubarContent,
   MenubarItem,
   MenubarMenu,
-  MenubarRadioGroup,
-  MenubarRadioItem,
   MenubarSeparator,
-  MenubarShortcut,
-  MenubarSub,
-  MenubarSubContent,
-  MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar";
 import clsx from "clsx";
 import { AdminAppRoute, AppRoute } from "@/helpers/types";
 import { map } from "@/helpers/basic";
-import { LogoutButton } from "@/components/1_atoms/LogoutButton";
-import { Button } from "@/components/ui/button";
 import Logo from "@/components/1_atoms/Logo";
 import { ModeToggle } from "./ModeToggle";
-import { LogOut, User } from "lucide-react";
-import { signOut } from "@/helpers/common";
+import { User } from "lucide-react";
 import { UnstyledLogoutButton } from "@/components/1_atoms/UnstyledLogoutButton";
 import { ChevronDown } from "lucide-react";
 
@@ -48,6 +38,11 @@ const navigationMenus = [
       {
         title: "협력사",
         href: AdminAppRoute.Partners,
+        disable: false,
+      },
+      {
+        title: "팝업",
+        href: AdminAppRoute.Popup,
         disable: false,
       },
     ],
