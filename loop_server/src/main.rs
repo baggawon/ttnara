@@ -1,13 +1,16 @@
+use atomic_http::SendableError;
 use dotenv::dotenv;
-use google_sheets4::hyper_util::client::legacy::connect::HttpConnector;
-use google_sheets4::{hyper_util, Sheets};
+// use google_sheets4::hyper_util::client::legacy::connect::HttpConnector;
+// use google_sheets4::{hyper_util, Sheets};
 use helpers::tables::{common, prelude::Common};
-use hyper_rustls::HttpsConnector;
+use reqwest::header::{HeaderMap, HeaderValue};
+// use hyper_rustls::HttpsConnector;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, Database, DatabaseConnection, EntityTrait,
     QueryFilter,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::env;
 use std::sync::{Arc, OnceLock};
@@ -15,7 +18,7 @@ use std::time::Duration;
 use tokio::signal;
 use tokio::sync::Mutex;
 use tokio::time::interval;
-use yup_oauth2::ServiceAccountKey;
+// use yup_oauth2::ServiceAccountKey;
 mod helpers;
 
 // 테더/원화 시세 구조체
@@ -114,40 +117,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn loop_get_tether() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // 1. 서비스 계정 키 파일 읽기
-    let key_contents =
-        env::var("SERVICE_ACCOUNT_KEY").expect("SERVICE_ACCOUNT_KEY 환경변수를 설정해주세요");
-
-    let service_account: ServiceAccountKey = serde_json::from_str(&key_contents)?;
-    let _ = rustls::crypto::ring::default_provider().install_default();
-
-    // 2. Google Sheets API 클라이언트 설정
-    let auth = yup_oauth2::ServiceAccountAuthenticator::builder(service_account)
-        .build()
-        .await?;
-
-    let client = hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new())
-        .build(
-            hyper_rustls::HttpsConnectorBuilder::new()
-                .with_native_roots()
-                .unwrap()
-                .https_or_http()
-                .enable_http1()
-                .build(),
-        );
-
-    let hub = Sheets::new(client, auth);
-
-    // 3. 스프레드시트 ID와 범위 설정
-    let spreadsheet_ids =
-        env::var("SPREADSHEET_ID").expect("SPREADSHEET_ID 환경변수를 설정해주세요");
-    let spreadsheet_ids = spreadsheet_ids.split(",").collect::<Vec<&str>>();
-    let range = "Sheet1!B2:B3"; // GOOGLEFINANCE 함수가 있는 범위
-
-    // 4. 주기적으로 데이터 가져오기
+    // 주기적으로 데이터 가져오기
     let mut interval = interval(Duration::from_secs(45)); // 2분마다 업데이트
 
-    let mut index = 0;
     let mut previeous = String::new();
     let url = format!(
         "{}/api/admin_di2u3k2j/refresh_192873832736/read",
@@ -156,8 +128,7 @@ async fn loop_get_tether() -> Result<(), Box<dyn std::error::Error + Send + Sync
     loop {
         interval.tick().await;
 
-        println!("index: {}", index);
-        match get_tether_krw_rate(&hub, spreadsheet_ids[index], range).await {
+        match get_tether_krw_rate().await {
             Ok(rate) => {
                 println!("테더/원화 시세: {:?}", rate);
                 let tether = Common::find()
@@ -195,47 +166,133 @@ async fn loop_get_tether() -> Result<(), Box<dyn std::error::Error + Send + Sync
             }
             Err(e) => {
                 eprintln!("시세 가져오기 실패: {:?}", e);
+                let _ = send_message(&format!("{:?}", e)).await;
             }
         }
-        index = (index + 1) % spreadsheet_ids.len();
     }
 }
 
-async fn get_tether_krw_rate(
-    hub: &Sheets<HttpsConnector<HttpConnector>>,
-    spreadsheet_id: &str,
-    range: &str,
-) -> Result<TetherKrwRate, Box<dyn std::error::Error + Send + Sync>> {
-    // 1. Google Sheets API를 사용하여 데이터 가져오기
-    let result = hub
-        .spreadsheets()
-        .values_get(spreadsheet_id, range)
-        .doit()
+async fn get_tether_krw_rate() -> Result<TetherKrwRate, Box<dyn std::error::Error + Send + Sync>> {
+    let client = reqwest::Client::new();
+    let mut headers = HeaderMap::new();
+
+    // API 키 설정
+    headers.insert("downlink", HeaderValue::from_static("10"));
+    headers.insert(
+        "referer",
+        HeaderValue::from_static("https://www.google.com/"),
+    );
+    headers.insert("rtt", HeaderValue::from_static("50"));
+    headers.insert(
+        "sec-ch-prefers-color-scheme",
+        HeaderValue::from_static("dark"),
+    );
+    headers.insert(
+        "sec-ch-ua",
+        HeaderValue::from_static(
+            "\"Chromium\";v=\"140\", \"Not=A?Brand\";v=\"24\", \"Google Chrome\";v=\"140\"",
+        ),
+    );
+    headers.insert("sec-ch-ua-arch", HeaderValue::from_static("\"x86\""));
+    headers.insert("sec-ch-ua-bitness", HeaderValue::from_static("\"64\""));
+    headers.insert(
+        "sec-ch-ua-form-factors",
+        HeaderValue::from_static("\"Desktop\""),
+    );
+    headers.insert(
+        "sec-ch-ua-full-version",
+        HeaderValue::from_static("\"140.0.7339.208\""),
+    );
+    headers.insert("sec-ch-ua-full-version-list",HeaderValue::from_static("\"Chromium\";v=\"140.0.7339.208\", \"Not=A?Brand\";v=\"24.0.0.0\", \"Google Chrome\";v=\"140.0.7339.208\""));
+    headers.insert("sec-ch-ua-mobile", HeaderValue::from_static("?0"));
+    headers.insert("sec-ch-ua-model", HeaderValue::from_static("\"\""));
+    headers.insert(
+        "sec-ch-ua-platform",
+        HeaderValue::from_static("\"Windows\""),
+    );
+    headers.insert(
+        "sec-ch-ua-platform-version",
+        HeaderValue::from_static("\"15.0.0\""),
+    );
+    headers.insert("sec-ch-ua-wow64", HeaderValue::from_static("?0"));
+    headers.insert("upgrade-insecure-requests", HeaderValue::from_static("1"));
+    headers.insert("user-agent",HeaderValue::from_static("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"));
+
+    // API 요청 보내기
+    let response = client
+        .get("https://www.google.com/finance/quote/USD-KRW?hl=ko")
+        .headers(headers)
+        .send()
+        .await?
+        .text()
         .await?;
 
-    let values = result.1.values.ok_or("데이터가 없습니다")?;
+    let mut trade_price = String::new();
+    let mut prev_closing_price = String::new();
 
-    // 2. 응답 데이터 파싱
-    if values.is_empty() {
-        return Err("데이터가 없습니다".into());
+    for (index, script) in response.split("data:[[[").enumerate() {
+        if index == 0 {
+            continue;
+        }
+        if script.contains("USD / KRW") && trade_price.is_empty() && script.contains("]]],") {
+            let data = script.split("]]],").next();
+            if let Some(data) = data {
+                let data: Value = serde_json::from_str(data)?;
+                println!("script {}: {}", index, data);
+                if !data.is_array() {
+                    continue;
+                }
+                for item in data.as_array().unwrap() {
+                    if item.is_array() && trade_price.is_empty() {
+                        let currencies = item.as_array().unwrap();
+                        for (index, currency) in currencies.iter().enumerate() {
+                            if index == 0 && currency.is_f64() {
+                                trade_price = currency.as_f64().unwrap().to_string();
+                                println!("{}", trade_price);
+                                trade_price.parse::<f64>()?;
+                            } else if index == 1 && currency.is_f64() {
+                                prev_closing_price = (trade_price.parse::<f64>()?
+                                    - currency.as_f64().unwrap())
+                                .to_string()
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-
-    // 셀 값 가져오기
-    let trade_price = if !values[0].is_empty() {
-        values[0][0].as_str().unwrap().replace(",", "")
-    } else {
-        return Err("현재가 데이터가 없습니다".into());
-    };
-
-    let prev_closing_price = if values.len() > 1 && !values[1].is_empty() {
-        values[1][0].as_str().unwrap().replace(",", "")
-    } else {
-        return Err("전일 종가 데이터가 없습니다".into());
-    };
 
     // 4. 결과 구조체 반환
     Ok(TetherKrwRate {
         prev_closing_price,
         trade_price,
     })
+}
+
+async fn send_message(message: &str) -> Result<(), SendableError> {
+    use teloxide_core::{prelude::*, types::ParseMode};
+
+    let chat_id = ChatId(
+        std::env::var("CHAT_ID")
+            .expect("Expected CHAT_ID env var")
+            .parse::<i64>()?,
+    );
+
+    let bot = Bot::from_env().parse_mode(ParseMode::MarkdownV2);
+
+    bot.send_message(chat_id, message).await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_tether_krw_rate() {
+    match get_tether_krw_rate().await {
+        Ok(rate) => {
+            println!("테더/원화 시세: {:?}", rate);
+        }
+        Err(e) => {
+            eprintln!("시세 가져오기 실패: {:?}", e);
+        }
+    }
 }
