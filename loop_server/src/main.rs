@@ -246,13 +246,32 @@ async fn get_tether_krw_rate() -> Result<TetherKrwRate, Box<dyn std::error::Erro
                     if item.is_array() && trade_price.is_empty() {
                         let currencies = item.as_array().unwrap();
                         for (index, currency) in currencies.iter().enumerate() {
-                            if index == 0 && currency.is_f64() {
-                                trade_price = currency.as_f64().unwrap().to_string();
+                            if index == 0 && currency.is_number() {
+                                let currency = {
+                                    let currency = currency.as_number().unwrap();
+                                    if currency.is_f64() {
+                                        currency.as_f64().unwrap().to_string()
+                                    } else if currency.is_i64() {
+                                        currency.as_i64().unwrap().to_string()
+                                    } else {
+                                        currency.as_u64().unwrap().to_string()
+                                    }
+                                };
+                                trade_price = currency;
                                 println!("{}", trade_price);
-                                trade_price.parse::<f64>()?;
-                            } else if index == 1 && currency.is_f64() {
+                            } else if index == 1 && currency.is_number() {
+                                let currency = {
+                                    let currency = currency.as_number().unwrap();
+                                    if currency.is_f64() {
+                                        currency.as_f64().unwrap().to_string()
+                                    } else if currency.is_i64() {
+                                        currency.as_i64().unwrap().to_string()
+                                    } else {
+                                        currency.as_u64().unwrap().to_string()
+                                    }
+                                };
                                 prev_closing_price = (trade_price.parse::<f64>()?
-                                    - currency.as_f64().unwrap())
+                                    - currency.parse::<f64>()?)
                                 .to_string()
                             }
                         }
@@ -260,6 +279,10 @@ async fn get_tether_krw_rate() -> Result<TetherKrwRate, Box<dyn std::error::Erro
                 }
             }
         }
+    }
+
+    if prev_closing_price.is_empty() {
+        prev_closing_price = trade_price.clone();
     }
 
     // 4. 결과 구조체 반환
