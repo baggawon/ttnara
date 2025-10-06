@@ -24,7 +24,7 @@ RUN cargo install cargo-chef
 
 # protobuf 컴파일러 설치
 RUN apt-get update && \
-    apt-get install -y protobuf-compiler && \
+    apt-get install -y protobuf-compiler pkg-config libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 RUN update-ca-certificates
