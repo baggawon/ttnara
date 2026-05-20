@@ -72,7 +72,7 @@ export const ChatInput = ({ sendMessage, maxLength }: ChatInputProps) => {
         }}
         placeholder="메시지 입력..."
         maxLength={maxLength}
-        className="flex-1 text-xs px-2 py-1.5 rounded-md border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+        className="min-w-0 flex-1 text-xs px-2 py-1.5 rounded-md border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
       />
       <Button
         type="button"

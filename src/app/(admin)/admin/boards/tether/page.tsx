@@ -12,12 +12,7 @@ import clsx from "clsx";
 import FormDialog, {
   type FormDialogMethods,
 } from "@/components/1_atoms/FormDialog";
-import {
-  FormBuilder,
-  FormInput,
-} from "@/components/2_molecules/Input/FormInput";
-import SelectInput from "@/components/2_molecules/Input/Select";
-import WithUseWatch from "@/components/2_molecules/WithUseWatch";
+import { FormInput } from "@/components/2_molecules/Input/FormInput";
 import {
   Accordion,
   AccordionContent,
@@ -29,7 +24,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
-import { filterMap, forEach, map } from "@/helpers/basic";
+import { forEach, map } from "@/helpers/basic";
 import { postJson } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
@@ -206,36 +201,11 @@ export default function BoardThether() {
               initialize={() => tetherCategoryDefault()}
               dialogControllRef={dialogControllRef}
               formChildren={
-                <>
-                  <FormInput
-                    name="name"
-                    label="지역 이름"
-                    validate={validateTetherCategoryName}
-                  />
-                  <WithUseWatch name={["id"]}>
-                    {({ id }: { id: number }) => {
-                      return (
-                        <FormBuilder name="parent_id" label="상위 지역">
-                          <SelectInput
-                            name="parent_id"
-                            items={filterMap(
-                              allCategories,
-                              (item) =>
-                                item.id !== Number(id) &&
-                                item.parent_id === null &&
-                                item.is_active && {
-                                  value: item.id,
-                                  label: item.name,
-                                }
-                            )}
-                            placeholder="상위 지역 선택"
-                            buttonClassName="!w-full"
-                          />
-                        </FormBuilder>
-                      );
-                    }}
-                  </WithUseWatch>
-                </>
+                <FormInput
+                  name="name"
+                  label="지역 이름"
+                  validate={validateTetherCategoryName}
+                />
               }
             >
               <Button type="button" ref={createRef}>
