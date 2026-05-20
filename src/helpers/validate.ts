@@ -1,5 +1,5 @@
 import { ValidateStatus } from "@/helpers/types";
-import { TetherMethods, ValidateEmailStatus } from "@/helpers/types";
+import { ValidateEmailStatus } from "@/helpers/types";
 import { MAXNUMBER } from "@/helpers/config";
 import { ToastData } from "@/helpers/toastData";
 import type { UserSettings } from "@/app/api/signup/read";
@@ -317,20 +317,6 @@ export const validateSiteName = (value: string | undefined) => {
   }
 };
 
-export const validateUserLogSaveDays = (value: string | undefined) => {
-  const validNumberResult = validNumber({ value, min: 0 });
-  if (!validNumberResult) {
-    return `사용자 로그 보관 기간은 0이상 ${MAXNUMBER.toLocaleString()}이하의 숫자로 입력해주세요.`;
-  }
-};
-
-export const validateAdminLogSaveDays = (value: string | undefined) => {
-  const validNumberResult = validNumber({ value, min: 0 });
-  if (!validNumberResult) {
-    return `관리자 로그 보관 기간은 0이상 ${MAXNUMBER.toLocaleString()}이하의 숫자로 입력해주세요.`;
-  }
-};
-
 export const validateMaxSystemLevel = (value: string | undefined) => {
   const max = 10;
   const validNumberResult = validNumber({ value, min: 1, max });
@@ -565,9 +551,14 @@ export const validateToipcName = (value?: string) => {
   }
 };
 
+const RESERVED_TOPIC_URLS = ["tether"];
+
 export const validateToipcURL = (value?: string) => {
   if (!value || value === "") {
     return "게시판 경로를 입력해주세요.";
+  }
+  if (RESERVED_TOPIC_URLS.includes(value.trim().toLowerCase())) {
+    return `'${value}' 경로는 시스템에서 예약된 경로입니다. 다른 경로를 사용해주세요.`;
   }
 };
 
@@ -664,12 +655,6 @@ export const validateCoin = (value?: string) => {
   }
 };
 
-export const validateTradeMethod = (value?: string) => {
-  if (!value || value === "") {
-    return "결제수단을 선택해주세요.";
-  }
-};
-
 export const validateTradePriceType = (value?: string) => {
   if (!value || value === "") {
     return "가격 기준을 선택해주세요.";
@@ -742,24 +727,6 @@ export const validateTradeMargin = (
   }
 };
 
-export const validateTradePassword = (
-  value: string | undefined,
-  isUse: boolean
-) => {
-  if (isUse) {
-    if (!value || value === "") {
-      return "거래 비밀번호 4자리를 입력해주세요.";
-    }
-    if (value !== undefined && value !== "") {
-      const isNumber = new RegExp(`^[-]?(\\d{1,${4}}([.]\\d{0,${0}})?)?$`, "i");
-      const validNumberResult = isNumber.test(value);
-      if (!validNumberResult) {
-        return `${TetherMethods.Promise} 비밀버호는 4자리 숫자로 입력해주세요.`;
-      }
-    }
-  }
-};
-
 export const validateTradeName = (value?: string) => {
   if (!value || value === "") {
     return "거래 제목을 입력해주세요.";
@@ -784,15 +751,21 @@ export const validateTelegramId = (value?: string) => {
   }
 };
 
-export const validateCity = (value?: string) => {
-  if (!value || value === "") {
-    return "지역을 선택해주세요.";
-  }
-};
-
 export const validateCustomAddress = (value?: string) => {
   if (!value || value === "") {
     return "주소를 입력해주세요.";
+  }
+};
+
+export const validatePreferredTime = (value?: string) => {
+  if (!value || value === "") {
+    return "선호 시간대를 입력해주세요.";
+  }
+};
+
+export const validateContactId = (value?: string) => {
+  if (!value || value === "") {
+    return "메신저 아이디를 입력해주세요.";
   }
 };
 

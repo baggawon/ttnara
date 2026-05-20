@@ -1,21 +1,117 @@
 import {
   RequestValidator,
   requestValidator,
+  makeMessagePayload,
+  sendWebpush,
+  webPushUserSelect,
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import type { Prisma, thread } from "@prisma/client";
-import { forEach, map, removeColumnsFromObject } from "@/helpers/basic";
-import { deleteMultipleFilesFromS3, uploadFileToS3 } from "@/helpers/server/s3";
+import { removeColumnsFromObject } from "@/helpers/basic";
+import {
+  deleteMultipleFilesFromS3,
+  stripCloudFrontSignatures,
+} from "@/helpers/server/s3";
 import { BoardAccessService } from "@/lib/boardAccess";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
+import { applyTopicPoints, getBalance } from "@/helpers/server/pointService";
+import { PointAction } from "@/helpers/pointSystem";
+import { recordActivity } from "@/helpers/server/boardActivity";
+import { BoardActivityAction } from "@/helpers/boardActivity";
+import { AlarmTypes, UserSettings } from "@/helpers/types";
+import { attachMediaToContent } from "@/helpers/server/mediaAttach";
 export interface threadUpdateProps extends thread {}
+
+// Confirms the proposed thumbnail belongs to this author and is either an
+// orphan (so the caller can request it be attached) or already attached to
+// this thread. Returns the id when usable, else null.
+const validateProposedThumbnail = async (
+  authorId: string,
+  threadId: number,
+  proposedId: number | null | undefined
+): Promise<number | null> => {
+  if (proposedId == null) return null;
+  const row = await handleConnect((prisma) =>
+    prisma.media_upload.findFirst({
+      where: {
+        id: proposedId,
+        author_id: authorId,
+        media_type: "image",
+        OR: [
+          { attached_to_id: null },
+          { attached_to_type: "thread", attached_to_id: threadId },
+        ],
+      },
+      select: { id: true },
+    })
+  );
+  return row ? row.id : null;
+};
+
+// Deletes the user's still-orphan media_uploads matching the client-declared
+// unused list. Scoped to the author to prevent cross-user deletion, and to
+// attached_to_id IS NULL so any row that got attached during this save (via
+// content or thumbnail keep) is preserved.
+const deleteUnusedOrphans = async (
+  authorId: string,
+  unusedIds: number[] | undefined
+): Promise<void> => {
+  if (!unusedIds || unusedIds.length === 0) return;
+  const rows = await handleConnect((prisma) =>
+    prisma.media_upload.findMany({
+      where: {
+        id: { in: unusedIds },
+        author_id: authorId,
+        attached_to_id: null,
+      },
+      select: { id: true, aws_cloud_front_url: true },
+    })
+  );
+  if (!rows || rows.length === 0) return;
+
+  await deleteMultipleFilesFromS3(
+    rows.map(
+      (r) => `https://${r.aws_cloud_front_url.replace(/^https?:\/\//, "")}`
+    )
+  );
+  await handleConnect((prisma) =>
+    prisma.media_upload.deleteMany({
+      where: { id: { in: rows.map((r) => r.id) } },
+    })
+  );
+};
+
+const resolveThumbnailMediaId = async (
+  threadId: number,
+  proposedId: number | null | undefined
+): Promise<number | null> => {
+  if (proposedId == null) return null;
+  const attached = await handleConnect((prisma) =>
+    prisma.media_upload.findFirst({
+      where: {
+        id: proposedId,
+        attached_to_type: "thread",
+        attached_to_id: threadId,
+        media_type: "image",
+      },
+      select: { id: true },
+    })
+  );
+  return attached ? attached.id : null;
+};
 
 export const POST = async (formData: FormData) => {
   try {
     const jsonString = formData.get("json");
     if (!jsonString || !formData.get("topic_url")) throw ToastData.unknown;
-    const json: threadUpdateProps = JSON.parse(jsonString as string);
+    const parsed: threadUpdateProps & { unused_media_ids?: number[] } =
+      JSON.parse(jsonString as string);
+    const unusedMediaIds: number[] = Array.isArray(parsed.unused_media_ids)
+      ? parsed.unused_media_ids.filter((n) => typeof n === "number")
+      : [];
+    const { unused_media_ids: _ignore, ...json } = parsed;
+    void _ignore;
     if (typeof json?.id !== "number" || !json.content) throw ToastData.unknown;
 
     const topic_url = formData.get("topic_url") as string;
@@ -25,6 +121,11 @@ export const POST = async (formData: FormData) => {
       formData
     );
     const author_id = uid!;
+
+    // Ensure cache is initialized
+    if (!appCache.getByKey(CacheKey.Topics)) {
+      await appCache.initializeFromDB();
+    }
 
     try {
       const topics = appCache.getByKey(CacheKey.Topics) as any;
@@ -66,109 +167,44 @@ export const POST = async (formData: FormData) => {
         };
       }
 
+      // 익명 설정 검증:
+      // - 토픽에서 익명을 허용하지 않으면 is_secret 강제 false
+      // - 토픽에서 익명이 적용된 경우 모더레이터/관리자가 아닌 이상 is_secret 강제 true
+      if (!topicSettings?.use_anonymous) {
+        json.is_secret = false;
+      } else if (!access.canModerate()) {
+        json.is_secret = true;
+      }
+
+      // Gate negative points_per_post_create as a cost to the author.
+      // Pre-check balance for UX; the atomic guard inside applyTopicPoints
+      // catches races and triggers a rollback below.
+      if (json.id === 0) {
+        const createCost = topicSettings?.points_per_post_create ?? 0;
+        if (createCost < 0) {
+          const balance = await getBalance(author_id);
+          if (balance < Math.abs(createCost)) {
+            return { result: false, message: ToastData.insufficientPoints };
+          }
+        }
+      }
+
       // Continue with creating thread...
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Thread access control error:", error);
       return {
         result: false,
-        message: ToastData.threadAccessControlError,
+        message: error?.message ?? ToastData.threadAccessControlError,
       };
     }
 
-    // 미디어 파일 처리
-    const mediaFiles = formData.getAll("mediaFiles") as File[] | undefined;
-
-    const uploadedMedia: {
-      author_id: string;
-      aws_url: string;
-      aws_cloud_front_url: string;
-      media_type: "image" | "video";
-      mime_type: string;
-    }[] = [];
-
-    if (mediaFiles) {
-      const urls = await Promise.all(
-        map(mediaFiles, async (mediaFile, index) => {
-          const metaDataStr = formData.get(`mediaMeta_${index}`);
-          let mediaType = "image";
-          let metadata = {};
-
-          if (metaDataStr) {
-            try {
-              const metaData = JSON.parse(metaDataStr as string);
-              mediaType = metaData.type || "image";
-              metadata = metaData;
-            } catch (e) {
-              console.error("메타데이터 파싱 오류:", e);
-            }
-          } else {
-            // 파일명으로 타입 추정
-            mediaType = mediaFile.name.startsWith("video_") ? "video" : "image";
-          }
-
-          // S3 업로드 함수 호출
-          const { aws_cloud_front_url, aws_url } = await uploadFileToS3(
-            mediaFile,
-            topic_url
-          );
-
-          return {
-            aws_cloud_front_url,
-            aws_url,
-            media_type: mediaType,
-            mime_type: mediaFile.type,
-            metadata: metaDataStr ? (metaDataStr as string) : undefined,
-          };
-        })
-      );
-
-      forEach(
-        urls,
-        ({ aws_cloud_front_url, aws_url, media_type, mime_type, metadata }) =>
-          uploadedMedia.push({
-            aws_cloud_front_url,
-            aws_url,
-            author_id,
-            media_type,
-            mime_type,
-          })
-      );
-
-      // HTML 내 미디어 참조 대체
-      if (uploadedMedia.length > 0) {
-        forEach(uploadedMedia, (media, index) => {
-          if (media.media_type === "image") {
-            json.content = json.content!.replace(
-              `data-media-ref="${index}" data-media-type="image"`,
-              `src="https://${media.aws_cloud_front_url}" alt="thread image"`
-            );
-          } else if (media.media_type === "video") {
-            const mimeType = media.mime_type || "video/mp4";
-
-            // 기존 비디오 태그 처리
-            json.content = json.content!.replace(
-              `<video controls data-media-ref="${index}" data-media-type="video"></video>`,
-              `<video controls width="100%">
-                <source src="https://${media.aws_cloud_front_url}" type="${mimeType}">
-                브라우저가 비디오 태그를 지원하지 않습니다.
-              </video>`
-            );
-
-            // 추가: CKEditor의 mediaEmbed 형식 처리
-            json.content = json.content!.replace(
-              `<figure class="media"><div data-media-ref="${index}" data-media-type="video"></div></figure>`,
-              `<figure class="media">
-                <div data-oembed-url="https://${media.aws_cloud_front_url}">
-                  <video controls width="100%" style="max-width: 100%; border-radius: 4px;">
-                    <source src="https://${media.aws_cloud_front_url}" type="${mimeType}">
-                    브라우저가 HTML5 비디오를 지원하지 않습니다.
-                  </video>
-                </div>
-              </figure>`
-            );
-          }
-        });
-      }
+    // Strip CloudFront signing params from content before saving to DB.
+    // Markdown content from the new editor uses unsigned URLs; this is a
+    // no-op there but still meaningful when editing legacy HTML threads.
+    if (json.content) {
+      json.content = stripCloudFrontSignatures(json.content);
     }
+
     if (json.id === 0) {
       const lastThread = await handleConnect((prisma) =>
         prisma.thread.findFirst({
@@ -189,56 +225,140 @@ export const POST = async (formData: FormData) => {
           "created_at",
           "updated_at",
           "images",
+          "votes",
+          "thumbnail_media",
+          "thumbnail_media_id",
         ]),
         author_id,
         topic_order,
-        ...(uploadedMedia.length > 0 && {
-          images: { createMany: { data: uploadedMedia } },
-        }),
       };
+      let createdThread: thread | null | undefined = null;
       try {
-        const createResult = await handleConnect((prisma) =>
+        createdThread = await handleConnect((prisma) =>
           prisma.thread.create({
             data,
           })
         );
-        if (!createResult) throw ToastData.threadCreatePrismaError;
+        if (!createdThread) throw ToastData.threadCreatePrismaError;
       } catch (error) {
         data.topic_order = data.topic_order + 1;
-        const createResult = await handleConnect((prisma) =>
+        createdThread = await handleConnect((prisma) =>
           prisma.thread.create({
             data,
           })
         );
-        if (!createResult) throw ToastData.threadCreatePrismaError;
+        if (!createdThread) throw ToastData.threadCreatePrismaError;
       }
-    } else {
-      if (formData.get("toDelete")) {
-        const toDelete = JSON.parse(formData.get("toDelete") as string) as {
-          aws_cloud_front_url: string;
-        }[];
 
-        if (toDelete.length > 0) {
-          const toDeleteWithProtocol = toDelete.map(
-            (image) => `https://${image.aws_cloud_front_url}`
-          );
-
-          const results = await deleteMultipleFilesFromS3(toDeleteWithProtocol);
-          if (results.failed.length > 0) {
-            throw ToastData.unknown;
-          }
-
+      // Apply points (award or deduct) for post creation. On insufficient
+      // balance the atomic guard fails — roll back the just-created thread
+      // before media is attached, so we don't leave orphaned uploads.
+      const ts = (appCache.getByKey(CacheKey.Topics) as any)?.[topic_url];
+      const createAmount = ts?.points_per_post_create ?? 0;
+      if (createdThread && createAmount !== 0) {
+        const createdId = createdThread.id;
+        const apply = await handleConnect((prisma) =>
+          prisma.$transaction((tx) =>
+            applyTopicPoints(tx, {
+              uid: author_id,
+              amount: createAmount,
+              action: PointAction.post_create,
+              topic_id: json.topic_id,
+              thread_id: createdId,
+            })
+          )
+        );
+        if (!apply?.ok) {
           await handleConnect((prisma) =>
-            prisma.thread_image.deleteMany({
-              where: {
-                aws_cloud_front_url: {
-                  in: toDelete.map((image) => image.aws_cloud_front_url),
-                },
-              },
+            prisma.thread.delete({ where: { id: createdId } })
+          );
+          return { result: false, message: ToastData.insufficientPoints };
+        }
+      }
+
+      if (createdThread && json.content) {
+        const keepId = await validateProposedThumbnail(
+          author_id,
+          createdThread.id,
+          json.thumbnail_media_id
+        );
+
+        await attachMediaToContent({
+          authorId: author_id,
+          content: json.content,
+          attachedToType: "thread",
+          attachedToId: createdThread.id,
+          isEdit: false,
+          extraKeepIds: keepId != null ? [keepId] : [],
+        });
+
+        const resolvedThumbId = await resolveThumbnailMediaId(
+          createdThread.id,
+          json.thumbnail_media_id
+        );
+        if (resolvedThumbId != null) {
+          await handleConnect((prisma) =>
+            prisma.thread.update({
+              where: { id: createdThread!.id },
+              data: { thumbnail_media_id: resolvedThumbId },
             })
           );
         }
+
+        await deleteUnusedOrphans(author_id, unusedMediaIds);
       }
+
+      if (createdThread) {
+        await recordActivity({
+          uid: author_id,
+          action: BoardActivityAction.post_create,
+          topic_id: json.topic_id,
+          thread_id: createdThread.id,
+        });
+      }
+
+      // Admin broadcast push notification
+      if (json.is_push_notify && createdThread) {
+        const isAdmin = await handleConnect((prisma) =>
+          prisma.profile.findUnique({
+            where: { uid: author_id },
+            select: { is_app_admin: true },
+          })
+        );
+        if (isAdmin?.is_app_admin) {
+          const users = await handleConnect((prisma) =>
+            prisma.user.findMany({
+              where: {
+                id: { not: author_id },
+                push_token: { isEmpty: false },
+                NOT: {
+                  settings: {
+                    some: {
+                      key: UserSettings.board_notification,
+                      value: "false",
+                    },
+                  },
+                },
+              },
+              select: webPushUserSelect,
+            })
+          );
+          if (users && users.length > 0) {
+            const payloads = users.map((u) =>
+              makeMessagePayload({
+                body: json.title,
+                type: AlarmTypes.BoardAdminNotice,
+                user: u,
+                topic_url,
+                thread_id: createdThread!.id,
+              })
+            );
+            await sendWebpush(payloads, users);
+          }
+        }
+      }
+    } else {
+      // Update thread first, then delete old media only on success
       const updateResult = await handleConnect((prisma) =>
         prisma.thread.update({
           where: {
@@ -252,20 +372,57 @@ export const POST = async (formData: FormData) => {
               "created_at",
               "updated_at",
               "images",
+              "votes",
               "topic",
               "views",
               "upvotes",
               "downvotes",
               "author_id",
+              "thumbnail_media",
+              "thumbnail_media_id",
             ]),
-            ...(uploadedMedia.length > 0 && {
-              images: { createMany: { data: uploadedMedia } },
-            }),
           },
         })
       );
 
       if (!updateResult) throw ToastData.unknown;
+
+      const keepId = await validateProposedThumbnail(
+        author_id,
+        json.id,
+        json.thumbnail_media_id
+      );
+
+      if (json.content) {
+        await attachMediaToContent({
+          authorId: author_id,
+          content: json.content,
+          attachedToType: "thread",
+          attachedToId: json.id,
+          isEdit: true,
+          extraKeepIds: keepId != null ? [keepId] : [],
+        });
+      }
+
+      const resolvedThumbId = await resolveThumbnailMediaId(
+        json.id,
+        json.thumbnail_media_id
+      );
+      await handleConnect((prisma) =>
+        prisma.thread.update({
+          where: { id: json.id },
+          data: { thumbnail_media_id: resolvedThumbId },
+        })
+      );
+
+      await deleteUnusedOrphans(author_id, unusedMediaIds);
+
+      await recordActivity({
+        uid: author_id,
+        action: BoardActivityAction.post_edit,
+        topic_id: json.topic_id,
+        thread_id: json.id,
+      });
     }
 
     return {

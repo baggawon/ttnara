@@ -53,7 +53,7 @@ export default function AdminUserEditForm({ user_id }: { user_id: string }) {
   const kycStatus = getKycStatus(userData?.profile?.kyc_id);
 
   return (
-    <section className="w-full flex flex-col gap-4 p-0 md:p-4">
+    <section className="w-full flex flex-col gap-4">
       <FormProvider {...methods}>
         {userData && (
           <Form onSubmit={submit} className="space-y-6">

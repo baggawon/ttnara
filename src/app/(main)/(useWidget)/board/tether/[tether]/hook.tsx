@@ -33,18 +33,11 @@ import type { TetherProposalUpdateProps } from "@/app/api/tethers/proposal/updat
 import { type RefObject, useRef } from "react";
 import { type FormDialogMethods } from "@/components/1_atoms/FormDialog";
 import type { TetherProposalRateUpdateProps } from "@/app/api/tethers/proposal/rate/update";
-import type { TetherUpdateProps } from "@/app/api/tethers/update";
 import type { tethersDeleteProps } from "@/app/api/tethers/delete";
 
 export interface ProposalMethods extends tether_proposal {}
 
-export const useTetherDetail = ({
-  tether_id,
-  password,
-}: {
-  tether_id?: number;
-  password: string | undefined;
-}) => {
+export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
   const { data: session } = useGetQuery<Session | null | undefined, undefined>(
     {
       queryKey: [QueryKey.session],
@@ -54,7 +47,6 @@ export const useTetherDetail = ({
 
   const pagination = {
     ...(typeof tether_id === "number" && { id: tether_id }),
-    ...(password && { password }),
   };
 
   const { data: tethersData } = useGetQuery<TetherListResponse, any>(
@@ -198,7 +190,7 @@ export const useTetherDetail = ({
     disableLoading();
   };
 
-  const proposalConfirm = async (
+  const submitRate = async (
     props: tether_rate,
     cancelRef: RefObject<HTMLButtonElement | null>,
     methods: UseFormReturn<any, any, undefined>
@@ -229,6 +221,11 @@ export const useTetherDetail = ({
     }
     disableLoading();
   };
+
+  // Both parties submit a rating via the same endpoint; the backend finalizes
+  // the trade when the second rating arrives.
+  const proposalConfirm = submitRate;
+  const ownerConfirm = submitRate;
 
   const proposalCancel = async () => {
     if (!currentTether) return;
@@ -277,36 +274,6 @@ export const useTetherDetail = ({
   };
 
   const dialogControllRef = useRef<FormDialogMethods>(undefined);
-  const ownerConfirm = async () => {
-    if (!currentTether) return;
-
-    const props: any = {
-      id: currentTether.id,
-      status: TetherStatus.Complete,
-    };
-
-    setLoading();
-    try {
-      const { isSuccess, hasMessage } = await postJson<TetherUpdateProps>(
-        ApiRoute.tethersUpdate,
-        props
-      );
-      if (hasMessage) {
-        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
-      }
-
-      if (isSuccess) {
-        methods.reset(tetherProposalDefault({ tether_id }));
-        router.push(AppRoute.Tether);
-      }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
-  };
 
   const ownerCancel = async () => {
     if (!currentTether) return;
@@ -383,13 +350,19 @@ export const useTetherDetail = ({
 
   const getAddress = () => {
     if (currentTether?.address_type === TetherAddressTypes.Category) {
-      return `${currentTether.city}${currentTether.state !== "" && currentTether.state !== null ? ` ${currentTether.state}` : ""}`;
+      const regions = (currentTether as TetherWithProfile).region_selections;
+      if (!regions || regions.length === 0) return "";
+      return regions
+        .map((r) => r.category?.name ?? "")
+        .filter(Boolean)
+        .join(", ");
     }
     return currentTether?.custom_address ?? "";
   };
 
   return {
     currentTether,
+    categories: tethersData?.tether_categories ?? [],
     control,
     methods,
     goEdit,
@@ -404,5 +377,6 @@ export const useTetherDetail = ({
     tryDelete,
     dialogControllRef,
     getAddress,
+    sessionUid: session?.user?.id ?? null,
   };
 };

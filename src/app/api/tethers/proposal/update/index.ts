@@ -69,30 +69,39 @@ export const POST = async (json: TetherProposalUpdateProps) => {
       if (existProposal) throw ToastData.existProposal;
 
       const updateResult = await handleConnect((prisma) =>
-        prisma.tether.update({
-          where: {
-            id: json.tether_id,
-          },
-          data: {
-            status: TetherStatus.Progress,
-            tether_proposals: {
-              create: {
-                ...removeColumnsFromObject(json, [
-                  "id",
-                  "reason",
-                  "tether_id",
-                  "user_id",
-                  "status",
-                  "user",
-                  "created_at",
-                  "updated_at",
-                ]),
-                reason: null,
-                user_id,
-                status: TetherProposalStatus.Open,
+        prisma.$transaction(async (tx) => {
+          const updated = await tx.tether.update({
+            where: {
+              id: json.tether_id,
+            },
+            data: {
+              status: TetherStatus.Progress,
+              tether_proposals: {
+                create: {
+                  ...removeColumnsFromObject(json, [
+                    "id",
+                    "reason",
+                    "tether_id",
+                    "user_id",
+                    "status",
+                    "user",
+                    "created_at",
+                    "updated_at",
+                  ]),
+                  reason: null,
+                  user_id,
+                  status: TetherProposalStatus.Open,
+                },
               },
             },
-          },
+          });
+
+          await tx.user.update({
+            where: { id: user_id },
+            data: { trade_joined: { increment: 1 } },
+          });
+
+          return updated;
         })
       );
 
@@ -118,40 +127,56 @@ export const POST = async (json: TetherProposalUpdateProps) => {
       if (!isOwner && !isProposalOwner) throw ToastData.noAuth;
 
       const updateResult = await handleConnect((prisma) =>
-        prisma.tether.update({
-          where: {
-            id: json.tether_id,
-          },
-          data: {
-            ...(json.status === TetherProposalStatus.Cancel && {
-              status: TetherStatus.Open,
-            }),
-            tether_proposals: {
-              update: {
-                where: {
-                  id: json.id,
-                },
-                data: {
-                  ...removeColumnsFromObject(json, [
-                    "id",
-                    "reason",
-                    "tether_id",
-                    "user_id",
-                    "currency",
-                    ...(json.status === TetherProposalStatus.Cancel
-                      ? ["price", "qty"]
-                      : []),
-                    "user",
-                    "created_at",
-                    "updated_at",
-                  ]),
-                  ...(json.status === TetherProposalStatus.Cancel && {
-                    reason: isOwner ? "owner" : "proposal",
-                  }),
+        prisma.$transaction(async (tx) => {
+          const updated = await tx.tether.update({
+            where: {
+              id: json.tether_id,
+            },
+            data: {
+              ...(json.status === TetherProposalStatus.Cancel && {
+                status: TetherStatus.Open,
+              }),
+              tether_proposals: {
+                update: {
+                  where: {
+                    id: json.id,
+                  },
+                  data: {
+                    ...removeColumnsFromObject(json, [
+                      "id",
+                      "reason",
+                      "tether_id",
+                      "user_id",
+                      "currency",
+                      ...(json.status === TetherProposalStatus.Cancel
+                        ? ["price", "qty"]
+                        : []),
+                      "user",
+                      "created_at",
+                      "updated_at",
+                    ]),
+                    ...(json.status === TetherProposalStatus.Cancel && {
+                      reason: isOwner ? "owner" : "proposal",
+                    }),
+                  },
                 },
               },
             },
-          },
+          });
+
+          if (json.status === TetherProposalStatus.Cancel) {
+            const cancelledProposal = tether.tether_proposals.find(
+              (p) => p.id === json.id
+            );
+            if (cancelledProposal) {
+              await tx.user.update({
+                where: { id: cancelledProposal.user_id },
+                data: { trade_joined: { decrement: 1 } },
+              });
+            }
+          }
+
+          return updated;
         })
       );
 

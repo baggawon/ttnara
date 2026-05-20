@@ -54,14 +54,14 @@ const main = async () => {
           isReadingMultiline = true;
           const keyValue = trimedLine.split("=");
           currentKey = keyValue[0];
-          currentValue = [keyValue[1].replace(/^'/, "")]; // 시작 따옴표 제거
+          currentValue = [keyValue[1].replace(/^['"]/, "")]; // 시작 따옴표 제거 (' 또는 ")
           return;
         }
 
         // PEM 키 끝 확인
         if (trimedLine.includes("-----END")) {
           isReadingMultiline = false;
-          currentValue.push(trimedLine.replace(/'$/, "")); // 끝 따옴표 제거
+          currentValue.push(trimedLine.replace(/['"]$/, "")); // 끝 따옴표 제거 (' 또는 ")
 
           const value = currentValue.join("\n");
           if (currentKey.startsWith("CLIENT")) {
@@ -123,7 +123,7 @@ const main = async () => {
 
         let serverData = "";
         server.forEach(({ key, value }) => {
-          serverData += `process.env.${key} = "${value}";\n`;
+          serverData += `process.env[${JSON.stringify(key)}] = ${JSON.stringify(value)};\n`;
         });
 
         await writeFile(serverEnv, serverData);
@@ -133,7 +133,12 @@ const main = async () => {
           const newData = `require('./env.js')\n${data}`;
           await writeFile(serverjs, newData);
         }
-      } catch (_) {}
+      } catch (e) {
+        // server.js absent during local dev / pre-build is expected — skip silently.
+        if (e.code !== "ENOENT") {
+          console.error("setup.mjs env injection failed:", e);
+        }
+      }
     }
   } catch (_) {}
 };

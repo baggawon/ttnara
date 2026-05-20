@@ -1,0 +1,215 @@
+//! Internal admin event ingress: `POST /internal/event`. Called by the Next.js
+//! app after it commits an admin-side change (mute, ban, hide, fixed message,
+//! config tweak, etc). The chat_server's job here is to:
+//!   - refresh its config cache when the change affects cached state, and
+//!   - push the corresponding WS frame(s) so connected clients see the
+//!     change without waiting for the 30s polling refresh.
+//!
+//! Auth: HMAC-SHA256 of the request body, hex-encoded, in `X-Chat-Signature`,
+//! plus a Unix-second `X-Chat-Timestamp` header to bound replay windows.
+
+use crate::protocol::{ChatNotice, ServerFrame};
+use crate::state::AppState;
+use axum::body::{Body, to_bytes};
+use axum::extract::{Request, State};
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use chrono::{DateTime, Utc};
+use hmac::{Hmac, Mac};
+use serde::Deserialize;
+use sha2::Sha256;
+use std::env;
+use subtle::ConstantTimeEq;
+use tracing::{debug, warn};
+
+const SIG_HEADER: &str = "x-chat-signature";
+const TS_HEADER: &str = "x-chat-timestamp";
+const REPLAY_WINDOW_SECS: i64 = 300;
+const MAX_BODY_BYTES: usize = 64 * 1024;
+
+// Some variants only consume their fields for deserialization (Unban needs no
+// broadcast; UnhideMessage has no wire-protocol counterpart) — silence the
+// resulting dead-code warnings rather than peppering the variants with `_`.
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum AdminEvent {
+    /// Settings/topics/banned-words/fixed-messages were changed; refresh cache.
+    /// (Notice changes use `NoticesChanged` so we can broadcast.)
+    ConfigChanged,
+    NoticesChanged,
+    Mute {
+        uid: String,
+        until: DateTime<Utc>,
+    },
+    Unmute {
+        uid: String,
+    },
+    Ban {
+        uid: String,
+    },
+    Unban {
+        uid: String,
+    },
+    HideMessage {
+        message_id: String,
+        topic_id: i32,
+    },
+    UnhideMessage {
+        message_id: String,
+        topic_id: i32,
+    },
+    SetFixed {
+        topic_id: i32,
+        content: String,
+    },
+    UnsetFixed {
+        topic_id: i32,
+    },
+}
+
+pub async fn admin_handler(
+    State(state): State<AppState>,
+    req: Request<Body>,
+) -> impl IntoResponse {
+    let secret = match env::var("CHAT_INTERNAL_SECRET") {
+        Ok(s) if !s.is_empty() => s,
+        _ => {
+            warn!("CHAT_INTERNAL_SECRET unset; rejecting admin event");
+            return StatusCode::SERVICE_UNAVAILABLE.into_response();
+        }
+    };
+
+    let (parts, body) = req.into_parts();
+
+    let sig_hex = parts
+        .headers
+        .get(SIG_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    let ts_str = parts
+        .headers
+        .get(TS_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    let bytes = match to_bytes(body, MAX_BODY_BYTES).await {
+        Ok(b) => b,
+        Err(_) => return StatusCode::PAYLOAD_TOO_LARGE.into_response(),
+    };
+
+    if !verify_signature(&secret, ts_str, &bytes, sig_hex) {
+        debug!("admin event signature rejected");
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+
+    let event: AdminEvent = match serde_json::from_slice(&bytes) {
+        Ok(e) => e,
+        Err(e) => {
+            debug!(error = %e, "admin event parse failed");
+            return StatusCode::BAD_REQUEST.into_response();
+        }
+    };
+
+    apply_event(&state, event).await;
+    StatusCode::NO_CONTENT.into_response()
+}
+
+fn verify_signature(secret: &str, ts: &str, body: &[u8], sig_hex: &str) -> bool {
+    let Ok(ts_int) = ts.parse::<i64>() else {
+        return false;
+    };
+    let now = Utc::now().timestamp();
+    if (now - ts_int).abs() > REPLAY_WINDOW_SECS {
+        return false;
+    }
+
+    let Ok(provided) = hex::decode(sig_hex) else {
+        return false;
+    };
+
+    type HmacSha256 = Hmac<Sha256>;
+    let Ok(mut mac) = HmacSha256::new_from_slice(secret.as_bytes()) else {
+        return false;
+    };
+    mac.update(ts.as_bytes());
+    mac.update(b".");
+    mac.update(body);
+    let expected = mac.finalize().into_bytes();
+
+    if expected.len() != provided.len() {
+        return false;
+    }
+    expected.as_slice().ct_eq(&provided).into()
+}
+
+async fn apply_event(state: &AppState, event: AdminEvent) {
+    match event {
+        AdminEvent::ConfigChanged => {
+            state.cache.refresh(&state.db).await;
+        }
+        AdminEvent::NoticesChanged => {
+            state.cache.refresh(&state.db).await;
+            let snapshot = state.cache.snapshot().await;
+            let notices: Vec<ChatNotice> = snapshot.notices.clone();
+            state
+                .registry
+                .broadcast_all(&ServerFrame::NoticeUpdate { notices });
+        }
+        AdminEvent::Mute { uid, until } => {
+            state.registry.send_to_user(
+                &uid,
+                &ServerFrame::UserMuted {
+                    is_self: true,
+                    until: until.to_rfc3339(),
+                },
+            );
+        }
+        AdminEvent::Unmute { uid } => {
+            state.spam.reset(&uid);
+            state
+                .registry
+                .send_to_user(&uid, &ServerFrame::UserUnmuted { is_self: true });
+        }
+        AdminEvent::Ban { uid } => {
+            // Don't kick: the user stays connected (and sees the banned
+            // overlay), so a follow-up Unban can still reach them via
+            // `send_to_user`. The pipeline's `is_banned` DB check blocks
+            // any future send_message attempts regardless.
+            state
+                .registry
+                .send_to_user(&uid, &ServerFrame::UserBanned { is_self: true });
+        }
+        AdminEvent::Unban { uid } => {
+            // The kicked user usually reconnects (anonymous-style read-only
+            // would be a 401-with-token mismatch, but their JWT is still
+            // valid so they re-establish). Pushing the frame clears their
+            // banned overlay without requiring a page refresh.
+            state
+                .registry
+                .send_to_user(&uid, &ServerFrame::UserUnbanned { is_self: true });
+        }
+        AdminEvent::HideMessage {
+            message_id,
+            topic_id,
+        } => {
+            state
+                .registry
+                .broadcast(topic_id, &ServerFrame::MessageHidden { message_id });
+        }
+        AdminEvent::UnhideMessage { .. } => {
+            // The wire protocol has no "unhide" frame; clients see the
+            // restored message on their next page reload / reconnect.
+        }
+        AdminEvent::SetFixed { topic_id, content } => {
+            state
+                .registry
+                .broadcast(topic_id, &ServerFrame::MessageFixed { topic_id, content });
+        }
+        AdminEvent::UnsetFixed { topic_id } => {
+            state
+                .registry
+                .broadcast(topic_id, &ServerFrame::MessageFixedRemoved { topic_id });
+        }
+    }
+}

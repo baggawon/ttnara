@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { Menubar, MenubarMenu, MenubarTrigger } from "@/components/ui/menubar";
 import { map } from "@/helpers/basic";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
+import { useTetherEnabled } from "@/helpers/customHook/useTetherEnabled";
 import { AppRoute } from "@/helpers/types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -13,6 +14,7 @@ export const maxExpandedStep = 1;
 
 export const SettingNavigation = (props: { children: ReactNode }) => {
   const pathname = usePathname();
+  const tetherEnabled = useTetherEnabled();
 
   const router = useRouter();
 
@@ -80,7 +82,9 @@ export const SettingNavigation = (props: { children: ReactNode }) => {
           {map(
             [
               { path: AppRoute.AccountSetting, label: "정보변경" },
-              { path: AppRoute.TetherSetting, label: "거래 관리" },
+              ...(tetherEnabled
+                ? [{ path: AppRoute.TetherSetting, label: "거래 관리" }]
+                : []),
               { path: AppRoute.NotificationSetting, label: "알림 관리" },
             ],
             ({ path, label }) => (

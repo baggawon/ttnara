@@ -88,7 +88,11 @@ export class BoardAccessService {
 
   canEdit() {
     if (this.thread_id && this.thread_id > 0) {
-      return this.isAppAdmin || this.userId === this.thread?.author_id;
+      return (
+        this.isAppAdmin ||
+        this.canModerate() ||
+        this.userId === this.thread?.author_id
+      );
     }
     return false;
   }
@@ -112,7 +116,11 @@ export class BoardAccessService {
 
   canDelete() {
     if (this.thread_id && this.thread_id > 0) {
-      return this.isAppAdmin || this.userId === this.thread?.author_id;
+      return (
+        this.isAppAdmin ||
+        this.canModerate() ||
+        this.userId === this.thread?.author_id
+      );
     }
     return false;
   }
@@ -120,7 +128,7 @@ export class BoardAccessService {
   canModerate() {
     return (
       this.isAppAdmin ||
-      this.userAuthLevel >= (this.topicSettings?.level_moderate ?? 0)
+      this.userAuthLevel >= (this.topicSettings?.level_moderator ?? 0)
     );
   }
 
@@ -135,9 +143,9 @@ export class BoardAccessService {
     const max = this.topicSettings?.max_thread_content_length ?? 10000;
     const min = this.topicSettings?.min_thread_content_length ?? 3;
 
-    // Remove non-text elements completely (img, video, iframe, etc.)
+    // Remove non-text elements completely (img, video, iframe, figure, source, etc.)
     const contentWithoutMedia = content.replace(
-      /<(img|video|iframe)[^>]*>/g,
+      /<\/?(img|video|iframe|figure|source)[^>]*>/g,
       ""
     );
 
@@ -147,7 +155,12 @@ export class BoardAccessService {
         .replace(/<[^>]*>/g, "") // Remove remaining HTML tags
         .trim().length > 0;
 
-    if (!hasText) {
+    // Allow media-only posts (images/videos without text)
+    const hasMedia =
+      /<(img|video|iframe|figure|source)\b/i.test(content) ||
+      /data-media-ref/i.test(content);
+
+    if (!hasText && !hasMedia) {
       return false;
     }
 
@@ -157,6 +170,11 @@ export class BoardAccessService {
       .replace(/&nbsp;|&amp;|&lt;|&gt;|&quot;/g, "x") // Replace HTML entities
       .trim().length;
 
+    // Media-only posts skip minimum length check
+    if (hasMedia && !hasText) {
+      return textLength <= max;
+    }
+
     return textLength >= min && textLength <= max;
   }
 
@@ -164,6 +182,13 @@ export class BoardAccessService {
     const max = this.topicSettings?.max_comment_content_length ?? 300;
     const min = this.topicSettings?.min_comment_content_length ?? 1;
     return content.length >= min && content.length <= max;
+  }
+
+  // Content visibility check (use_mypostonly)
+  canViewContent() {
+    if (!this.topicSettings?.use_mypostonly) return true;
+    if (!this.thread?.is_secret) return true;
+    return this.isAppAdmin || this.userId === this.thread?.author_id;
   }
 
   // Feature checks

@@ -40,15 +40,15 @@ export default function RanksBatchEditForm() {
             >
               <FormInput
                 name="rangeStart"
-                label="시작 랭크"
+                label="시작 등급"
                 type={InputType.number}
               />
               <FormInput
                 name="rangeEnd"
-                label="끝 랭크"
+                label="끝 등급"
                 type={InputType.number}
               />
-              <FormInput name="name" label="이름" placeholder="랭크 이름" />
+              <FormInput name="name" label="이름" placeholder="등급 이름" />
               <div>
                 <FormInput
                   name="badgeImageUrl"
@@ -62,7 +62,7 @@ export default function RanksBatchEditForm() {
               <FormTextarea
                 name="description"
                 label="설명"
-                placeholder="랭크 설명"
+                placeholder="등급 설명"
               />
               <Button type="submit" disabled={isLoading}>
                 수정

@@ -23,9 +23,6 @@ export const SystemDashboardCard = ({ className }: { className?: string }) => {
       </CardHeader>
       <CardContent className="[&>p]:leading-[140%]">
         <p>
-          유지보수 모드: {generalData?.maintenance_mode ? "활성화" : "비활성화"}
-        </p>
-        <p>
           회원가입: {generalData?.allow_user_registration ? "가능" : "불가능"}
         </p>
       </CardContent>

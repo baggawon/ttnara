@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import type { TopicSettings } from "@/app/api/topic/read";
 import { serverGet } from "@/helpers/server/get";
 import { getDehydratedQueries } from "@/helpers/query";
+import { buildPageTitle } from "@/helpers/server/brandSettings";
 import type { ThreadWithProfile } from "@/app/api/threads/read";
 import { HydrationBoundary } from "@tanstack/react-query";
 
@@ -58,7 +59,9 @@ export async function generateMetadata(props: {
     ]);
 
   return {
-    title: `${currentThread?.title} - ${settings?.name ?? ""} - 테더나라`,
+    title: await buildPageTitle(
+      `${currentThread?.title} - ${settings?.name ?? ""}`
+    ),
   };
 }
 
@@ -92,10 +95,17 @@ export default async function Page(props: {
     const access = await BoardAccessService.fromSession({
       session: queries[0].state.data as Session | null,
       topic_url,
+      thread_id,
+      thread: queries[2].state.data,
       topicSettings: queries[1].state.data,
     });
 
     if (!access.canRead()) {
+      redirect(AppRoute.Main);
+    }
+
+    // use_mypostonly 체크: 익명 글은 작성자 본인과 관리자만 열람
+    if (!access.canViewContent()) {
       redirect(AppRoute.Main);
     }
   } catch (error) {

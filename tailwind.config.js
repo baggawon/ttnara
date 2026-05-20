@@ -8,9 +8,15 @@ module.exports = {
       padding: "2rem",
       screens: {
         "2xl": "1400px",
+        "3xl": "1600px",
+        "4xl": "1800px",
       },
     },
     extend: {
+      screens: {
+        "3xl": "1600px",
+        "4xl": "1800px",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -156,8 +162,5 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    require("tailwindcss-animate"),
-    require("tailwindcss-3d")({ legacy: true }),
-  ],
+  plugins: [require("tailwindcss-animate")],
 };

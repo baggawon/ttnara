@@ -8,6 +8,8 @@ import { appCache, CacheKey } from "@/helpers/server/serverCache";
 import { uploadFileToS3 } from "@/helpers/server/s3";
 import type { popup } from "@prisma/client";
 
+const IMAGE_MAX_BYTES = 20 * 1024 * 1024;
+
 export interface PopupCreateProps extends popup {}
 
 export const POST = async (formData: FormData) => {
@@ -18,6 +20,8 @@ export const POST = async (formData: FormData) => {
       id: 0, // auto-increment, will be ignored
       title: formData.get("title") as string,
       content: formData.get("content") as string,
+      content_format:
+        (formData.get("content_format") as string | null) ?? "html",
       image_cloud_front_url: null,
       image_aws_url: null,
       link_url: formData.get("link_url") as string,
@@ -41,6 +45,14 @@ export const POST = async (formData: FormData) => {
 
     // 이미지 파일이 있으면 S3에 업로드
     if (image_file && image_file.size > 0) {
+      if (image_file.size > IMAGE_MAX_BYTES) {
+        return {
+          result: false,
+          isSuccess: false,
+          hasMessage: "이미지 크기가 너무 큽니다 (최대 20MB)",
+          message: "이미지 크기가 너무 큽니다 (최대 20MB)",
+        };
+      }
       const uploadResult = await uploadFileToS3(image_file, "popup");
       if (uploadResult?.aws_cloud_front_url && uploadResult?.aws_url) {
         json.image_cloud_front_url = uploadResult.aws_cloud_front_url;

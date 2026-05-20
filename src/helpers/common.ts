@@ -25,8 +25,6 @@ import { AppRoute, BroadcastChannels, BroadcastEvents } from "@/helpers/types";
 import type { AdminAppRoute, ApiRoute } from "@/helpers/types";
 import { Currency } from "@/helpers/types";
 import type { CustomColumDef } from "@/components/2_molecules/Table/DataTable";
-import type { EasyTableHeader } from "@/components/2_molecules/Table/EasyTable";
-import { utils, writeFile } from "xlsx";
 import { ToastData } from "@/helpers/toastData";
 import { signOut as authSignOut, getSession } from "next-auth/react";
 import {
@@ -763,46 +761,6 @@ export const extensionCondition = (result: any) => ({
   hasPermission: typeof result?.hasPermission === "boolean",
 });
 
-export interface HistoryTableProps {
-  type: string;
-  headers: EasyTableHeader[];
-  name: string;
-  data: any[];
-}
-
-export const excelDownload = async (
-  name?: string,
-  tableData?: {
-    type: string;
-    headers: EasyTableHeader[];
-    name: string;
-    data: any[];
-  }[]
-) => {
-  if (tableData && tableData.length > 0) {
-    const wb = utils.book_new();
-
-    forEach(tableData, (table) => {
-      const makeXlsxData = map(table.data, (value) => {
-        const result: any[] = [];
-        forEach(table.headers, (header) => {
-          result.push(value[header.id]);
-        });
-        return result;
-      });
-      const headers = map(table.headers, (header) => header.label);
-      const dataWS = utils.json_to_sheet([headers, ...makeXlsxData], {
-        skipHeader: true,
-      });
-      utils.book_append_sheet(wb, dataWS, table.name);
-    });
-    writeFile(
-      wb,
-      `${dayjs().format("YYYYMMDD")}_${convertId(name ?? "")}.xlsx`
-    );
-  }
-};
-
 export const signOut = async () => {
   const session = await getSession();
   if (session?.user) {
@@ -1083,4 +1041,26 @@ export const getDisplayname = (
   if (profile?.is_app_admin) return "관리자";
   if (profile?.displayname) return profile.displayname;
   return "";
+};
+
+export const getBoardPosterDisplayname = (
+  profile:
+    | Pick<profile, "displayname" | "is_app_admin" | "auth_level">
+    | null
+    | undefined,
+  topicLevelModerator: number | null | undefined,
+  viewer:
+    | { is_app_admin?: boolean | null; auth_level?: number | null }
+    | null
+    | undefined
+) => {
+  const displayname = profile?.displayname ?? "";
+  const modLevel = topicLevelModerator ?? Number.MAX_SAFE_INTEGER;
+  const posterIsMod =
+    !!profile?.is_app_admin || (profile?.auth_level ?? 0) >= modLevel;
+  if (!posterIsMod) return displayname;
+  const viewerIsMod =
+    !!viewer?.is_app_admin || (viewer?.auth_level ?? 0) >= modLevel;
+  if (viewerIsMod) return `관리자(${displayname})`;
+  return "관리자";
 };

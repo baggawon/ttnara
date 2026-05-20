@@ -16,20 +16,18 @@ export const POST = async (json: PartnersDeleteProps) => {
     if (!json?.ids || !Array.isArray(json.ids) || json.ids.length === 0) {
       return {
         result: false,
-        message: "파트너 ID가 필요합니다.",
+        message: "협력사 ID가 필요합니다.",
       };
     }
 
     await requestValidator([RequestValidator.Admin], json);
 
-    // Get partners with images to delete
     const partnersToDelete = await handleConnect((prisma) =>
       prisma.partner.findMany({
         where: { id: { in: json.ids } },
         select: {
           id: true,
           banner_image_url: true,
-          partner_image_url: true,
         },
       })
     );
@@ -37,22 +35,15 @@ export const POST = async (json: PartnersDeleteProps) => {
     if (!partnersToDelete || partnersToDelete.length === 0) {
       return {
         result: false,
-        message: "제공된 ID로 파트너를 찾을 수 없습니다.",
+        message: "제공된 ID로 협력사를 찾을 수 없습니다.",
       };
     }
 
-    // Collect image URLs to delete
     const imageUrlsToDelete: string[] = [];
 
     partnersToDelete.forEach((partner) => {
       if (partner.banner_image_url && partner.banner_image_url.trim() !== "") {
         imageUrlsToDelete.push(partner.banner_image_url);
-      }
-      if (
-        partner.partner_image_url &&
-        partner.partner_image_url.trim() !== ""
-      ) {
-        imageUrlsToDelete.push(partner.partner_image_url);
       }
     });
 

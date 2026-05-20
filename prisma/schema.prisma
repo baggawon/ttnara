@@ -25,38 +25,43 @@ model settings {
 }
 
 model user {
-  id               String            @id @default(cuid())
-  username         String            @unique
-  password         String
-  is_active        Boolean           @default(true)
-  is_superuser     Boolean           @default(false)
-  created_at       DateTime          @default(now())
-  updated_at       DateTime          @updatedAt
-  last_login       DateTime?
-  trade_total      Int               @default(0)
-  trade_count      Int               @default(0)
-  trade_cancel     Int               @default(0)
-  trade_rate       Decimal           @default(0.0) @db.Decimal(32, 6)
-  push_token       String[]          @default([]) @db.Text
-  settings         settings[]
-  profile          profile?
-  login_histories  login_history[]
-  message_inbox    message_inbox[]
-  message_history  message_history[]
-  threads          thread[]
-  thread_images    thread_image[]
-  thread_votes     thread_vote[]
-  redactedComments comment[]         @relation("RedactedComments")
-  blacklisted_in   general_setting[] @relation("BlacklistedUsers")
-  penalized_in     chat_setting[]    @relation("PenaltyUsers")
-  dev_notices      dev_notice[]
-  comments         comment[]
-  comment_vote     comment_vote[]
-  tethers          tether[]
-  tether_proposals tether_proposal[]
-  tether_rate      tether_rate[]
-  kyc              kyc[]
-  alarm            alarm[]
+  id                  String              @id @default(cuid())
+  username            String              @unique
+  password            String
+  is_active           Boolean             @default(true)
+  is_superuser        Boolean             @default(false)
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  last_login          DateTime?
+  trade_total         Int                 @default(0)
+  trade_count         Int                 @default(0)
+  trade_joined        Int                 @default(0)
+  trade_rate          Decimal             @default(0.0) @db.Decimal(32, 6)
+  push_token          String[]            @default([]) @db.Text
+  settings            settings[]
+  profile             profile?
+  login_histories     login_history[]
+  message_inbox       message_inbox[]
+  message_history     message_history[]
+  threads             thread[]
+  thread_votes        thread_vote[]
+  media_uploads       media_upload[]
+  redactedComments    comment[]           @relation("RedactedComments")
+  blacklisted_in      general_setting[]   @relation("BlacklistedUsers")
+  penalized_in        chat_setting[]      @relation("PenaltyUsers")
+  chat_banned_in      chat_setting[]      @relation("ChatBannedUsers")
+  dev_notices         dev_notice[]
+  comments            comment[]
+  comment_vote        comment_vote[]
+  tethers             tether[]
+  tether_proposals    tether_proposal[]
+  tether_rate         tether_rate[]
+  kyc                 kyc[]
+  alarm               alarm[]
+  leaderboard_entries leaderboard_entry[]
+  point_histories     point_history[]
+  board_activities    board_activity[]
+  push_histories_sent push_history[]      @relation("PushHistorySentBy")
 
   @@index([id, created_at(sort: Desc)])
 }
@@ -151,7 +156,7 @@ model topic {
   single_comment_only       Boolean    @default(false)
   max_thread_title_length   Int        @default(200)
   max_thread_content_length Int        @default(10000)
-  max_thread_comment_length Int        @default(5000)
+  max_thread_comment_length Int        @default(300)
   min_thread_title_length   Int        @default(1)
   min_thread_content_length Int        @default(1)
   min_thread_comment_length Int        @default(1)
@@ -166,6 +171,7 @@ model topic {
   max_upload_items          Int        @default(5)
   use_thumbnail             Boolean    @default(false)
   use_anonymous             Boolean    @default(false)
+  use_mypostonly            Boolean    @default(false)
   use_upvote                Boolean    @default(true)
   use_downvote              Boolean    @default(false)
   thread_page_size          Int        @default(20)
@@ -183,27 +189,30 @@ model topic {
 }
 
 model thread {
-  id          Int            @id @default(autoincrement())
-  title       String         @db.VarChar(255)
-  content     String?        @db.Text
-  created_at  DateTime       @default(now())
-  updated_at  DateTime       @updatedAt
-  views       Int            @default(0)
-  upvotes     Int            @default(0)
-  downvotes   Int            @default(0)
-  author_id   String
-  author      user           @relation(fields: [author_id], references: [id], onDelete: Cascade)
-  category_id Int?
-  category    category?      @relation(fields: [category_id], references: [id], onDelete: Cascade)
-  is_blocked  Boolean        @default(false)
-  is_secret   Boolean        @default(false)
-  topic_id    Int
-  topic       topic          @relation(fields: [topic_id], references: [id], onDelete: Cascade)
-  topic_order Int
-  images      thread_image[]
-  comments    comment[]
-  votes       thread_vote[]
-  is_notice   Boolean        @default(false)
+  id             Int            @id @default(autoincrement())
+  title          String         @db.VarChar(255)
+  content        String?        @db.Text
+  content_format String         @default("html") @db.VarChar(10)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  views          Int            @default(0)
+  upvotes        Int            @default(0)
+  downvotes      Int            @default(0)
+  author_id      String
+  author         user           @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  category_id    Int?
+  category       category?      @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  is_blocked     Boolean        @default(false)
+  is_secret      Boolean        @default(false)
+  topic_id       Int
+  topic          topic          @relation(fields: [topic_id], references: [id], onDelete: Cascade)
+  topic_order    Int
+  thumbnail_media_id Int?
+  thumbnail_media    media_upload? @relation("ThreadThumbnail", fields: [thumbnail_media_id], references: [id], onDelete: SetNull)
+  comments       comment[]
+  votes          thread_vote[]
+  is_notice      Boolean        @default(false)
+  is_push_notify Boolean        @default(false)
 
   @@unique([topic_id, topic_order]) // 토픽별로 유니크한 순서 보장
   @@index([topic_id, created_at(sort: Desc), is_secret, is_blocked, is_notice])
@@ -235,17 +244,22 @@ model category {
   @@unique([topic_id, name])
 }
 
-model thread_image {
+model media_upload {
   id                  Int      @id @default(autoincrement())
   author_id           String
   author              user     @relation(fields: [author_id], references: [id], onDelete: Cascade)
-  thread_id           Int
-  thread              thread   @relation(fields: [thread_id], references: [id], onDelete: Cascade)
-  aws_url             String
-  aws_cloud_front_url String
-  media_type          String   @default("image")
-  mime_type           String   @default("image/jpeg")
-  uploadedAt          DateTime @default(now())
+  aws_url             String   @db.Text
+  aws_cloud_front_url String   @db.Text
+  media_type          String   @default("image") @db.VarChar(10)
+  mime_type           String   @default("image/jpeg") @db.VarChar(100)
+  size_bytes          Int      @default(0)
+  attached_to_type    String?  @db.VarChar(20)
+  attached_to_id      Int?
+  uploaded_at         DateTime @default(now())
+  thumbnail_for       thread[] @relation("ThreadThumbnail")
+
+  @@index([attached_to_type, attached_to_id])
+  @@index([attached_to_id, uploaded_at])
 }
 
 model comment {
@@ -255,6 +269,7 @@ model comment {
   author_id      String
   author         user           @relation(fields: [author_id], references: [id], onDelete: Cascade)
   content        String         @db.Text
+  content_format String         @default("html") @db.VarChar(10)
   created_at     DateTime       @default(now())
   updated_at     DateTime       @updatedAt
   upvotes        Int            @default(0)
@@ -281,14 +296,19 @@ model comment_vote {
 model general_setting {
   id                           Int     @id @default(autoincrement())
   site_name                    String  @default("NAME") @db.VarChar(100)
+  site_title                   String? @db.VarChar(200)
   site_description             String? @db.Text
+  site_keywords                String? @db.Text
+  logo_image_url               String? @db.Text
+  favicon_url                  String? @db.Text
+  apple_icon_url               String? @db.Text
   maintenance_mode             Boolean @default(false)
   allow_user_registration      Boolean @default(true)
   allow_login                  Boolean @default(true)
+  p2p_paused                   Boolean @default(false)
   general_manager_id           String? @unique
   user_logs_delete_days        Int     @default(0)
   admin_logs_delete_days       Int     @default(0)
-  active_user_interval_seconds Int     @default(300)
   blacklisted_users            user[]  @relation("BlacklistedUsers")
 }
 
@@ -306,6 +326,19 @@ model user_setting {
   user_delete_days       Int @default(0)
 }
 
+model tether_setting {
+  id                        Int     @id @default(autoincrement())
+  use_tether_board          Boolean @default(true)
+  min_thread_title_length   Int     @default(1)
+  max_thread_title_length   Int     @default(200)
+  min_thread_content_length Int     @default(1)
+  max_thread_content_length Int     @default(10000)
+  use_upload_file           Boolean @default(false)
+  allowed_file_extensions   String  @default("jpg,png,gif,webp,jpeg,mp4,webm") @db.VarChar(200)
+  max_file_size_mb          Int     @default(5)
+  max_upload_items          Int     @default(5)
+}
+
 model thread_setting {
   id                        Int     @id @default(autoincrement())
   post_delete_days          Int     @default(0)
@@ -313,7 +346,7 @@ model thread_setting {
   post_interval_seconds     Int     @default(30)
   max_thread_title_length   Int     @default(200)
   max_thread_content_length Int     @default(10000)
-  max_thread_comment_length Int     @default(5000)
+  max_thread_comment_length Int     @default(300)
   min_thread_title_length   Int     @default(1)
   min_thread_content_length Int     @default(1)
   min_thread_comment_length Int     @default(1)
@@ -328,6 +361,7 @@ model thread_setting {
   max_upload_items          Int     @default(5)
   use_thumbnail             Boolean @default(false)
   use_anonymous             Boolean @default(false)
+  use_mypostonly            Boolean @default(false)
   use_upvote                Boolean @default(true)
   use_downvote              Boolean @default(false)
   thread_page_size          Int     @default(20)
@@ -341,6 +375,7 @@ model thread_setting {
   thread_disable_edit       Int     @default(1)
   thread_disable_delete     Int     @default(1)
   default_topic_id          Int?
+  default_thumbnail_url     String? @db.Text
 }
 
 model security_setting {
@@ -357,17 +392,68 @@ model point_setting {
   points_per_day_login Int @default(100)
 }
 
+model point_history {
+  id         Int      @id @default(autoincrement())
+  uid        String
+  user       user     @relation(fields: [uid], references: [id], onDelete: Cascade)
+  amount     Int
+  balance    Int
+  kind       String   @default("earn") @db.VarChar(20)
+  action     String   @db.VarChar(50)
+  topic_id   Int?
+  thread_id  Int?
+  comment_id Int?
+  ref_type   String?  @db.VarChar(30)
+  ref_id     Int?
+  admin_uid  String?
+  note       String?  @db.VarChar(500)
+  created_at DateTime @default(now())
+
+  @@index([uid, created_at(sort: Desc)])
+  @@index([uid, kind, created_at(sort: Desc)])
+  @@index([thread_id])
+  @@index([comment_id])
+}
+
+model board_activity {
+  id         Int      @id @default(autoincrement())
+  uid        String
+  user       user     @relation(fields: [uid], references: [id], onDelete: Cascade)
+  action     String   @db.VarChar(30)
+  topic_id   Int?
+  thread_id  Int?
+  comment_id Int?
+  note       String?  @db.VarChar(120)
+  created_at DateTime @default(now())
+
+  @@index([uid, created_at(sort: Desc)])
+  @@index([uid, thread_id, action])
+}
+
 model chat_setting {
-  id                            Int     @id @default(autoincrement())
-  chat_manager_id               String? @unique
-  level_moderator               Int     @default(5)
-  level_chat                    Int     @default(1)
-  max_chat_length               Int     @default(200)
-  chat_monitor_interval_seconds Int     @default(10)
-  chat_monitor_limit            Int     @default(6)
-  chat_cooldown_seconds         Int     @default(5)
-  chat_delete_days              Int     @default(0)
-  penalty_users                 user[]  @relation("PenaltyUsers")
+  id                     Int      @id @default(autoincrement())
+  chat_server_url        String   @default("") @db.VarChar(500)
+  level_moderator        Int      @default(5)
+  level_chat             Int      @default(1)
+  max_chat_length        Int      @default(50)
+  max_display_items      Int      @default(100)
+  spam_frequency_seconds Int      @default(3)
+  spam_penalty_second    Int      @default(1)
+  spam_penalty_third     Int      @default(5)
+  spam_penalty_last      Int      @default(30)
+  chat_delete_hours      Int      @default(24)
+  penalty_users          user[]   @relation("PenaltyUsers")
+  banned_users           user[]   @relation("ChatBannedUsers")
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+}
+
+model chat_topic {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(50)
+  display_order Int      @default(1)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
 }
 
 model chat_notice {
@@ -380,12 +466,84 @@ model chat_notice {
   updated_at    DateTime @updatedAt
 }
 
+model chat_fixed_message {
+  id         Int      @id @default(autoincrement())
+  topic_id   Int
+  content    String   @db.VarChar(500)
+  author_id  String
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model chat_banned_word {
+  id         Int      @id @default(autoincrement())
+  word       String   @db.VarChar(100)
+  created_at DateTime @default(now())
+}
+
+model chat_report {
+  id          Int      @id @default(autoincrement())
+  reporter_id String
+  message_id  String   @db.VarChar(100)
+  reason      String?  @db.VarChar(200)
+  created_at  DateTime @default(now())
+}
+
+model chat_message {
+  id           String    @id @default(cuid())
+  topic_id     Int
+  uid          String
+  displayname  String    @db.VarChar(50)
+  rank_level   Int       @default(1)
+  rank_image   String?
+  content      String    @db.VarChar(500)
+  is_hidden    Boolean   @default(false)
+  hidden_by_id String?
+  hidden_at    DateTime?
+  created_at   DateTime  @default(now())
+
+  @@index([topic_id, created_at(sort: Desc)])
+  @@index([uid])
+  @@index([created_at])
+}
+
+model chat_muted_user {
+  uid         String   @id
+  until       DateTime
+  by_admin_id String?
+  reason      String?  @db.VarChar(200)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([until])
+}
+
+model chat_moderation_log {
+  id                Int      @id @default(autoincrement())
+  action            String   @db.VarChar(32)
+  target_uid        String?
+  target_message_id String?
+  topic_id          Int?
+  by_admin_id       String?
+  reason            String?  @db.VarChar(200)
+  metadata          Json?
+  created_at        DateTime @default(now())
+
+  @@index([target_uid, created_at(sort: Desc)])
+  @@index([target_message_id])
+  @@index([topic_id, created_at(sort: Desc)])
+  @@index([action, created_at(sort: Desc)])
+  @@index([created_at(sort: Desc)])
+}
+
 model dev_notice {
   id            Int      @id @default(autoincrement())
   author_id     String
   author        user     @relation(fields: [author_id], references: [id])
   title         String   @db.VarChar(100)
   content       String   @db.Text
+  content_format String  @default("html") @db.VarChar(10)
   is_active     Boolean  @default(false)
   display_order Int      @default(1)
   created_at    DateTime @default(now())
@@ -409,39 +567,56 @@ model banner {
 }
 
 model tether {
-  id               Int               @id @default(autoincrement())
-  user_id          String
-  user             user              @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  title            String            @db.VarChar(200)
-  condition        String            @db.Text
-  use_author       Boolean           @default(false)
-  city             String?           @db.VarChar(100)
-  state            String?           @db.VarChar(100)
-  price            Decimal?          @db.Decimal(32, 6)
-  margin           Decimal?          @db.Decimal(32, 6)
-  min_qty          Decimal           @db.Decimal(32, 6)
-  max_qty          Decimal           @db.Decimal(32, 6)
-  password         String?           @db.VarChar(10)
-  methods          String            @db.VarChar(100)
-  trade_type       String            @db.VarChar(10)
-  price_type       String            @default("고정가격") @db.VarChar(10)
-  address_type     String            @default("카테고리") @db.VarChar(10)
-  custom_address   String?           @db.VarChar(255)
-  currency         String            @default("Tether") @db.VarChar(30)
-  status           String            @default("open") @db.VarChar(10)
-  created_at       DateTime          @default(now())
-  updated_at       DateTime          @updatedAt
-  tether_proposals tether_proposal[]
+  id                Int                       @id @default(autoincrement())
+  user_id           String
+  user              user                      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  title             String                    @db.VarChar(200)
+  condition         String                    @db.Text
+  condition_format  String                    @default("html") @db.VarChar(10)
+  use_author        Boolean                   @default(false)
+  price             Decimal?                  @db.Decimal(32, 6)
+  margin            Decimal?                  @db.Decimal(32, 6)
+  min_qty           Decimal                   @db.Decimal(32, 6)
+  max_qty           Decimal                   @db.Decimal(32, 6)
+  trade_type        String                    @db.VarChar(10)
+  price_type        String                    @default("고정가격") @db.VarChar(10)
+  address_type      String                    @default("카테고리") @db.VarChar(10)
+  custom_address    String?                   @db.VarChar(255)
+  currency          String                    @default("Tether") @db.VarChar(30)
+  status            String                    @default("open") @db.VarChar(10)
+  contact_method    String?                   @db.VarChar(20)
+  contact_id        String?                   @db.VarChar(100)
+  preferred_time    String?                   @db.VarChar(100)
+  hide_contact      Boolean                   @default(true)
+  created_at        DateTime                  @default(now())
+  updated_at        DateTime                  @updatedAt
+  tether_proposals  tether_proposal[]
+  region_selections tether_region_selection[]
 
   @@index([user_id, created_at(sort: Desc)])
   @@index([id, created_at(sort: Desc), status(not: "cancel")])
 }
 
 model tether_category {
-  id        Int     @id @default(autoincrement())
-  name      String  @unique @db.VarChar(100)
-  parent_id Int?
-  is_active Boolean @default(true)
+  id                Int                       @id @default(autoincrement())
+  name              String                    @db.VarChar(100)
+  parent_id         Int?
+  is_active         Boolean                   @default(true)
+  region_selections tether_region_selection[]
+
+  @@unique([parent_id, name])
+}
+
+model tether_region_selection {
+  id          Int             @id @default(autoincrement())
+  tether_id   Int
+  category_id Int
+  tether      tether          @relation(fields: [tether_id], references: [id], onDelete: Cascade)
+  category    tether_category @relation(fields: [category_id], references: [id])
+
+  @@unique([tether_id, category_id])
+  @@index([tether_id])
+  @@index([category_id])
 }
 
 model tether_proposal {
@@ -471,6 +646,8 @@ model tether_rate {
   tether_proposal    tether_proposal @relation(fields: [tether_proposal_id], references: [id], onDelete: Cascade)
   rate               Decimal         @db.Decimal(32, 6)
   created_at         DateTime        @default(now())
+
+  @@unique([user_id, tether_proposal_id])
 }
 
 model trade_rank {
@@ -479,12 +656,46 @@ model trade_rank {
   name            String?  @db.VarChar(50) // "Beginner", "Intermediate", "Expert", etc.
   min_trade_count Int // Minimum trades required to achieve this rank
   description     String?  @db.Text
-  badge_image     String? // Optional URL to a badge image for this rank
+  badge_image     String? // Stored aws_cloud_front_url of the assigned rank_badge_image, or null
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
   is_active       Boolean  @default(true)
 
   @@index([rank_level])
+}
+
+model rank_badge_image {
+  id                  Int      @id @default(autoincrement())
+  name                String?  @db.VarChar(100) // Optional admin label
+  aws_url             String   @db.Text
+  aws_cloud_front_url String   @db.Text
+  mime_type           String   @db.VarChar(50)
+  size_bytes          Int
+  assigned_min_rank   Int? // null = unassigned
+  assigned_max_rank   Int? // null = unassigned; equal to assigned_min_rank for single-rank assignments
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@index([assigned_min_rank, assigned_max_rank])
+}
+
+model leaderboard_entry {
+  id            Int      @id @default(autoincrement())
+  uid           String
+  period_type   String   @db.VarChar(10) // "total", "daily", "weekly"
+  period_key    String   @db.VarChar(20) // "all", "20260401", "2026:14"
+  ranking_point Decimal  @db.Decimal(32, 6)
+  trade_count   Int
+  trade_rate    Decimal  @db.Decimal(32, 6)
+  rank_level    Int
+  prev_position Int? // previous position before last update, null = new entry
+  updated_at    DateTime @updatedAt
+  created_at    DateTime @default(now())
+
+  user user @relation(fields: [uid], references: [id])
+
+  @@unique([uid, period_type, period_key])
+  @@index([period_type, period_key, ranking_point(sort: Desc), updated_at(sort: Asc)])
 }
 
 model kyc {
@@ -521,24 +732,68 @@ model alarm {
   updated_at DateTime @updatedAt
 }
 
+model notification_queue {
+  id             String   @id @default(cuid())
+  user_id        String
+  thread_id      Int
+  topic_id       Int
+  topic_url      String   @db.VarChar(200)
+  count          Int      @default(1)
+  last_commenter String   @db.VarChar(50)
+  dispatched     Boolean  @default(false)
+  dispatch_after DateTime
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@unique([user_id, thread_id, dispatched])
+  @@index([dispatched, dispatch_after])
+}
+
 model partner {
-  id                       Int      @id @default(autoincrement())
-  name                     String   @db.VarChar(100)
-  url                      String   @db.Text
-  public_banner_image_url  String   @db.Text
-  banner_image_url         String   @db.Text
-  public_partner_image_url String   @db.Text
-  partner_image_url        String   @db.Text
-  display_order            Int      @default(1)
-  is_active                Boolean  @default(true)
-  created_at               DateTime @default(now())
-  updated_at               DateTime @updatedAt
+  id                      Int      @id @default(autoincrement())
+  name                    String   @db.VarChar(100)
+  url                     String   @db.Text
+  public_banner_image_url String   @db.Text
+  banner_image_url        String   @db.Text
+  display_order           Int      @default(1)
+  is_active               Boolean  @default(true)
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+}
+
+model guarantee_company {
+  id               Int      @id @default(autoincrement())
+  title            String   @db.VarChar(200)
+  business_name    String   @db.VarChar(100)
+  telegram_url     String   @db.Text
+  regions          String[]
+  positions        String[]
+  no_website       Boolean  @default(true)
+  url              String   @default("") @db.Text
+  public_image_url String   @db.Text
+  image_url        String   @db.Text
+  currencies       String[]
+  deposit          String   @db.VarChar(100)
+  display_order    Int      @default(1)
+  is_active        Boolean  @default(true)
+  description        String? @db.Text
+  description_format String? @db.VarChar(10)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+}
+
+model guarantee_page_setting {
+  id                    Int      @id @default(1)
+  public_hero_image_url String?  @db.Text
+  hero_image_url        String?  @db.Text
+  updated_at            DateTime @updatedAt
 }
 
 model popup {
   id                    Int      @id @default(autoincrement())
   title                 String   @db.VarChar(200)
   content               String   @db.Text
+  content_format        String   @default("html") @db.VarChar(10)
   image_cloud_front_url String?  @db.Text
   image_aws_url         String?  @db.Text
   link_url              String?  @db.Text
@@ -556,4 +811,91 @@ model popup {
   display_order         Int      @default(1)
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
+}
+
+model push_template {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(100)
+  title      String   @db.VarChar(200)
+  body       String   @db.Text
+  url        String?  @db.Text
+  category   String   @default("general") @db.VarChar(50)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model push_history {
+  id              Int      @id @default(autoincrement())
+  title           String   @db.VarChar(200)
+  body            String   @db.Text
+  url             String?  @db.Text
+  category        String   @default("general") @db.VarChar(50)
+  template_id     Int?
+  sent_by         String
+  user            user     @relation("PushHistorySentBy", fields: [sent_by], references: [id])
+  recipient_count Int
+  target_type     String   @default("all") @db.VarChar(50)
+  sent_at         DateTime @default(now())
+}
+
+model nav_menu_item {
+  id            Int             @id @default(autoincrement())
+  surface       String          @db.VarChar(20) // "top" | "mobile_bottom"
+  kind          String          @default("link") @db.VarChar(20) // "link" | "home" | "chat_toggle"
+  parent_id     Int?
+  parent        nav_menu_item?  @relation("nav_children", fields: [parent_id], references: [id], onDelete: Cascade)
+  children      nav_menu_item[] @relation("nav_children")
+  label         String          @db.VarChar(64)
+  url           String          @db.VarChar(500)
+  is_external   Boolean         @default(false)
+  icon          String?         @db.VarChar(40) // lucide-react icon name; used on mobile_bottom
+  display_order Int             @default(1)
+  is_active     Boolean         @default(true)
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @updatedAt
+
+  @@index([surface, parent_id, display_order])
+}
+
+model support_link_card {
+  id               Int      @id @default(autoincrement())
+  title            String   @db.VarChar(200)
+  description      String?  @db.Text
+  url              String   @db.Text
+  image_url        String?  @db.Text
+  cloudfront_url   String?  @db.Text
+  opens_in_new_tab Boolean  @default(true)
+  display_order    Int      @default(0)
+  is_active        Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([display_order, created_at(sort: Desc)])
+}
+
+model support_qna_category {
+  id            Int           @id @default(autoincrement())
+  name          String        @db.VarChar(100)
+  display_order Int           @default(0)
+  is_active     Boolean       @default(true)
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+  qnas          support_qna[]
+
+  @@index([display_order])
+}
+
+model support_qna {
+  id             Int                  @id @default(autoincrement())
+  category_id    Int
+  category       support_qna_category @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  question       String               @db.VarChar(500)
+  answer         String               @db.Text
+  content_format String               @default("html") @db.VarChar(10)
+  display_order  Int                  @default(0)
+  is_active      Boolean              @default(true)
+  created_at     DateTime             @default(now())
+  updated_at     DateTime             @updatedAt
+
+  @@index([category_id, display_order])
 }

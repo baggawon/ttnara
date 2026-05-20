@@ -1,5 +1,6 @@
 import type { partner } from "@prisma/client";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
+import { getSignedCloudFrontUrl } from "@/helpers/server/s3";
 
 export interface PublicPartnersResponse {
   id: number;
@@ -16,5 +17,12 @@ export const GET = async () => {
     cache = appCache.getByKey(CacheKey.Partners) as partner[];
   }
 
-  return { result: true, data: cache };
+  const data = cache.map((p) => ({
+    ...p,
+    public_banner_image_url: p.public_banner_image_url
+      ? getSignedCloudFrontUrl(p.public_banner_image_url)
+      : "",
+  }));
+
+  return { result: true, data };
 };

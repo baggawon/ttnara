@@ -68,6 +68,13 @@ export enum ToastData {
   tetherAlreadyCancel = "tetherAlreadyCancel",
   tetherProgress = "tetherProgress",
   tetherNeedKYC = "tetherNeedKYC",
+  tetherPaused = "tetherPaused",
+  systemTetherCancelAllSuccess = "systemTetherCancelAllSuccess",
+  systemTetherCancelAllFailed = "systemTetherCancelAllFailed",
+  systemTradeResetSuccess = "systemTradeResetSuccess",
+  systemTradeResetFailed = "systemTradeResetFailed",
+  systemP2pPauseUpdateSuccess = "systemP2pPauseUpdateSuccess",
+  systemP2pPauseUpdateFailed = "systemP2pPauseUpdateFailed",
   subscribePush = "subscribePush",
   unsubscribePush = "unsubscribePush",
   sendMessageNeedLogin = "sendMessageNeedLogin",
@@ -82,6 +89,12 @@ export enum ToastData {
   rankBatchCreate = "rankBatchCreate",
   rankBatchEdit = "rankBatchEdit",
   rankNotFound = "rankNotFound",
+  rankBadgeUpload = "rankBadgeUpload",
+  rankBadgeDelete = "rankBadgeDelete",
+  rankBadgeAssign = "rankBadgeAssign",
+  rankBadgeUnassign = "rankBadgeUnassign",
+  rankBadgeAssignConflict = "rankBadgeAssignConflict",
+  rankBadgeRangeInvalid = "rankBadgeRangeInvalid",
   threadCreatePrismaError = "threadCreatePrismaError",
   threadAccessControlError = "threadAccessControlError",
   threadUpdatePrismaError = "threadUpdatePrismaError",
@@ -92,6 +105,60 @@ export enum ToastData {
   partnerCreateFailed = "partnerCreateFailed",
   partnerUpdateFailed = "partnerUpdateFailed",
   partnerDeleteFailed = "partnerDeleteFailed",
+  guaranteeCreate = "guaranteeCreate",
+  guaranteeUpdate = "guaranteeUpdate",
+  guaranteeDelete = "guaranteeDelete",
+  guaranteeCreateFailed = "guaranteeCreateFailed",
+  guaranteeUpdateFailed = "guaranteeUpdateFailed",
+  guaranteeDeleteFailed = "guaranteeDeleteFailed",
+  guaranteeBannerUpdate = "guaranteeBannerUpdate",
+  guaranteeBannerUpdateFailed = "guaranteeBannerUpdateFailed",
+  tetherCategoryRestore = "tetherCategoryRestore",
+  tetherCategoryDuplicateDeleted = "tetherCategoryDuplicateDeleted",
+  tetherCategoryDuplicateParent = "tetherCategoryDuplicateParent",
+  tetherCategoryDuplicateChild = "tetherCategoryDuplicateChild",
+  tetherCategoryRestoreConflict = "tetherCategoryRestoreConflict",
+  pushSend = "pushSend",
+  pushSendFailed = "pushSendFailed",
+  pushTemplateCreate = "pushTemplateCreate",
+  pushTemplateUpdate = "pushTemplateUpdate",
+  pushTemplateDelete = "pushTemplateDelete",
+  pushTemplateDeleteFailed = "pushTemplateDeleteFailed",
+  chatSettingsUpdate = "chatSettingsUpdate",
+  chatTopicSave = "chatTopicSave",
+  chatTopicDelete = "chatTopicDelete",
+  chatNoticeSave = "chatNoticeSave",
+  chatNoticeDelete = "chatNoticeDelete",
+  chatBannedWordAdd = "chatBannedWordAdd",
+  chatBannedWordDelete = "chatBannedWordDelete",
+  chatFixedMessageSave = "chatFixedMessageSave",
+  chatFixedMessageDelete = "chatFixedMessageDelete",
+  chatModerationMute = "chatModerationMute",
+  chatModerationUnmute = "chatModerationUnmute",
+  chatModerationBan = "chatModerationBan",
+  chatModerationUnban = "chatModerationUnban",
+  chatModerationHide = "chatModerationHide",
+  chatModerationUnhide = "chatModerationUnhide",
+  chatReportSubmit = "chatReportSubmit",
+  supportLinkCardCreate = "supportLinkCardCreate",
+  supportLinkCardCreateFailed = "supportLinkCardCreateFailed",
+  supportLinkCardUpdate = "supportLinkCardUpdate",
+  supportLinkCardUpdateFailed = "supportLinkCardUpdateFailed",
+  supportLinkCardDelete = "supportLinkCardDelete",
+  supportLinkCardDeleteFailed = "supportLinkCardDeleteFailed",
+  supportQnaCategoryCreate = "supportQnaCategoryCreate",
+  supportQnaCategoryCreateFailed = "supportQnaCategoryCreateFailed",
+  supportQnaCategoryUpdate = "supportQnaCategoryUpdate",
+  supportQnaCategoryUpdateFailed = "supportQnaCategoryUpdateFailed",
+  supportQnaCategoryDelete = "supportQnaCategoryDelete",
+  supportQnaCategoryDeleteFailed = "supportQnaCategoryDeleteFailed",
+  supportQnaCreate = "supportQnaCreate",
+  supportQnaCreateFailed = "supportQnaCreateFailed",
+  supportQnaUpdate = "supportQnaUpdate",
+  supportQnaUpdateFailed = "supportQnaUpdateFailed",
+  supportQnaDelete = "supportQnaDelete",
+  supportQnaDeleteFailed = "supportQnaDeleteFailed",
+  insufficientPoints = "insufficientPoints",
 }
 
 export const toastData: { [key: string]: any } = {
@@ -385,10 +452,10 @@ export const toastData: { [key: string]: any } = {
     },
   },
   attachedSizeLimit: {
-    error: {
+    error: (value?: string) => ({
       title: "첨부파일 용량이 초과되었습니다.",
-      description: "",
-    },
+      description: value ? `파일당 최대 ${value}MB까지 업로드 가능합니다.` : "",
+    }),
   },
   attachedTypeLimit: {
     error: {
@@ -590,6 +657,48 @@ export const toastData: { [key: string]: any } = {
       description: "",
     },
   },
+  tetherPaused: {
+    error: {
+      title: "현재 거래 게시가 일시 중단되었습니다.",
+      description: "관리자에 의해 일시적으로 거래 등록이 제한됩니다.",
+    },
+  },
+  systemTetherCancelAllSuccess: {
+    success: {
+      title: "모든 진행 중인 거래가 취소되었습니다.",
+      description: "",
+    },
+  },
+  systemTetherCancelAllFailed: {
+    error: {
+      title: "거래 일괄 취소에 실패했습니다.",
+      description: "",
+    },
+  },
+  systemTradeResetSuccess: {
+    success: {
+      title: "거래 기록이 초기화되었습니다.",
+      description: "",
+    },
+  },
+  systemTradeResetFailed: {
+    error: {
+      title: "거래 기록 초기화에 실패했습니다.",
+      description: "",
+    },
+  },
+  systemP2pPauseUpdateSuccess: {
+    success: {
+      title: "거래 게시 상태가 변경되었습니다.",
+      description: "",
+    },
+  },
+  systemP2pPauseUpdateFailed: {
+    error: {
+      title: "거래 게시 상태 변경에 실패했습니다.",
+      description: "",
+    },
+  },
   subscribePush: {
     success: {
       title: "푸시 알림이 등록되었습니다.",
@@ -662,27 +771,80 @@ export const toastData: { [key: string]: any } = {
     error: {
       title: "거래 횟수가 올바르지 않습니다.",
       description:
-        "기존 최고 랭크보다 높은 랭크는 거래 횟수가 더 많아야 하고, 기존 랭크보다 낮은 랭크는 거래 횟수가 더 적어야 합니다.",
+        "기존 최고 등급보다 높은 등급는 거래 횟수가 더 많아야 하고, 기존 등급보다 낮은 등급는 거래 횟수가 더 적어야 합니다.",
     },
   },
   rankBatchCreate: {
     success: {
-      title: "랭크가 자동 생성되었습니다.",
-      description: "기존 랭크가 삭제되고 새로운 랭크가 생성되었습니다.",
+      title: "등급가 자동 생성되었습니다.",
+      description: "기존 등급가 삭제되고 새로운 등급가 생성되었습니다.",
     },
     error: {
-      title: "랭크 자동 생성에 실패하였습니다.",
+      title: "등급 자동 생성에 실패하였습니다.",
       description: "다시 시도해주세요.",
     },
   },
   rankBatchEdit: {
     success: {
-      title: "랭크가 일괄 수정되었습니다.",
+      title: "등급가 일괄 수정되었습니다.",
       description: "",
     },
     error: {
-      title: "랭크 일괄 수정에 실패하였습니다.",
+      title: "등급 일괄 수정에 실패하였습니다.",
       description: "",
+    },
+  },
+  rankBadgeUpload: {
+    success: {
+      title: "배지 이미지가 업로드되었습니다.",
+      description: "",
+    },
+    error: {
+      title: "배지 이미지 업로드에 실패하였습니다.",
+      description: "다시 시도해주세요.",
+    },
+  },
+  rankBadgeDelete: {
+    success: {
+      title: "배지 이미지가 삭제되었습니다.",
+      description: "",
+    },
+    error: {
+      title: "배지 이미지 삭제에 실패하였습니다.",
+      description: "",
+    },
+  },
+  rankBadgeAssign: {
+    success: {
+      title: "배지 이미지가 등급에 할당되었습니다.",
+      description: "",
+    },
+    error: {
+      title: "배지 이미지 할당에 실패하였습니다.",
+      description: "",
+    },
+  },
+  rankBadgeUnassign: {
+    success: {
+      title: "배지 이미지 할당이 해제되었습니다.",
+      description: "",
+    },
+    error: {
+      title: "할당 해제에 실패하였습니다.",
+      description: "",
+    },
+  },
+  rankBadgeAssignConflict: {
+    error: (value?: string) => ({
+      title: "다른 배지 이미지가 이미 할당되어 있습니다.",
+      description:
+        value ?? "충돌하는 등급의 할당을 먼저 해제한 뒤 다시 시도해주세요.",
+    }),
+  },
+  rankBadgeRangeInvalid: {
+    error: {
+      title: "등급 범위가 올바르지 않습니다.",
+      description: "시작 등급은 끝 등급보다 작거나 같아야 합니다.",
     },
   },
   apiHandleError: {
@@ -693,38 +855,278 @@ export const toastData: { [key: string]: any } = {
   },
   partnerCreate: {
     success: {
-      title: "협력사가 생성되었습니다.",
+      title: "협력사 배너가 생성되었습니다.",
       description: "",
     },
   },
   partnerUpdate: {
     success: {
-      title: "협력사가 변경되었습니다.",
+      title: "협력사 배너가 변경되었습니다.",
       description: "",
     },
   },
   partnerDelete: {
     success: {
-      title: "협력사가 삭제되었습니다.",
+      title: "협력사 배너가 삭제되었습니다.",
       description: "",
     },
   },
   partnerCreateFailed: {
     error: {
-      title: "협력사 생성에 실패하였습니다.",
+      title: "협력사 배너 생성에 실패하였습니다.",
       description: "",
     },
   },
   partnerUpdateFailed: {
     error: {
-      title: "협력사 변경에 실패하였습니다.",
+      title: "협력사 배너 변경에 실패하였습니다.",
       description: "",
     },
   },
   partnerDeleteFailed: {
     error: {
-      title: "협력사 삭제에 실패하였습니다.",
+      title: "협력사 배너 삭제에 실패하였습니다.",
       description: "",
     },
+  },
+  guaranteeCreate: {
+    success: {
+      title: "공식보증업체가 추가되었습니다.",
+      description: "",
+    },
+  },
+  guaranteeUpdate: {
+    success: {
+      title: "공식보증업체가 수정되었습니다.",
+      description: "",
+    },
+  },
+  guaranteeDelete: {
+    success: {
+      title: "공식보증업체가 삭제되었습니다.",
+      description: "",
+    },
+  },
+  guaranteeCreateFailed: {
+    error: {
+      title: "공식보증업체 생성에 실패하였습니다.",
+      description: "",
+    },
+  },
+  guaranteeUpdateFailed: {
+    error: {
+      title: "공식보증업체 수정에 실패하였습니다.",
+      description: "",
+    },
+  },
+  guaranteeDeleteFailed: {
+    error: {
+      title: "공식보증업체 삭제에 실패하였습니다.",
+      description: "",
+    },
+  },
+  guaranteeBannerUpdate: {
+    success: {
+      title: "배너 이미지가 저장되었습니다.",
+      description: "",
+    },
+  },
+  guaranteeBannerUpdateFailed: {
+    error: {
+      title: "배너 이미지 저장에 실패하였습니다.",
+      description: "",
+    },
+  },
+  tetherCategoryRestore: {
+    success: {
+      title: "지역이 복구되었습니다.",
+      description: "",
+    },
+  },
+  tetherCategoryDuplicateDeleted: {
+    error: {
+      title: "같은 이름의 삭제된 지역이 있습니다.",
+      description: "삭제된 지역 목록에서 복구하여 사용해주세요.",
+    },
+  },
+  tetherCategoryDuplicateParent: {
+    error: {
+      title: "같은 이름의 상위 지역이 이미 존재합니다.",
+      description: "",
+    },
+  },
+  tetherCategoryDuplicateChild: {
+    error: {
+      title: "같은 이름의 하위 지역이 이미 존재합니다.",
+      description: "같은 상위 지역 아래에 동일한 이름을 사용할 수 없습니다.",
+    },
+  },
+  tetherCategoryRestoreConflict: {
+    error: {
+      title: "복구할 수 없습니다.",
+      description: "같은 이름의 지역이 이미 사용 중입니다.",
+    },
+  },
+  pushSend: {
+    success: {
+      title: "푸시 알림이 발송되었습니다.",
+      description: "",
+    },
+  },
+  pushSendFailed: {
+    error: {
+      title: "푸시 알림 발송에 실패하였습니다.",
+      description: "",
+    },
+  },
+  pushTemplateCreate: {
+    success: {
+      title: "템플릿이 생성되었습니다.",
+      description: "",
+    },
+  },
+  pushTemplateUpdate: {
+    success: {
+      title: "템플릿이 변경되었습니다.",
+      description: "",
+    },
+  },
+  pushTemplateDelete: {
+    success: {
+      title: "템플릿이 삭제되었습니다.",
+      description: "",
+    },
+  },
+  pushTemplateDeleteFailed: {
+    error: {
+      title: "템플릿 삭제에 실패하였습니다.",
+      description: "",
+    },
+  },
+  chatSettingsUpdate: {
+    success: { title: "채팅 설정이 저장되었습니다.", description: "" },
+    error: { title: "채팅 설정 저장에 실패했습니다.", description: "" },
+  },
+  chatTopicSave: {
+    success: { title: "채팅 토픽이 저장되었습니다.", description: "" },
+    error: { title: "토픽 저장에 실패했습니다.", description: "" },
+  },
+  chatTopicDelete: {
+    success: { title: "채팅 토픽이 삭제되었습니다.", description: "" },
+    error: { title: "토픽 삭제에 실패했습니다.", description: "" },
+  },
+  chatNoticeSave: {
+    success: { title: "공지가 저장되었습니다.", description: "" },
+    error: { title: "공지 저장에 실패했습니다.", description: "" },
+  },
+  chatNoticeDelete: {
+    success: { title: "공지가 삭제되었습니다.", description: "" },
+    error: { title: "공지 삭제에 실패했습니다.", description: "" },
+  },
+  chatBannedWordAdd: {
+    success: (value?: string) => ({
+      title: value
+        ? `${value}개의 금지어가 추가되었습니다.`
+        : "금지어가 추가되었습니다.",
+      description: "",
+    }),
+    error: { title: "금지어 추가에 실패했습니다.", description: "" },
+  },
+  chatBannedWordDelete: {
+    success: { title: "금지어가 삭제되었습니다.", description: "" },
+    error: { title: "금지어 삭제에 실패했습니다.", description: "" },
+  },
+  chatFixedMessageSave: {
+    success: { title: "고정 메시지가 저장되었습니다.", description: "" },
+    error: { title: "고정 메시지 저장에 실패했습니다.", description: "" },
+  },
+  chatFixedMessageDelete: {
+    success: { title: "고정 메시지가 삭제되었습니다.", description: "" },
+    error: { title: "고정 메시지 삭제에 실패했습니다.", description: "" },
+  },
+  chatModerationMute: {
+    success: { title: "뮤트 처리되었습니다.", description: "" },
+    error: { title: "뮤트 처리에 실패했습니다.", description: "" },
+  },
+  chatModerationUnmute: {
+    success: { title: "뮤트가 해제되었습니다.", description: "" },
+    error: { title: "뮤트 해제에 실패했습니다.", description: "" },
+  },
+  chatModerationBan: {
+    success: { title: "차단되었습니다.", description: "" },
+    error: { title: "차단에 실패했습니다.", description: "" },
+  },
+  chatModerationUnban: {
+    success: { title: "차단이 해제되었습니다.", description: "" },
+    error: { title: "차단 해제에 실패했습니다.", description: "" },
+  },
+  chatModerationHide: {
+    success: { title: "메시지가 숨김 처리되었습니다.", description: "" },
+    error: { title: "메시지 숨김에 실패했습니다.", description: "" },
+  },
+  chatModerationUnhide: {
+    success: { title: "메시지 숨김이 해제되었습니다.", description: "" },
+    error: { title: "메시지 숨김 해제에 실패했습니다.", description: "" },
+  },
+  chatReportSubmit: {
+    success: { title: "신고가 접수되었습니다.", description: "" },
+    error: { title: "신고 접수에 실패했습니다.", description: "" },
+  },
+  supportLinkCardCreate: {
+    success: { title: "링크 카드가 생성되었습니다.", description: "" },
+  },
+  supportLinkCardCreateFailed: {
+    error: { title: "링크 카드 생성에 실패했습니다.", description: "" },
+  },
+  supportLinkCardUpdate: {
+    success: { title: "링크 카드가 수정되었습니다.", description: "" },
+  },
+  supportLinkCardUpdateFailed: {
+    error: { title: "링크 카드 수정에 실패했습니다.", description: "" },
+  },
+  supportLinkCardDelete: {
+    success: { title: "링크 카드가 삭제되었습니다.", description: "" },
+  },
+  supportLinkCardDeleteFailed: {
+    error: { title: "링크 카드 삭제에 실패했습니다.", description: "" },
+  },
+  supportQnaCategoryCreate: {
+    success: { title: "카테고리가 생성되었습니다.", description: "" },
+  },
+  supportQnaCategoryCreateFailed: {
+    error: { title: "카테고리 생성에 실패했습니다.", description: "" },
+  },
+  supportQnaCategoryUpdate: {
+    success: { title: "카테고리가 수정되었습니다.", description: "" },
+  },
+  supportQnaCategoryUpdateFailed: {
+    error: { title: "카테고리 수정에 실패했습니다.", description: "" },
+  },
+  supportQnaCategoryDelete: {
+    success: { title: "카테고리가 삭제되었습니다.", description: "" },
+  },
+  supportQnaCategoryDeleteFailed: {
+    error: { title: "카테고리 삭제에 실패했습니다.", description: "" },
+  },
+  supportQnaCreate: {
+    success: { title: "QnA가 생성되었습니다.", description: "" },
+  },
+  supportQnaCreateFailed: {
+    error: { title: "QnA 생성에 실패했습니다.", description: "" },
+  },
+  supportQnaUpdate: {
+    success: { title: "QnA가 수정되었습니다.", description: "" },
+  },
+  supportQnaUpdateFailed: {
+    error: { title: "QnA 수정에 실패했습니다.", description: "" },
+  },
+  supportQnaDelete: {
+    success: { title: "QnA가 삭제되었습니다.", description: "" },
+  },
+  supportQnaDeleteFailed: {
+    error: { title: "QnA 삭제에 실패했습니다.", description: "" },
+  },
+  insufficientPoints: {
+    error: { title: "포인트가 부족합니다.", description: "" },
   },
 };

@@ -4,10 +4,41 @@ import {
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
-import type { general_setting } from "@prisma/client";
+import type { Prisma, general_setting } from "@prisma/client";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
 
-export interface generalUpdateProps extends general_setting {}
+export interface generalUpdateProps extends Partial<general_setting> {
+  id: number;
+}
+
+// Whitelist of columns admins may update via this endpoint. Anything not listed
+// here is silently ignored — prevents form regressions or stray client payloads
+// from clobbering server-managed fields (id, blacklisted_users, etc.) or
+// reintroducing removed UI toggles.
+const ALLOWED_FIELDS = [
+  "site_name",
+  "site_title",
+  "site_description",
+  "site_keywords",
+  "logo_image_url",
+  "favicon_url",
+  "apple_icon_url",
+  "allow_user_registration",
+  "p2p_paused",
+] as const satisfies readonly (keyof general_setting)[];
+
+const pickAllowed = (
+  json: generalUpdateProps
+): Prisma.general_settingUpdateInput => {
+  const data: Prisma.general_settingUpdateInput = {};
+  for (const key of ALLOWED_FIELDS) {
+    if (key in json) {
+      // The narrow indexed-access type is preserved by the const tuple.
+      (data as Record<string, unknown>)[key] = json[key];
+    }
+  }
+  return data;
+};
 
 export const POST = async (json: generalUpdateProps) => {
   try {
@@ -15,14 +46,14 @@ export const POST = async (json: generalUpdateProps) => {
 
     await requestValidator([RequestValidator.Admin], json);
 
+    const data = pickAllowed(json);
+
     const updateResult = await handleConnect((prisma) =>
       prisma.general_setting.update({
         where: {
           id: json.id,
         },
-        data: {
-          ...json,
-        },
+        data,
       })
     );
     if (!updateResult) throw ToastData.unknown;

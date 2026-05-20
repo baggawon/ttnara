@@ -19,6 +19,7 @@ import {
 } from "@/components/2_molecules/CountdownOtp";
 import type { OtpProps } from "@/app/api/otp";
 import { useRef } from "react";
+import { isDevLogOnlyEnabled } from "@/components/2_molecules/DevLogToggle";
 
 const validateOtpInput = (value: string) => {
   if (!value) return "인증번호를 입력해주세요";
@@ -89,6 +90,7 @@ const EmailValidator = ({ validate_type }: { validate_type: ApiOtpType }) => {
         otp: props.otp,
         request_id: props.request_id,
         validate_type,
+        dev_log_only: isDevLogOnlyEnabled(),
       }
     );
 

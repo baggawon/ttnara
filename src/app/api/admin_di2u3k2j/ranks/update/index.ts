@@ -13,10 +13,16 @@ export const POST = async (json: RanksUpdateProps) => {
   try {
     await requestValidator([RequestValidator.Admin], json);
 
+    // badge_image is managed exclusively via /rank_badges/* endpoints to keep
+    // storage values (unsigned) consistent. Strip it so admin form
+    // roundtripping (which receives signed URLs) doesn't overwrite storage.
+    const { badge_image: _omitBadge, ...rest } = json;
+    void _omitBadge;
+
     const updateResult = await handleConnect((prisma) =>
       prisma.trade_rank.update({
         where: { id: json.id },
-        data: json,
+        data: rest,
       })
     );
     if (!updateResult) throw ToastData.unknown;

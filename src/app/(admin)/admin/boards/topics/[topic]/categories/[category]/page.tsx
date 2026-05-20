@@ -31,7 +31,7 @@ export default function BoardTopics(props: { params: Params }) {
   return (
     <FormProvider {...methods}>
       <Form onSubmit={editSave}>
-        <section className="w-full flex flex-col gap-4 p-0 md:p-4">
+        <section className="w-full flex flex-col gap-4">
           <h2>
             {topicsData?.topics[0].name} 소분류{" "}
             {!categoriesData ? "추가" : "편집"}

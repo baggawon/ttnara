@@ -30,6 +30,12 @@ import { TetherTable } from "@/components/3_organisms/TetherTable";
 import WithUseWatch from "@/components/2_molecules/WithUseWatch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { searchItems } from "@/helpers/config";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 
 export const MyTetherList = ({
   page,
@@ -152,57 +158,64 @@ export const MyTetherList = ({
 
   return (
     <FormProvider {...methods}>
-      <WithUseWatch name={["status"]}>
-        {({ status }: TethersReadProps) => (
-          <Tabs
-            value={status}
-            onValueChange={selectStatus}
-            className="w-full flex gap-4 flex-wrap"
-          >
-            <TabsList>
-              <TabsTrigger value={TetherStatus.Total}>전체</TabsTrigger>
-              <TabsTrigger value={TetherStatus.MyPageProgress}>
-                거래중
-              </TabsTrigger>
-              <TabsTrigger value={TetherStatus.Complete}>완료</TabsTrigger>
-            </TabsList>
-            <ToggleGroupInput
-              name="currency"
-              variant="outline"
-              className={clsx(
-                "gap-0",
-                "[&>button]:border-0 [&>button]:shadow-none [&>button[aria-checked='false']]:opacity-50 [&>button[aria-checked='true']]:bg-transparent [&>button[aria-checked='true']]:font-bold"
-              )}
-              orientation="horizontal"
-              onValueChange={selectCurrency}
-            >
-              {map(
-                [
-                  { label: "테더", value: Currency.테더 },
-                  { label: "트론", value: Currency.트론 },
-                ],
-                ({ label, value }) => (
-                  <ToggleGroupItem value={value} aria-label={label} key={value}>
-                    {label}
-                  </ToggleGroupItem>
-                )
-              )}
-            </ToggleGroupInput>
-          </Tabs>
-        )}
-      </WithUseWatch>
-
-      <section className="grid grid-cols-1 gap-4">
-        <TetherTable
-          session={session}
-          pagination={tethersData?.pagination}
-          tethers={tethersData?.tethers}
-          setPageIndexAction={(index) => {
-            methods.setValue("page", index);
-            updatePagination();
-          }}
-        />
-        <div className="flex justify-center gap-4 w-full">
+      <Card>
+        <CardHeader className="p-4 sm:p-6">
+          <WithUseWatch name={["status"]}>
+            {({ status }: TethersReadProps) => (
+              <Tabs
+                value={status}
+                onValueChange={selectStatus}
+                className="w-full flex gap-4 flex-wrap"
+              >
+                <TabsList>
+                  <TabsTrigger value={TetherStatus.Total}>전체</TabsTrigger>
+                  <TabsTrigger value={TetherStatus.MyPageProgress}>
+                    거래중
+                  </TabsTrigger>
+                  <TabsTrigger value={TetherStatus.Complete}>완료</TabsTrigger>
+                </TabsList>
+                <ToggleGroupInput
+                  name="currency"
+                  variant="outline"
+                  className={clsx(
+                    "gap-0",
+                    "[&>button]:border-0 [&>button]:shadow-none [&>button[aria-checked='false']]:opacity-50 [&>button[aria-checked='true']]:bg-transparent [&>button[aria-checked='true']]:font-bold"
+                  )}
+                  orientation="horizontal"
+                  onValueChange={selectCurrency}
+                >
+                  {map(
+                    [
+                      { label: "테더", value: Currency.테더 },
+                      { label: "트론", value: Currency.트론 },
+                    ],
+                    ({ label, value }) => (
+                      <ToggleGroupItem
+                        value={value}
+                        aria-label={label}
+                        key={value}
+                      >
+                        {label}
+                      </ToggleGroupItem>
+                    )
+                  )}
+                </ToggleGroupInput>
+              </Tabs>
+            )}
+          </WithUseWatch>
+        </CardHeader>
+        <CardContent className="p-0">
+          <TetherTable
+            session={session}
+            pagination={tethersData?.pagination}
+            tethers={tethersData?.tethers}
+            setPageIndexAction={(index) => {
+              methods.setValue("page", index);
+              updatePagination();
+            }}
+          />
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row sm:justify-center gap-2 sm:gap-4 w-full border-t p-4 sm:p-6">
           <SelectInput
             name="column"
             items={searchItems}
@@ -227,12 +240,16 @@ export const MyTetherList = ({
             </button>
           </div>
           {canWrite && (
-            <Button type="button" onClick={goWrite}>
+            <Button
+              type="button"
+              onClick={goWrite}
+              className="w-full sm:w-auto"
+            >
               거래생성
             </Button>
           )}
-        </div>
-      </section>
+        </CardFooter>
+      </Card>
     </FormProvider>
   );
 };

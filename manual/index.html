@@ -1,0 +1,2222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>테더나라 관리자 운영 매뉴얼</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --bg-card: #ffffff;
+    --bg-sidebar: #1e293b;
+    --bg-sidebar-hover: #334155;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --text-sidebar: #cbd5e1;
+    --text-sidebar-active: #ffffff;
+    --border: #e2e8f0;
+    --primary: #3b82f6;
+    --primary-dark: #2563eb;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --danger-bg: #fef2f2;
+    --warning-bg: #fffbeb;
+    --info-bg: #eff6ff;
+    --code-bg: #f1f5f9;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -1px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--bg-sidebar);
+    color: var(--text-sidebar);
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #475569 transparent;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+  .sidebar-header {
+    padding: 0 24px 20px;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 12px;
+  }
+
+  .sidebar-header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 4px;
+  }
+
+  .sidebar-header .subtitle {
+    font-size: 12px;
+    color: #94a3b8;
+  }
+
+  .sidebar-nav { padding: 0 12px; }
+
+  .nav-group { margin-bottom: 6px; }
+
+  .nav-group-title {
+    padding: 12px 14px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 7px 14px;
+    color: var(--text-sidebar);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.15s ease;
+  }
+
+  .nav-link:hover {
+    background: var(--bg-sidebar-hover);
+    color: var(--text-sidebar-active);
+  }
+
+  .nav-link.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .nav-link .badge {
+    float: right;
+    font-size: 10px;
+    background: #475569;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+  }
+
+  /* Main content */
+  .main {
+    padding: 40px 56px;
+    max-width: 1100px;
+  }
+
+  .hero {
+    margin-bottom: 48px;
+    padding: 32px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+    color: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+  }
+
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .hero p {
+    margin: 0;
+    opacity: 0.92;
+    font-size: 15px;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 64px;
+    scroll-margin-top: 24px;
+  }
+
+  .section-title {
+    font-size: 24px;
+    font-weight: 700;
+    padding-bottom: 10px;
+    border-bottom: 3px solid var(--primary);
+    margin: 0 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    color: white;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+
+  /* Page card */
+  .page-card {
+    background: var(--bg-card);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    scroll-margin-top: 24px;
+  }
+
+  .page-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 18px;
+    margin-bottom: 20px;
+  }
+
+  .page-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+
+  .page-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .page-title .menu-name {
+    color: var(--text);
+  }
+
+  .page-title .danger-tag {
+    background: var(--danger);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+
+  .route-path {
+    display: inline-block;
+    font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    font-size: 13px;
+    background: var(--code-bg);
+    color: var(--primary-dark);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  /* Block sections */
+  .block {
+    margin-bottom: 22px;
+  }
+  .block:last-child { margin-bottom: 0; }
+
+  .block-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+  }
+
+  .block-title .icon { font-size: 16px; }
+
+  .block ul {
+    margin: 0;
+    padding-left: 22px;
+  }
+
+  .block ul li { margin: 4px 0; }
+
+  .block p { margin: 0 0 8px; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 13px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    background: var(--code-bg);
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Callouts */
+  .callout {
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin: 8px 0;
+    border-left: 4px solid;
+    font-size: 14px;
+  }
+
+  .callout-warning {
+    background: var(--warning-bg);
+    border-color: var(--warning);
+  }
+
+  .callout-danger {
+    background: var(--danger-bg);
+    border-color: var(--danger);
+  }
+
+  .callout-info {
+    background: var(--info-bg);
+    border-color: var(--primary);
+  }
+
+  .callout strong { font-weight: 700; }
+
+  .callout ul { margin: 6px 0 0; padding-left: 20px; }
+
+  /* API list */
+  .api-list {
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .api-list .method {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+    color: white;
+    margin-right: 6px;
+    font-size: 10px;
+  }
+
+  .api-list .method-get { background: #10b981; }
+  .api-list .method-post { background: #3b82f6; }
+  .api-list .method-both { background: #8b5cf6; }
+
+  details { margin-top: 6px; }
+  details summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-muted);
+    user-select: none;
+    padding: 4px 0;
+  }
+
+  details summary:hover { color: var(--primary); }
+
+  /* Code inline */
+  code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    font-size: 0.9em;
+    color: var(--primary-dark);
+  }
+
+  /* Appendix */
+  .appendix {
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .appendix h2 {
+    margin: 0 0 16px;
+    font-size: 20px;
+    color: var(--text);
+  }
+
+  .danger-row { background: #fef2f2; }
+  .reversible-yes { color: var(--success); font-weight: 700; }
+  .reversible-no { color: var(--danger); font-weight: 700; }
+
+  /* Footer */
+  .footer {
+    padding: 32px 0 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+    margin-top: 48px;
+  }
+
+  /* Mobile */
+  @media (max-width: 1024px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar {
+      position: relative;
+      height: auto;
+      max-height: 360px;
+    }
+    .main { padding: 24px 20px; }
+    .page-card { padding: 20px; }
+  }
+
+  /* Print */
+  @media print {
+    .sidebar { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    .main { padding: 0; max-width: none; }
+    .page-card, .appendix {
+      box-shadow: none;
+      border: 1px solid #ddd;
+      page-break-inside: avoid;
+    }
+    .hero {
+      background: white !important;
+      color: black !important;
+      border: 2px solid #333;
+    }
+    .section { page-break-after: auto; }
+    .section-title { page-break-after: avoid; }
+    .page-card { page-break-inside: avoid; }
+    .callout-danger { border: 2px solid #ef4444 !important; }
+    a { color: #1e40af; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- =========================================
+       SIDEBAR — Table of Contents
+       ========================================= -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>테더나라 관리자</h1>
+      <div class="subtitle">운영 매뉴얼 v1.0</div>
+    </div>
+    <nav class="sidebar-nav">
+
+      <div class="nav-group">
+        <div class="nav-group-title">대시보드</div>
+        <a class="nav-link" href="#admin-dashboard">대시보드</a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">시스템 관리</div>
+        <a class="nav-link" href="#admin-general">설정</a>
+        <a class="nav-link" href="#admin-users">사용자</a>
+        <a class="nav-link" href="#admin-user-detail">└ 회원 상세</a>
+        <a class="nav-link" href="#admin-user-edit">└ 회원 수정</a>
+        <a class="nav-link" href="#admin-ranks">등급</a>
+        <a class="nav-link" href="#admin-ranks-create">└ 등급 생성</a>
+        <a class="nav-link" href="#admin-ranks-edit">└ 등급 수정</a>
+        <a class="nav-link" href="#admin-ranks-auto">└ 자동 생성</a>
+        <a class="nav-link" href="#admin-ranks-badges">└ 배지 관리</a>
+        <a class="nav-link" href="#admin-partners">협력사 배너</a>
+        <a class="nav-link" href="#admin-guarantee">공식보증업체</a>
+        <a class="nav-link" href="#admin-popup">팝업</a>
+        <a class="nav-link" href="#admin-push">푸시 알림</a>
+        <a class="nav-link" href="#admin-nav">메뉴 관리</a>
+        <a class="nav-link" href="#admin-support">고객센터</a>
+        <a class="nav-link" href="#admin-qna-create">└ QnA 생성</a>
+        <a class="nav-link" href="#admin-qna-edit">└ QnA 수정</a>
+        <a class="nav-link" href="#admin-system-control">거래 시스템 제어 <span class="badge" style="background:#dc2626">!</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">게시판</div>
+        <a class="nav-link" href="#admin-topics">개별 관리 (토픽)</a>
+        <a class="nav-link" href="#admin-topic-edit">└ 토픽 편집</a>
+        <a class="nav-link" href="#admin-categories">└ 카테고리 목록</a>
+        <a class="nav-link" href="#admin-category-edit">└ 카테고리 편집</a>
+        <a class="nav-link" href="#admin-boards-general">기본 설정</a>
+        <a class="nav-link" href="#admin-boards-tether">거래 게시판</a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">채팅</div>
+        <a class="nav-link" href="#admin-chat">채팅 모더레이션</a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">기타 (비활성)</div>
+        <a class="nav-link disabled">로그 <span class="badge">예정</span></a>
+        <a class="nav-link disabled">개발팀 안내 <span class="badge">예정</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">부록</div>
+        <a class="nav-link" href="#appendix-a">A. 파괴적 작업</a>
+        <a class="nav-link" href="#appendix-b">B. 전역 설정 위치</a>
+        <a class="nav-link" href="#appendix-c">C. 외부 노출 콘텐츠</a>
+        <a class="nav-link" href="#appendix-d">D. 관리자 vs 권한 레벨</a>
+      </div>
+
+    </nav>
+  </aside>
+
+  <!-- =========================================
+       MAIN CONTENT
+       ========================================= -->
+  <main class="main">
+
+    <div class="hero">
+      <h1>테더나라 (TTNARA) 관리자 운영 매뉴얼</h1>
+      <p>이 매뉴얼은 어드민 패널의 모든 페이지가 무엇을 하고, 어떻게 사용하며, 어떤 주의사항이 있는지를 비개발자도 이해할 수 있도록 설명합니다.</p>
+    </div>
+
+    <!-- =========================================
+         SECTION 1: DASHBOARD
+         ========================================= -->
+    <section class="section" id="section-dashboard">
+      <h2 class="section-title"><span class="num">1</span>대시보드</h2>
+
+      <!-- /admin/dashboard -->
+      <article class="page-card" id="admin-dashboard">
+        <header class="page-header">
+          <div class="page-label">메뉴</div>
+          <h3 class="page-title">
+            <span class="menu-name">대시보드</span>
+            <span class="route-path">/admin/dashboard</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>플랫폼 운영 현황(사용자 추이, 거래량, 평점 분포, 시스템 상태, 상위 트레이더, 신고 내역, 토픽 활동 등)을 실시간으로 한눈에 보는 종합 모니터링 화면입니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>KPI 카드(사용자 수, 거래 수, 활성 사용자, 평점 통계) 조회</li>
+            <li>신규 사용자 가입 추이 그래프</li>
+            <li>완료 거래량 추이 그래프</li>
+            <li>상위 트레이더 리더보드</li>
+            <li>사용자 평점 분포 차트</li>
+            <li>시스템 상태(가동 시간, API 응답, DB 상태) 모니터링</li>
+            <li>최근 사용자 신고 내역</li>
+            <li>토픽별 활동 수준</li>
+            <li>현재 플랫폼 설정 요약 (레벨/사용자/시스템)</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <ul>
+            <li><strong>KPI 행:</strong> 사용자 수 / 거래 수 / 활성 사용자 / 평점 통계</li>
+            <li><strong>사용자 추이 카드:</strong> 가입자 시계열 그래프</li>
+            <li><strong>거래 추이 카드:</strong> 거래 완료 시계열 그래프</li>
+            <li><strong>상위 트레이더 카드:</strong> 거래 횟수 기준 리더보드</li>
+            <li><strong>평점 분포 카드:</strong> 사용자 평점 히스토그램</li>
+            <li><strong>최근 신고 카드:</strong> 신고자/대상자 정보</li>
+            <li><strong>토픽 활동 카드:</strong> 토픽별 참여 횟수</li>
+            <li><strong>시스템 상태 카드:</strong> 가동 시간 / API 응답 / DB 상태</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-info">
+            이 화면은 <strong>읽기 전용</strong>입니다. 데이터 수정은 불가능하며, 차트와 통계는 실시간(자동 새로고침) 기준입니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/settings/general/read</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/settings/level/read</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/users/read</div>
+            </div>
+          </details>
+        </div>
+      </article>
+    </section>
+
+    <!-- =========================================
+         SECTION 2: SYSTEM MANAGEMENT
+         ========================================= -->
+    <section class="section" id="section-system">
+      <h2 class="section-title"><span class="num">2</span>시스템 관리</h2>
+
+      <!-- /admin/general -->
+      <article class="page-card" id="admin-general">
+        <header class="page-header">
+          <div class="page-label">메뉴</div>
+          <h3 class="page-title">
+            <span class="menu-name">설정</span>
+            <span class="route-path">/admin/general</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>플랫폼의 전역 설정(일반·시스템·레벨·사용자)을 한 화면에서 관리합니다. 네 개의 독립 카드(폼)로 구성되며, 각 카드는 독립적으로 저장합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li><strong>일반 설정:</strong> 사이트명, 설명 등 기본 정보</li>
+            <li><strong>시스템 설정:</strong> 환경, 점검 모드 등 시스템 동작</li>
+            <li><strong>레벨 설정:</strong> 최대 시스템 레벨, 포인트 계산</li>
+            <li><strong>사용자 설정:</strong> 닉네임 길이 제한, 이메일 검증 등 회원 가입 관련</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <ol>
+            <li>일반 설정 카드</li>
+            <li>시스템 설정 카드</li>
+            <li>레벨 설정 카드</li>
+            <li>사용자 설정 카드</li>
+          </ol>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            <strong>전역 설정</strong>이므로 변경 사항은 즉시 모든 사용자·모든 게시판에 적용됩니다.
+            일부 설정은 캐시 갱신이 필요할 수 있습니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/settings/general/read|update</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/settings/level/read|update</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/settings/user/read|update</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/users -->
+      <article class="page-card" id="admin-users">
+        <header class="page-header">
+          <div class="page-label">메뉴 · 회원 관리</div>
+          <h3 class="page-title">
+            <span class="menu-name">사용자 (목록)</span>
+            <span class="route-path">/admin/users</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>전체 회원을 검색·필터링하여 조회하고, 상세 보기 또는 수정 페이지로 진입하는 회원 관리의 진입점입니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>사용자명·닉네임으로 검색</li>
+            <li>시스템 권한 레벨로 필터</li>
+            <li>계정 상태(전체/활성/비활성)로 필터</li>
+            <li>관리자 권한(전체/관리자/일반)으로 필터</li>
+            <li>가입일 정렬 (최신 / 오래된)</li>
+            <li>회원 상세 보기·수정 페이지로 이동</li>
+            <li>페이지네이션 (기본 페이지당 10명)</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성 (테이블 컬럼)</h4>
+          <table>
+            <thead><tr><th>컬럼</th><th>설명</th></tr></thead>
+            <tbody>
+              <tr><td>사용자</td><td>계정 ID</td></tr>
+              <tr><td>닉네임</td><td>표시 이름</td></tr>
+              <tr><td>이메일</td><td>등록 이메일</td></tr>
+              <tr><td>가입일</td><td>YYYY-MM-DD</td></tr>
+              <tr><td>KYC 인증</td><td>미등록 / 시뮬레이션 인증 / 인증완료</td></tr>
+              <tr><td>등급</td><td>거래 등급 (1~N)</td></tr>
+              <tr><td>보증 회원</td><td>보증 / 해당없음</td></tr>
+              <tr><td>보증금</td><td>금액</td></tr>
+              <tr><td>시스템레벨</td><td>시스템 권한 (0~최대)</td></tr>
+              <tr><td>관리자</td><td>Yes / No</td></tr>
+              <tr><td>활성화</td><td>Yes / No</td></tr>
+              <tr><td>수정</td><td>보기 / 수정 버튼</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size:13px;color:var(--text-muted);margin-top:8px">📱 모바일에서는 카드 형태로 표시됩니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-info">
+            필터/정렬 변경 시 즉시 API 호출이 발생합니다. 회원 수정 저장은 <strong>즉시 반영</strong>됩니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/users/read</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/user/read</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/user/update</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/settings/level/read</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/users/[user_id] -->
+      <article class="page-card" id="admin-user-detail">
+        <header class="page-header">
+          <div class="page-label">회원 관리 · 상세</div>
+          <h3 class="page-title">
+            <span class="menu-name">회원 상세 (읽기 전용)</span>
+            <span class="route-path">/admin/users/[user_id]</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>한 회원의 프로필·계정 상태·KYC·거래 통계를 한 화면에서 읽기 전용으로 조회합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>기본 정보 조회 (사용자명, 이메일, 닉네임, 가입일)</li>
+            <li>프로필 통계 조회 (레벨, 포인트, 등급, 거래 횟수, 권한 레벨, 상태)</li>
+            <li>권한 상태 조회 (관리자, 활성화, 보증 여부)</li>
+            <li>KYC 정보 조회 (인증 결과, 금융기관, 계좌번호, 예금주, 등록일)</li>
+            <li>수정 페이지로 이동</li>
+            <li>목록으로 돌아가기</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <ul>
+            <li><strong>기본 정보 카드:</strong> 사용자명 / 닉네임 / 이메일 / 가입일</li>
+            <li><strong>통계 카드:</strong> 사용자 레벨 / 거래 등급 / 포인트 / 거래 횟수 / 권한 레벨 / 계정 상태(녹색·빨강 점)</li>
+            <li><strong>권한 카드:</strong> 관리자 권한 / 활성화 상태 / 거래 보증 상태 토글 (읽기 전용)</li>
+            <li><strong>KYC 카드:</strong> 인증 결과 / 금융기관 / 계좌번호 / 예금주 / 등록일</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-info">
+            모든 토글은 <strong>표시용</strong>이며 수정되지 않습니다. KYC가 "미등록"인 경우 KYC 카드 세부 정보는 표시되지 않습니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/user/read</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/users/[user_id]/edit -->
+      <article class="page-card" id="admin-user-edit">
+        <header class="page-header">
+          <div class="page-label">회원 관리 · 수정</div>
+          <h3 class="page-title">
+            <span class="menu-name">회원 수정</span>
+            <span class="route-path">/admin/users/[user_id]/edit</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>회원의 프로필·레벨/포인트·권한·보증 상태 등을 편집하고 저장합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>사용자명 / 닉네임 / 이메일 수정</li>
+            <li>사용자 레벨 / 권한 레벨 / 포인트 / 거래 횟수 수정</li>
+            <li>관리자 권한 토글</li>
+            <li>활성화 상태 토글</li>
+            <li>거래 보증 상태 토글</li>
+            <li>저장 / 취소 / 목록으로 돌아가기</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성 (입력 항목)</h4>
+          <table>
+            <thead><tr><th>항목</th><th>유형</th><th>비고</th></tr></thead>
+            <tbody>
+              <tr><td>사용자</td><td>텍스트</td><td>—</td></tr>
+              <tr><td>닉네임</td><td>텍스트</td><td>min/max 길이 검증 (사용자 설정 기반)</td></tr>
+              <tr><td>이메일</td><td>이메일</td><td>—</td></tr>
+              <tr><td>사용자 레벨</td><td>숫자</td><td>—</td></tr>
+              <tr><td>권한 레벨</td><td>숫자</td><td>최대 시스템 레벨 초과 불가</td></tr>
+              <tr><td>포인트</td><td>숫자</td><td>—</td></tr>
+              <tr><td>거래 횟수</td><td>숫자</td><td>—</td></tr>
+              <tr><td>관리자 권한</td><td>스위치</td><td>—</td></tr>
+              <tr><td>활성화 상태</td><td>스위치</td><td>—</td></tr>
+              <tr><td>거래 보증 상태</td><td>스위치</td><td>—</td></tr>
+              <tr><td>KYC 정보</td><td>표시 전용</td><td>수정 불가</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-danger">
+            <strong>즉시 영향:</strong>
+            <ul>
+              <li><strong>관리자 권한</strong> 변경은 즉시 어드민 접근을 변경합니다.</li>
+              <li><strong>활성화 상태 해제</strong>는 즉시 사용자의 플랫폼 이용을 차단합니다.</li>
+              <li>닉네임 길이는 사용자 설정의 min/max 범위 안이어야 합니다.</li>
+              <li>권한 레벨은 <code>max_system_level</code>을 초과할 수 없습니다.</li>
+            </ul>
+          </div>
+          <p style="font-size:13px;color:var(--text-muted)">저장 성공 시 회원 목록으로 자동 이동합니다.</p>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/user/read</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/user/update</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/settings/level/read</div>
+              <div><span class="method method-get">GET</span>/api/signup/read</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/ranks -->
+      <article class="page-card" id="admin-ranks">
+        <header class="page-header">
+          <div class="page-label">메뉴 · 등급</div>
+          <h3 class="page-title">
+            <span class="menu-name">등급 (목록)</span>
+            <span class="route-path">/admin/ranks</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>사용자 거래 등급(랭크)을 관리합니다. 단건 생성/수정/삭제, 자동 생성, 일괄 편집, 배지 이미지 관리 진입점을 제공합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>이름/설명으로 등급 검색 (검색 필드 선택 가능)</li>
+            <li>정렬 (최신/오래된)</li>
+            <li>단건 등급 생성</li>
+            <li>자동 등급 생성 페이지로 이동</li>
+            <li>일괄 편집</li>
+            <li>배지 이미지 관리로 이동</li>
+            <li>단건 삭제 · 등급 수정 페이지로 이동</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성 (테이블 컬럼)</h4>
+          <p>이름 / 등급 레벨 / 최소 거래 횟수 / 배지 이미지 / 활성화 / 작업 버튼</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            <ul>
+              <li><strong>등급 레벨은 유일</strong>해야 합니다 (중복 불가, 보통 1·2·3 순차).</li>
+              <li>상위 등급의 <strong>최소 거래 횟수</strong>는 하위 등급보다 커야 합니다.</li>
+              <li>배지 이미지는 여러 등급이 공유할 수 있어, 해제 시 모든 사용 등급에 영향.</li>
+              <li>등급 삭제 시 해당 등급 보유 사용자는 한 단계 낮은 등급으로 떨어집니다.</li>
+            </ul>
+          </div>
+          <div class="callout callout-danger">
+            <strong>자동 생성은 기존 등급을 모두 삭제한 뒤 재생성합니다.</strong> (파괴적 작업)
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/ranks/read</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/ranks/create</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/ranks/batch-create</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/ranks/update</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/ranks/delete</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/rank_badges/list</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/rank_badges/upload</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/ranks/create -->
+      <article class="page-card" id="admin-ranks-create">
+        <header class="page-header">
+          <div class="page-label">등급 · 생성</div>
+          <h3 class="page-title">
+            <span class="menu-name">등급 생성</span>
+            <span class="route-path">/admin/ranks/create</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>새 등급을 한 건 추가합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <table>
+            <thead><tr><th>항목</th><th>유형</th><th>검증</th></tr></thead>
+            <tbody>
+              <tr><td>이름</td><td>텍스트</td><td>필수</td></tr>
+              <tr><td>등급 레벨</td><td>숫자</td><td>최소 1, 필수</td></tr>
+              <tr><td>최소 거래 횟수</td><td>숫자</td><td>0–10,000,000</td></tr>
+              <tr><td>설명</td><td>텍스트영역</td><td>선택</td></tr>
+              <tr><td>활성화</td><td>스위치</td><td>기본 ON</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            등급 레벨 중복 불가 · 최소 거래 횟수는 직전 등급보다 커야 합니다 · 비활성 등급은 신규 사용자에게 할당되지 않지만 기존 보유자는 유지됩니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/ranks/create</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/ranks/[rank] -->
+      <article class="page-card" id="admin-ranks-edit">
+        <header class="page-header">
+          <div class="page-label">등급 · 수정</div>
+          <h3 class="page-title">
+            <span class="menu-name">등급 수정</span>
+            <span class="route-path">/admin/ranks/[rank]</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>기존 등급의 정보와 배지 이미지를 수정합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>이름 / 레벨 / 최소 거래 횟수 / 설명 / 활성화 수정</li>
+            <li>배지 이미지 업로드 · 교체 · 해제 (PNG/JPG/WebP/SVG, 최대 2MB)</li>
+            <li>배지 이미지 관리 페이지로 이동</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-danger">
+            <strong>배지 해제 경고:</strong> 해당 이미지를 공유하는 <strong>모든 등급</strong>에서 해제됩니다 (확인 다이얼로그 표시).
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/ranks/read</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/ranks/update</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/rank_badges/upload</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/rank_badges/unassign</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/ranks/auto -->
+      <article class="page-card" id="admin-ranks-auto">
+        <header class="page-header">
+          <div class="page-label">등급 · 자동 생성</div>
+          <h3 class="page-title">
+            <span class="menu-name">자동 등급 생성</span>
+            <span class="danger-tag">파괴적</span>
+            <span class="route-path">/admin/ranks/auto</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>최대 등급 수·최대 거래 횟수·진행 곡선을 지정해 전체 등급을 자동 생성합니다. 시뮬레이션 후 저장합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>최대 등급 수 / 최대 거래 횟수 입력</li>
+            <li>진행 유형 선택 (선형 / 오목 / 볼록)</li>
+            <li>진행 속도 조정 (1–5, 비선형일 때만)</li>
+            <li><strong>계산</strong> 버튼으로 시뮬레이션</li>
+            <li>결과 그리드 + 차트 확인</li>
+            <li><strong>저장</strong> 버튼으로 확정 (확인 다이얼로그 후)</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <ul>
+            <li><strong>입력 필드:</strong> 최대 등급 수 / 최대 거래 횟수 / 진행 유형 / 진행 속도</li>
+            <li><strong>결과 그리드:</strong> 등급별 카드 (등급 9개 초과 시 처음 3 + 중간 3 + 마지막 3개만 표시)</li>
+            <li><strong>결과 차트:</strong> X=등급 레벨, Y=필요 거래 횟수</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-danger">
+            <strong>저장 시 기존 등급을 전부 삭제하고 새로 생성합니다.</strong> 되돌릴 수 없습니다.
+          </div>
+          <div class="callout callout-info">
+            <strong>진행 유형 가이드:</strong>
+            <ul>
+              <li><strong>선형:</strong> 균등 증가</li>
+              <li><strong>오목:</strong> 초반 완만, 후반 가파름 (신규 사용자 친화적)</li>
+              <li><strong>볼록:</strong> 초반 가파름, 후반 완만</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/ranks/batch-create</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/ranks/badges -->
+      <article class="page-card" id="admin-ranks-badges">
+        <header class="page-header">
+          <div class="page-label">등급 · 배지 관리</div>
+          <h3 class="page-title">
+            <span class="menu-name">배지 이미지 관리</span>
+            <span class="route-path">/admin/ranks/badges</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>등급 배지 이미지를 업로드하고, 특정 등급 범위에 일괄 할당·해제합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>배지 이미지 업로드 (이름 선택 입력)</li>
+            <li>등급 범위(예: 1~5)로 일괄 할당</li>
+            <li>범위 수정 / 할당 해제</li>
+            <li>배지 이미지 삭제</li>
+            <li>전체 배지 목록 보기</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <ul>
+            <li><strong>업로드 섹션:</strong> 이름 입력 + 파일 선택</li>
+            <li><strong>배지 목록:</strong> 48×48 미리보기 / 이름 (또는 <code>배지 #ID</code>) / 할당 상태 ("미할당" 또는 "등급 X 할당됨" / "등급 X–Y 할당됨") / 범위 할당·수정·해제·삭제 버튼</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            <ul>
+              <li>범위 오류 (시작 &gt; 종료, 시작 &lt; 1, 비정상 숫자) → "범위 설정에 오류가 있습니다" 토스트</li>
+              <li>다른 배지와 <strong>범위 겹침 불가</strong></li>
+              <li>파일 형식: PNG / JPG / WebP / SVG, 최대 2MB</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/rank_badges/list</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/rank_badges/upload</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/rank_badges/assign</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/rank_badges/unassign</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/rank_badges/delete</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/partners -->
+      <article class="page-card" id="admin-partners">
+        <header class="page-header">
+          <div class="page-label">메뉴</div>
+          <h3 class="page-title">
+            <span class="menu-name">협력사 배너</span>
+            <span class="route-path">/admin/partners</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>플랫폼에 노출되는 협력사 배너 (이미지 + 외부 링크)를 관리합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>협력사 배너 목록 조회</li>
+            <li>신규 등록 / 수정 / 삭제</li>
+            <li>배너 이미지·링크 URL 설정</li>
+            <li>표시 순서 설정</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <p>협력사명 / 배너 이미지 / 링크 / 표시 순서 / 활성화 / 작업 버튼</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-info">
+            배너 이미지는 업로드 용량 제한이 있을 수 있습니다. 링크는 일반적으로 외부 URL입니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/partners/read|create|update|delete</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/guarantee -->
+      <article class="page-card" id="admin-guarantee">
+        <header class="page-header">
+          <div class="page-label">메뉴</div>
+          <h3 class="page-title">
+            <span class="menu-name">공식보증업체</span>
+            <span class="route-path">/admin/guarantee</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>공식 보증(거래 안전성을 책임지는 제휴사)을 관리하고, 보증 배너 설정을 수정합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>보증 배너 설정 (제목 / 이미지 / 링크 / 활성화) 수정</li>
+            <li>공식 보증업체 등록 / 수정 / 삭제</li>
+            <li>표시 순서 설정</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <ul>
+            <li><strong>배너 섹션:</strong> 제목 / 이미지 / 링크 / 활성화 토글</li>
+            <li><strong>업체 목록:</strong> 로고 / 업체명 / 링크 / 활성화 / 표시 순서 / 작업</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            공식 보증업체는 <strong>계약·검증을 거친 업체</strong>여야 합니다. 배너 설정은 전역으로 모든 사용자에게 영향을 줍니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/guarantee/banner/read|update</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/guarantee/read|create|update|delete</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/popup -->
+      <article class="page-card" id="admin-popup">
+        <header class="page-header">
+          <div class="page-label">메뉴</div>
+          <h3 class="page-title">
+            <span class="menu-name">팝업</span>
+            <span class="route-path">/admin/popup</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>공지·프로모션 팝업을 생성하고, 노출 기간·대상·빈도를 관리합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>팝업 생성 / 수정 / 삭제</li>
+            <li>본문(제목·메시지·이미지·링크) 설정</li>
+            <li>노출 시작/종료일 설정</li>
+            <li>대상 사용자 세그먼트 지정 (전체 / 신규 / 활성 등)</li>
+            <li>노출 빈도 (항상 / 세션당 1회 / 일 1회) 설정</li>
+            <li>활성화 토글</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <p>제목 / 본문 / 이미지 / 버튼 텍스트·링크 / 시작·종료일 / 대상 세그먼트 / 노출 빈도 / 활성화 / 작업</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-info">
+            비활성화 시 즉시 노출이 중단됩니다. <strong>노출 빈도 설정은 사용자 경험 저하를 막는 핵심 요소</strong>입니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/popup/read|create|update|delete</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/push-notification -->
+      <article class="page-card" id="admin-push">
+        <header class="page-header">
+          <div class="page-label">메뉴</div>
+          <h3 class="page-title">
+            <span class="menu-name">푸시 알림</span>
+            <span class="route-path">/admin/push-notification</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>대상 세그먼트로 푸시 알림을 발송하고, 재사용 가능한 템플릿과 발송 이력을 관리합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>푸시 알림 발송 (대상·제목·메시지·이미지·액션 URL)</li>
+            <li>템플릿 생성 / 수정 / 삭제</li>
+            <li>발송 이력 조회 (대상·발송 시간·전송 수·상태)</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <ul>
+            <li><strong>발송 섹션:</strong> 대상 / 제목 / 메시지 / 이미지·아이콘 / 액션 버튼 텍스트·링크</li>
+            <li><strong>템플릿 섹션:</strong> 이름 / 본문 미리보기 / 생성일 / 작업(수정·삭제·이 템플릿으로 발송)</li>
+            <li><strong>이력 섹션:</strong> 본문 / 대상 / 발송 시간 / 전송 수 / 상태 (대기·완료·실패)</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            발송은 <strong>즉시 대상 사용자에게 영향</strong>을 줍니다. 발송 이력은 감사(audit)를 위해 변경 불가합니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/push-notification/send</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/push-notification/template/read|create|update|delete</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/push-notification/history/read</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/navigation -->
+      <article class="page-card" id="admin-nav">
+        <header class="page-header">
+          <div class="page-label">메뉴</div>
+          <h3 class="page-title">
+            <span class="menu-name">메뉴 관리</span>
+            <span class="route-path">/admin/navigation</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>상단 데스크톱 메뉴와 모바일 하단 메뉴 항목을 추가·수정·삭제·재정렬합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>메뉴 항목 추가 / 수정 / 삭제</li>
+            <li>라벨 / 링크 / 아이콘 / 순서 설정</li>
+            <li>서브메뉴(중첩) 구성</li>
+            <li>표시 여부 토글 · 순서 변경</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <p>라벨 / 링크 / 아이콘 / 표시 순서 / 상위 메뉴 / 활성화 / 작업</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-info">
+            변경은 데스크톱 상단·모바일 하단 양쪽에 즉시 반영됩니다. 메뉴 삭제 시 사용자에게서 즉시 사라집니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/nav/list|create|update|delete|reorder</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/support -->
+      <article class="page-card" id="admin-support">
+        <header class="page-header">
+          <div class="page-label">메뉴</div>
+          <h3 class="page-title">
+            <span class="menu-name">고객센터</span>
+            <span class="route-path">/admin/support</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>링크 카드(바로가기), QnA 카테고리, QnA 문서를 통합 관리하는 고객지원 본거지입니다. <strong>3개 탭</strong>으로 구성됩니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능 (탭별)</h4>
+          <ol>
+            <li><strong>링크 카드</strong> — FAQ·문의·문서 등 바로가기 카드 관리</li>
+            <li><strong>QnA 카테고리</strong> — QnA 분류 관리 (이름·설명·순서)</li>
+            <li><strong>QnA</strong> — QnA 문서 목록 / 생성·수정·삭제 진입점</li>
+          </ol>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <p>상단 탭 바: <code>링크 카드 / QnA 카테고리 / QnA</code> — 각 탭 안에 해당 리스트와 추가/수정/삭제 UI</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-info">변경은 사용자에게 즉시 노출됩니다.</div>
+        </div>
+      </article>
+
+      <!-- /admin/support/qna/create -->
+      <article class="page-card" id="admin-qna-create">
+        <header class="page-header">
+          <div class="page-label">고객센터 · QnA</div>
+          <h3 class="page-title">
+            <span class="menu-name">QnA 문서 생성</span>
+            <span class="route-path">/admin/support/qna/create</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>새로운 FAQ/QnA 문서를 작성합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <p>제목 / 내용 / 카테고리 드롭다운 / 표시 순서 / 활성화</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-info">
+            본문은 서식 지원(볼드, 링크 등). 비활성 문서는 사용자에게 노출되지 않습니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/support/qna/create</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/support/qna-categories/read</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/support/qna/[id] -->
+      <article class="page-card" id="admin-qna-edit">
+        <header class="page-header">
+          <div class="page-label">고객센터 · QnA</div>
+          <h3 class="page-title">
+            <span class="menu-name">QnA 문서 수정</span>
+            <span class="route-path">/admin/support/qna/[id]</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>기존 QnA 문서를 수정하거나 삭제합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>제목 / 본문 / 카테고리 / 순서 / 활성화 수정</li>
+            <li>저장 / 삭제 / 목록으로 이동</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-danger">삭제는 되돌릴 수 없습니다.</div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/support/qna/read|update|delete</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/support/qna-categories/read</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/system-control -->
+      <article class="page-card" id="admin-system-control" style="border:2px solid var(--danger);background:#fffaf9">
+        <header class="page-header" style="border-color:#fecaca">
+          <div class="page-label" style="color:var(--danger)">⚠️ 위험 작업</div>
+          <h3 class="page-title">
+            <span class="menu-name">거래 시스템 제어</span>
+            <span class="danger-tag">파괴적</span>
+            <span class="route-path">/admin/system-control</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>P2P 거래 시스템 <strong>비상 제어 도구</strong>. 3개의 파괴적 작업을 확인 다이얼로그·확인 문구와 함께 제공합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+
+          <h5 style="font-size:14px;margin:14px 0 6px">1) 거래 게시 일시 중단 (P2P Pause)</h5>
+          <ul>
+            <li>ON: 신규 거래 글 작성 차단</li>
+            <li>OFF: 정상 운영</li>
+            <li>진행 중 거래·제안은 영향 없음</li>
+            <li>토글 시 확인 다이얼로그 표시</li>
+          </ul>
+
+          <h5 style="font-size:14px;margin:14px 0 6px">2) 모든 거래 취소 (Cancel All Active Trades)</h5>
+          <ul>
+            <li>모든 진행/공개 거래·제안을 일괄 취소</li>
+            <li>완료된 거래는 보존</li>
+            <li>취소된 거래에 대한 <code>trade_count</code> 감소</li>
+            <li>확인 문구 <strong>"모든 거래 취소"</strong> 입력 필요</li>
+          </ul>
+
+          <h5 style="font-size:14px;margin:14px 0 6px">3) 거래 기록 리셋 (Full Reset)</h5>
+          <ul>
+            <li>모든 <code>tether</code> / <code>tether_proposal</code> / <code>tether_rate</code> 삭제</li>
+            <li>모든 사용자의 <code>trade_total</code>, <code>trade_count</code>, <code>trade_joined</code>, <code>trade_rate</code> 초기화</li>
+            <li>모든 사용자의 등급을 최저 등급으로 초기화</li>
+            <li>모든 리더보드(전체·주간·일간) 초기화</li>
+            <li>확인 문구 <strong>"거래 기록 리셋"</strong> 입력 필요</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <ul>
+            <li><strong>Pause 카드:</strong> 상태 아이콘 (PauseCircle/PlayCircle) + 상태 텍스트 (일시 중단/정상 운영) + 토글</li>
+            <li><strong>Cancel All 카드:</strong> 경고 배너 + 설명 + 빨간색 파괴 버튼 + 확인 다이얼로그</li>
+            <li><strong>Full Reset 카드:</strong> 위험 배너 + 삭제·초기화 항목 목록 + 빨간색 파괴 버튼 + 확인 다이얼로그</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항 (Destructive — 절대 주의)</h4>
+          <div class="callout callout-danger">
+            <strong>다음을 반드시 인지하고 사용하세요:</strong>
+            <ul>
+              <li><strong>Pause:</strong> 즉시 모든 사용자에게 영향.</li>
+              <li><strong>Cancel All:</strong> 되돌릴 수 없음. 완료 거래는 보존되지만 진행 거래는 모두 종료.</li>
+              <li><strong>Full Reset:</strong> 수개월~수년의 거래 이력을 영구 삭제. <strong>데이터 복구 불가.</strong></li>
+              <li>확인 문구를 정확히 입력해야 실행됩니다 — 실수 방지 장치.</li>
+              <li><strong>비상시·점검 시간·서비스 종료 시</strong>에만 사용하세요.</li>
+              <li>실행 시 외부에 별도 로그를 남겨 감사 추적을 유지하세요.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/system/p2p-pause</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/system/cancel-active-tethers</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/system/reset-trade-records</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/settings/general/read</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- =========================================
+         SECTION 3: BOARDS
+         ========================================= -->
+    <section class="section" id="section-boards">
+      <h2 class="section-title"><span class="num">3</span>게시판</h2>
+
+      <!-- /admin/boards/topics -->
+      <article class="page-card" id="admin-topics">
+        <header class="page-header">
+          <div class="page-label">게시판 · 토픽</div>
+          <h3 class="page-title">
+            <span class="menu-name">개별 관리 (토픽 목록)</span>
+            <span class="route-path">/admin/boards/topics</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>모든 게시판 토픽(대분류)을 관리합니다. 생성/수정/삭제, 카테고리 관리 진입, 홈 미리보기 노출 제어를 제공합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>이름/URL로 토픽 검색</li>
+            <li>정렬 (최신/오래된)</li>
+            <li>신규 토픽 생성</li>
+            <li><strong>홈 미리보기 ON/OFF</strong> (최대 2개)</li>
+            <li>토픽 설정 수정 / 카테고리 관리 진입 / 삭제</li>
+            <li>페이지네이션 (기본 10개)</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성 (테이블 컬럼)</h4>
+          <p>이름 / URL / 순서 (0–100) / 활성화 / <strong>미리보기 토글</strong> / 작업(수정·카테고리 관리·삭제)</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            <ul>
+              <li><strong>미리보기 최대 2개</strong> — 3번째 활성화 시도 시 "미리보기는 최대 2개까지 설정할 수 있습니다" 토스트.</li>
+              <li>미리보기는 토픽이 활성 상태일 때만 가능.</li>
+              <li>변경은 홈에 즉시 반영됩니다.</li>
+            </ul>
+          </div>
+          <div class="callout callout-danger">
+            <strong>토픽 삭제 시 해당 토픽의 모든 스레드·댓글·파일이 함께 삭제됩니다.</strong>
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/topics/read</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/topics/update</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/topics/delete</div>
+              <div><span class="method method-get">GET</span>/api/board-preview/read</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/boards/topics/[topic] -->
+      <article class="page-card" id="admin-topic-edit">
+        <header class="page-header">
+          <div class="page-label">게시판 · 토픽 편집</div>
+          <h3 class="page-title">
+            <span class="menu-name">토픽 상세/편집</span>
+            <span class="route-path">/admin/boards/topics/[topic]</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>토픽(게시판) 생성 또는 편집. 접근 권한, 글/댓글 길이, 파일 업로드, 포인트, 특수 기능(익명·단일 댓글·추천·썸네일) 등을 종합 설정합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능 (섹션별)</h4>
+          <ul>
+            <li><strong>게시판 기본 설정:</strong> 이름 · URL · 설명 · 표시 순서 · 활성화 · 단일 댓글만 허용</li>
+            <li><strong>위젯 설정:</strong> 빠른 메뉴 표시 · 게시판 위젯 등록 (홈 노출)</li>
+            <li><strong>글 설정:</strong> 제목/본문/댓글 min·max 길이</li>
+            <li><strong>접근 권한:</strong> 읽기 · 작성 · 댓글 · 다운로드 · 주제 관리 (0–100)</li>
+            <li><strong>파일 설정:</strong> 업로드 허용 · 최대 수 (0–10) · 허용 확장자 (쉼표) · 최대 크기 (1–20 MB)</li>
+            <li><strong>부가 기능:</strong> 썸네일 · 익명 · 본인 글만 열람 · 추천 · 비추천</li>
+            <li><strong>페이지네이션:</strong> 페이지당 글 수 (10–50) · 페이지 버튼 수 (3–10)</li>
+            <li><strong>게시글 보존:</strong> 수정/삭제 방지 댓글 수 (0–20)</li>
+            <li><strong>포인트:</strong> 작성·읽기·댓글·추천·비추천 (0–10,000)</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <p>위 9개 섹션을 카드/접이식 패널로 구성합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            <ul>
+              <li><strong>min ≤ max</strong> 검증.</li>
+              <li>익명을 끄면 "본인 글만 열람"도 자동 비활성.</li>
+              <li>파일 확장자는 <strong>쉼표 + 공백 없이</strong> 입력 (예: <code>pdf,doc,docx</code>).</li>
+              <li>접근 권한 <code>0</code> = 공개, 숫자가 높을수록 상위 사용자만 접근.</li>
+              <li>토픽 ID = <code>0</code> → 신규 생성 모드. 1 이상 → 편집 모드.</li>
+              <li>비활성화 시 사용자에게 즉시 숨겨지지만 스레드는 DB에 보존됩니다.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/topics/read</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/topics/create</div>
+              <div><span class="method method-post">POST</span>/api/admin_di2u3k2j/topics/update</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/settings/thread/read</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/boards/topics/[topic]/categories -->
+      <article class="page-card" id="admin-categories">
+        <header class="page-header">
+          <div class="page-label">게시판 · 카테고리</div>
+          <h3 class="page-title">
+            <span class="menu-name">카테고리 목록</span>
+            <span class="route-path">/admin/boards/topics/[topic]/categories</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>특정 토픽의 소분류(카테고리)를 관리합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>이름/설명으로 검색</li>
+            <li>정렬 (최신/오래된)</li>
+            <li>신규 카테고리 생성 / 수정 / 삭제</li>
+            <li>페이지네이션</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <p>이름 / 설명 / 표시 순서 / 활성화 / 작업</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-info">
+            카테고리는 단일 상위 토픽에 속합니다. 삭제 시 해당 카테고리의 글 분류가 재구성될 수 있습니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/topics/read</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/topics/categories/read|update|delete</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/boards/topics/[topic]/categories/[category] -->
+      <article class="page-card" id="admin-category-edit">
+        <header class="page-header">
+          <div class="page-label">게시판 · 카테고리 편집</div>
+          <h3 class="page-title">
+            <span class="menu-name">카테고리 상세/편집</span>
+            <span class="route-path">/admin/boards/topics/[topic]/categories/[category]</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>카테고리 한 건을 생성 또는 편집합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <p>이름 (텍스트) / 설명 (텍스트영역) / 표시 순서 (숫자) / 활성화 (스위치 + 안내: "비활성화된 주제는 사용자에게 표시되지 않습니다")</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-info">
+            ID = <code>0</code> → 신규 생성 모드. 비활성화는 글을 삭제하지 않으며 사용자에게만 숨깁니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/topics/read</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/topics/categories/read|update</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/boards/general -->
+      <article class="page-card" id="admin-boards-general">
+        <header class="page-header">
+          <div class="page-label">게시판 · 전역</div>
+          <h3 class="page-title">
+            <span class="menu-name">기본 설정 (전역 게시판 설정)</span>
+            <span class="route-path">/admin/boards/general</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>모든 게시판에 적용되는 <strong>전역 기본값</strong>(글/댓글 길이, 권한 기본값, 파일 업로드, 포인트)을 설정합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>전역 글(스레드) 설정 수정</li>
+            <li>전역 댓글 설정 수정</li>
+            <li>전역 파일 업로드 설정 수정</li>
+            <li>전역 접근 권한 기본값 수정</li>
+            <li>전역 포인트 보상 설정 수정</li>
+            <li>일괄 저장</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            <strong>전역 기본값</strong>은 토픽에서 재정의하지 않은 설정에 적용됩니다.
+            변경은 즉시 적용되며 토픽별 커스텀이 없는 모든 게시판에 영향을 줍니다.
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/settings/thread/read|update</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <!-- /admin/boards/tether -->
+      <article class="page-card" id="admin-boards-tether">
+        <header class="page-header">
+          <div class="page-label">게시판 · 거래</div>
+          <h3 class="page-title">
+            <span class="menu-name">거래 게시판</span>
+            <span class="route-path">/admin/boards/tether</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>P2P 거래(테더) 게시판을 관리합니다. <strong>2단계 지역 계층</strong>(시/도 → 군/구)을 관리하고, 거래 게시판 전용 설정 폼을 제공합니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능</h4>
+          <ul>
+            <li>거래 게시판 전용 설정 (TetherSettingsForm) 수정</li>
+            <li><strong>지역 관리:</strong>
+              <ul>
+                <li>상위 지역 (시/도) 추가</li>
+                <li>하위 지역 (군/구) 추가</li>
+                <li>활성 지역 삭제 (소프트 삭제)</li>
+                <li>삭제된 지역 복구</li>
+                <li>"삭제된 지역 표시" 체크박스 토글</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <ul>
+            <li><strong>거래 설정 폼</strong> (상단)</li>
+            <li><strong>지역 관리 섹션:</strong> 상위 지역 = 아코디언, 그 안에 하위 지역. 활성 항목은 삭제·하위 추가 버튼, 삭제 항목은 복구 버튼 + "삭제됨" 배지 + 취소선.</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            <ul>
+              <li><strong>계층:</strong> 상위 지역만 자식을 가질 수 있음 (3단계 불가).</li>
+              <li><strong>소프트 삭제:</strong> 삭제는 <code>is_active=false</code> 표시일 뿐 DB에서 제거되지 않음.</li>
+              <li>복구는 "복구" 버튼으로 가능.</li>
+              <li>이름은 <code>validateTetherCategoryName</code> 검증 통과 필요.</li>
+              <li>변경은 즉시 API로 저장됩니다 (전통적 폼 제출 없음).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/tether_category/read|update|delete|restore</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/settings/tether/read|update</div>
+            </div>
+          </details>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- =========================================
+         SECTION 4: CHAT
+         ========================================= -->
+    <section class="section" id="section-chat">
+      <h2 class="section-title"><span class="num">4</span>채팅</h2>
+
+      <article class="page-card" id="admin-chat">
+        <header class="page-header">
+          <div class="page-label">메뉴</div>
+          <h3 class="page-title">
+            <span class="menu-name">채팅 모더레이션</span>
+            <span class="route-path">/admin/chat</span>
+          </h3>
+        </header>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">🎯</span>목적</h4>
+          <p>실시간 채팅의 토픽·메시지·사용자·신고를 종합 모더레이션합니다. <strong>10개 탭</strong>으로 구성됩니다.</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">✅</span>주요 기능 (10개 탭)</h4>
+          <ol>
+            <li><strong>설정</strong> — 전역 채팅 설정 수정</li>
+            <li><strong>채팅 토픽</strong> — 채팅 토픽(채널) 관리</li>
+            <li><strong>공지 (캐러셀)</strong> — 채팅에 노출되는 캐러셀 공지 관리</li>
+            <li><strong>금지어</strong> — 금지/필터링 단어 목록 관리</li>
+            <li><strong>고정 메시지</strong> — 채팅 상단 고정 메시지 관리</li>
+            <li><strong>채팅 기록</strong> — 과거 메시지 검색·열람</li>
+            <li><strong>뮤트 유저</strong> — 뮤트된 사용자 목록·해제</li>
+            <li><strong>차단 유저</strong> — 차단된 사용자 목록·해제</li>
+            <li><strong>숨김 메시지</strong> — 숨김 처리된 메시지 목록·복구</li>
+            <li><strong>신고 내역</strong> — 사용자 신고 접수 처리</li>
+          </ol>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">📋</span>화면 구성</h4>
+          <p>상단 탭 바 (10개 탭). 각 탭의 전용 UI (리스트/폼/검색 등).</p>
+        </div>
+
+        <div class="block">
+          <h4 class="block-title"><span class="icon">⚠️</span>주의사항</h4>
+          <div class="callout callout-warning">
+            <ul>
+              <li><strong>금지어:</strong> 등록 즉시 모든 메시지에서 필터링.</li>
+              <li><strong>뮤트:</strong> 메시지 송신 불가, 수신은 가능.</li>
+              <li><strong>차단:</strong> 채팅 접근 자체 불가.</li>
+              <li><strong>메시지 숨김:</strong> 화면에서 제거되나 DB에는 보존.</li>
+              <li><strong>고정 메시지:</strong> 모든 채팅 세션 상단에 표시.</li>
+              <li><strong>신고:</strong> 검토 후 적절한 모더레이션 조치 (뮤트/차단/메시지 삭제)로 이어져야 합니다.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="block">
+          <details>
+            <summary>🔌 관련 API</summary>
+            <div class="api-list">
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/chat/settings/read|update</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/chat/topics/read|update|delete</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/chat/topics/stats</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/chat/notices/read|update|delete</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/chat/banned-words/read|update|delete</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/chat/fixed-messages/read|update|delete</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/chat/history/read</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/chat/moderation/muted|mute|unmute</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/chat/moderation/banned|ban|unban</div>
+              <div><span class="method method-both">R/W</span>/api/admin_di2u3k2j/chat/moderation/hidden|hide|unhide</div>
+              <div><span class="method method-get">GET</span>/api/admin_di2u3k2j/chat/moderation/reports</div>
+            </div>
+          </details>
+        </div>
+      </article>
+    </section>
+
+    <!-- =========================================
+         APPENDIX
+         ========================================= -->
+    <section class="section" id="section-appendix">
+      <h2 class="section-title"><span class="num">📎</span>부록</h2>
+
+      <article class="appendix" id="appendix-a">
+        <h2>부록 A — 파괴적 작업 빠른 참조</h2>
+        <table>
+          <thead>
+            <tr><th>작업</th><th>경로</th><th>영향 범위</th><th>복구 가능</th></tr>
+          </thead>
+          <tbody>
+            <tr class="danger-row">
+              <td>토픽 삭제</td>
+              <td><code>/admin/boards/topics</code></td>
+              <td>토픽의 모든 스레드·댓글·파일</td>
+              <td class="reversible-no">❌ 불가</td>
+            </tr>
+            <tr class="danger-row">
+              <td>자동 등급 생성</td>
+              <td><code>/admin/ranks/auto</code></td>
+              <td>기존 모든 등급</td>
+              <td class="reversible-no">❌ 불가</td>
+            </tr>
+            <tr>
+              <td>거래 게시 일시 중단</td>
+              <td><code>/admin/system-control</code></td>
+              <td>신규 거래 등록</td>
+              <td class="reversible-yes">✅ 가능 (다시 OFF)</td>
+            </tr>
+            <tr class="danger-row">
+              <td>모든 거래 취소</td>
+              <td><code>/admin/system-control</code></td>
+              <td>모든 진행 거래·제안</td>
+              <td class="reversible-no">❌ 불가</td>
+            </tr>
+            <tr class="danger-row">
+              <td>거래 기록 리셋</td>
+              <td><code>/admin/system-control</code></td>
+              <td>모든 거래 데이터·등급·리더보드</td>
+              <td class="reversible-no">❌ 불가</td>
+            </tr>
+            <tr>
+              <td>회원 활성화 해제</td>
+              <td><code>/admin/users/[id]/edit</code></td>
+              <td>해당 사용자 접근</td>
+              <td class="reversible-yes">✅ 가능</td>
+            </tr>
+            <tr>
+              <td>회원 관리자 권한 변경</td>
+              <td><code>/admin/users/[id]/edit</code></td>
+              <td>해당 사용자 어드민 접근</td>
+              <td class="reversible-yes">✅ 가능</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="appendix" id="appendix-b">
+        <h2>부록 B — 전역 설정 위치</h2>
+        <table>
+          <thead><tr><th>설정 범위</th><th>경로</th></tr></thead>
+          <tbody>
+            <tr><td>일반 · 시스템 · 레벨 · 사용자 설정</td><td><code>/admin/general</code></td></tr>
+            <tr><td>게시판 전역 기본값</td><td><code>/admin/boards/general</code></td></tr>
+            <tr><td>거래 게시판 전용 설정</td><td><code>/admin/boards/tether</code></td></tr>
+            <tr><td>채팅 전역 설정</td><td><code>/admin/chat</code> → 설정 탭</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="appendix" id="appendix-c">
+        <h2>부록 C — 외부에 노출되는 콘텐츠</h2>
+        <table>
+          <thead><tr><th>콘텐츠</th><th>관리 경로</th></tr></thead>
+          <tbody>
+            <tr><td>홈 배너 / 위젯</td><td><code>/admin/partners</code>, <code>/admin/guarantee</code>, <code>/admin/boards/topics</code> (미리보기)</td></tr>
+            <tr><td>팝업</td><td><code>/admin/popup</code></td></tr>
+            <tr><td>푸시 알림</td><td><code>/admin/push-notification</code></td></tr>
+            <tr><td>메뉴</td><td><code>/admin/navigation</code></td></tr>
+            <tr><td>고객센터 / FAQ</td><td><code>/admin/support</code></td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="appendix" id="appendix-d">
+        <h2>부록 D — 관리자(Admin) vs 권한 레벨(Auth Level), 그리고 모더레이션</h2>
+
+        <p style="font-size:14px;color:var(--text-muted);margin-bottom:18px">
+          이 앱에는 권한을 결정하는 <strong>독립된 두 가지 시스템</strong>이 동시에 존재하며,
+          경계가 직관적이지 않아 자주 혼동됩니다. 이 부록은 그 관계를 명확히 정리합니다.
+        </p>
+
+        <h3 style="font-size:16px;margin:18px 0 8px;color:var(--text)">1. 두 가지 권한 시스템</h3>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:22%">시스템</th>
+              <th style="width:14%">DB 필드</th>
+              <th style="width:12%">UI 라벨</th>
+              <th>역할</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>어드민 권한</strong> (이진값)</td>
+              <td><code>is_app_admin</code> (Boolean)<br><span style="font-size:11px;color:var(--text-muted)">또는 <code>is_superuser</code></span></td>
+              <td>관리자 권한</td>
+              <td><code>/admin/*</code> 백오피스 접근을 결정하는 <strong>유일한 게이트</strong>. ON이면 어드민 전체 사용 가능, OFF면 접근 불가.</td>
+            </tr>
+            <tr>
+              <td><strong>권한 레벨</strong> (숫자)</td>
+              <td><code>auth_level</code> (Int, 기본 1)</td>
+              <td>권한 레벨 / 시스템레벨</td>
+              <td>사용자 화면(게시판·다운로드·작성·모더레이션)에서의 행동 가능 범위. 게시판마다 요구 레벨이 다름.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-info" style="margin-top:14px">
+          <strong>핵심:</strong> 두 시스템은 <strong>독립적으로 작동</strong>합니다.
+          어드민이라고 자동으로 권한 레벨이 올라가지 않으며, 권한 레벨이 높다고 어드민이 되지 않습니다.
+        </div>
+
+        <h3 style="font-size:16px;margin:24px 0 8px;color:var(--text)">2. 무엇이 무엇을 가로막는가</h3>
+
+        <table>
+          <thead>
+            <tr>
+              <th>동작</th>
+              <th style="width:32%">필요 조건</th>
+              <th>비고</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/admin/*</code> 백오피스 접근</td>
+              <td><code>is_app_admin = ON</code> <strong>(단독)</strong></td>
+              <td>auth_level은 무관. 미들웨어가 이 한 가지 조건만 검사.</td>
+            </tr>
+            <tr>
+              <td>특정 게시판 글 읽기</td>
+              <td><code>is_app_admin=ON</code> <strong>또는</strong> <code>auth_level &gt;= 토픽.level_read</code></td>
+              <td>둘 중 하나만 만족하면 됨.</td>
+            </tr>
+            <tr>
+              <td>글 작성 / 댓글 / 다운로드</td>
+              <td><code>is_app_admin=ON</code> <strong>또는</strong> <code>auth_level &gt;= 토픽.level_create/comment/download</code></td>
+              <td>동일 패턴.</td>
+            </tr>
+            <tr>
+              <td><strong>게시판 모더레이션</strong> (남의 글 수정/삭제 등)</td>
+              <td><code>is_app_admin=ON</code> <strong>또는</strong> <code>auth_level &gt;= 토픽.level_moderator</code></td>
+              <td>토픽별 "주제 관리권한 레벨" 설정값에 따라 모더레이터가 결정됨.</td>
+            </tr>
+            <tr>
+              <td><strong>채팅 모더레이션</strong> (뮤트/차단/숨김)</td>
+              <td><code>is_app_admin = ON</code> <strong>(단독)</strong></td>
+              <td>auth_level 경로 <strong>없음</strong>. 어드민만 가능.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 style="font-size:16px;margin:24px 0 8px;color:var(--text)">3. "모더레이터"라는 별도 역할은 없습니다</h3>
+
+        <p>
+          이 앱에는 <code>is_moderator</code> 같은 별도 필드가 <strong>존재하지 않습니다</strong>.
+          모더레이션 권한은 다음 두 가지 경로 중 하나로만 부여됩니다:
+        </p>
+        <ul>
+          <li><strong>전역 모더레이터:</strong> <code>is_app_admin=ON</code> — 모든 게시판·채팅에서 모더레이션 가능</li>
+          <li><strong>특정 게시판 모더레이터:</strong> <code>auth_level &gt;= 해당 토픽의 level_moderator</code> — <strong>그 게시판에서만</strong> 모더레이션 가능</li>
+        </ul>
+
+        <p>
+          따라서 "이 게시판만 관리할 수 있는 모더레이터"를 만들고 싶다면:
+        </p>
+        <ol>
+          <li>해당 토픽의 <code>level_moderator</code>를 적절한 숫자(예: 50)로 설정 (<code>/admin/boards/topics/[topic]</code>)</li>
+          <li>대상 사용자의 <code>auth_level</code>을 그 숫자 이상으로 올려줌 (<code>/admin/users/[id]/edit</code>)</li>
+          <li><strong>관리자 권한은 OFF로 유지</strong> — 어드민 백오피스에는 들어올 수 없게 됨</li>
+        </ol>
+
+        <h3 style="font-size:16px;margin:24px 0 8px;color:var(--text)">4. 자주 묻는 시나리오</h3>
+
+        <table>
+          <thead>
+            <tr><th style="width:38%">상황</th><th>결과</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>관리자 권한 OFF, 권한 레벨 99</td>
+              <td>❌ 어드민 백오피스 진입 불가. ✅ 모든 게시판에서 작성·다운로드·(레벨이 맞는 토픽에서) 모더레이션 가능.</td>
+            </tr>
+            <tr>
+              <td>관리자 권한 ON, 권한 레벨 1</td>
+              <td>✅ 어드민 백오피스 전체 사용 가능. 사용자 화면에서는 평범한 회원처럼 보이지만, <strong>모더레이션 동작에 대해서는 어드민이라는 이유로 통과</strong>됨.</td>
+            </tr>
+            <tr>
+              <td>관리자 권한 ON, 권한 레벨 99</td>
+              <td>✅ 모든 것 가능 — 일반적인 운영자 셋업.</td>
+            </tr>
+            <tr>
+              <td>특정 게시판만 관리하는 외부 운영자</td>
+              <td>관리자 권한 OFF + 권한 레벨을 해당 토픽 <code>level_moderator</code> 이상으로. 백오피스에는 못 들어오지만 그 게시판은 모더레이션 가능.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 style="font-size:16px;margin:24px 0 8px;color:var(--text)">5. 운영상 주의사항</h3>
+
+        <div class="callout callout-danger">
+          <strong>권한 승급의 위험성:</strong>
+          <ul>
+            <li><strong>어드민은 다른 사람을 어드민으로 승급시킬 수 있습니다.</strong> 회원 수정 화면(<code>/admin/users/[id]/edit</code>)에서 "관리자 권한" 토글을 ON으로 저장하면 됩니다 — 추가 검증(예: 본인의 권한 레벨이 충분히 높은지)은 <strong>없습니다</strong>. 따라서 어드민 권한은 신중히 부여하세요.</li>
+            <li><strong>관리자 권한을 끈다고 권한 레벨이 함께 떨어지지 않습니다.</strong> 둘은 독립이므로 어드민에서 해제할 때는 권한 레벨도 함께 조정해야 사용자 화면에서의 권한도 회수됩니다.</li>
+            <li><strong>채팅 모더레이션 위임 불가:</strong> 채팅의 뮤트·차단·숨김·신고 처리는 권한 레벨로 위임할 수 없습니다. 채팅 운영을 맡기려면 반드시 그 사람에게 어드민 권한을 부여해야 합니다.</li>
+          </ul>
+        </div>
+
+        <div class="callout callout-info" style="margin-top:14px">
+          <strong>참고:</strong>
+          <code>src/helpers/config.ts</code>의 <code>admins = ["admin", "superAdmin"]</code> 상수는
+          <strong>UI 표시용 라벨</strong>일 뿐이며 권한 인증과 무관합니다.
+          실제 권한은 <code>is_app_admin</code> / <code>is_superuser</code> DB 필드만 결정합니다.
+        </div>
+
+        <h3 style="font-size:16px;margin:24px 0 8px;color:var(--text)">6. 한눈에 보는 의사결정 가이드</h3>
+
+        <table>
+          <thead>
+            <tr><th>원하는 것</th><th>해야 할 일</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>운영팀 전체 권한 부여</td>
+              <td><strong>관리자 권한 ON</strong> + 권한 레벨을 사용 환경에 맞게 (보통 최상위)</td>
+            </tr>
+            <tr>
+              <td>특정 게시판만 관리하는 보조 모더레이터</td>
+              <td>관리자 권한 OFF + <strong>권한 레벨 ≥ 해당 토픽의 level_moderator</strong></td>
+            </tr>
+            <tr>
+              <td>비공개 게시판 출입 권한</td>
+              <td><strong>권한 레벨 ≥ 해당 토픽의 level_read</strong> (관리자 권한 불필요)</td>
+            </tr>
+            <tr>
+              <td>채팅 운영 위임</td>
+              <td><strong>관리자 권한 ON 외에는 방법 없음</strong></td>
+            </tr>
+            <tr>
+              <td>외부 협력자에게 일부 게시판만 노출</td>
+              <td>해당 토픽의 level_* 값을 낮추고, 그 사용자의 권한 레벨만 약간 올림</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+
+    <footer class="footer">
+      <p>테더나라 (TTNARA) 관리자 운영 매뉴얼 · v1.0 · 2026-05-18</p>
+      <p>이 문서는 <code>manual/plan.md</code>를 원본으로 생성되었습니다.</p>
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

@@ -49,13 +49,14 @@ export default withAuth(
       const origin = req.headers.get("origin");
       const response = NextResponse.next();
 
+      // Per-deployment CORS allowlist. Browsers normalize IDN hostnames to
+      // punycode before sending the Origin header, so list both forms if the
+      // brand domain is non-ASCII. NEXTAUTH_URL is always included as the
+      // canonical fallback.
       const allowedOrigins = [
-        "https://테더나라.com",
-        "https://www.테더나라.com",
-        "https://xn--910bw5ci5ee37a.com",
-        "https://www.xn--910bw5ci5ee37a.com",
-        "https://xn--o79ak3ejvsh0c.com",
-        "https://www.xn--o79ak3ejvsh0c.com",
+        ...(process.env.ALLOWED_ORIGINS?.split(",")
+          .map((s) => s.trim())
+          .filter(Boolean) ?? []),
         process.env.NEXTAUTH_URL,
       ];
       response.headers.set(
@@ -79,18 +80,6 @@ export default withAuth(
 
       if (siteSettings?.value) {
         const settings = JSON.parse(siteSettings.value);
-
-        if (!settings.allow_login && !targetUrl.includes(AppRoute.Main)) {
-          return NextResponse.redirect(new URL(AppRoute.Main, req.url));
-        }
-
-        if (
-          settings.maintenance_mode &&
-          !targetUrl.includes(AppRoute.Error404) &&
-          !targetUrl.includes(ApiRoute.initialize)
-        ) {
-          return NextResponse.redirect(new URL(AppRoute.Error404, req.url));
-        }
 
         if (
           settings.allow_user_registration === false &&

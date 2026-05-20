@@ -3,19 +3,65 @@ import { handleConnect } from "./prisma";
 import { forEach, removeColumnsFromObject } from "../basic";
 import { topicDefault } from "../defaultValue";
 import { Currency } from "@/helpers/types";
+import {
+  fetchLeaderboardFromDB,
+  getCurrentPeriodKeys,
+  seedTotalLeaderboard,
+} from "./leaderboardService";
+import { seedNavMenuIfEmpty } from "./navMenuSeed";
 
 export enum CacheKey {
   GeneralSettings = "generalSettings",
   LevelSettings = "levelSettings",
   UserSettings = "userSettings",
   ThreadGeneralSettings = "threadGeneralSettings",
+  TetherSettings = "tetherSettings",
   Topics = "topics",
   TetherCategories = "tetherCategories",
   Tether = "tether",
   TradeRanks = "tradeRanks",
   Partners = "partners",
   Popups = "popups",
+  Support = "support",
+  LeaderboardTotal = "leaderboardTotal",
+  LeaderboardDaily = "leaderboardDaily",
+  LeaderboardWeekly = "leaderboardWeekly",
 }
+
+export interface SupportCacheLinkCard {
+  id: number;
+  title: string;
+  description: string | null;
+  url: string;
+  cloudfront_url: string | null;
+  opens_in_new_tab: boolean;
+  display_order: number;
+}
+
+export interface SupportCacheQna {
+  id: number;
+  question: string;
+  answer: string;
+  content_format: string;
+  display_order: number;
+}
+
+export interface SupportCacheCategory {
+  id: number;
+  name: string;
+  display_order: number;
+  qnas: SupportCacheQna[];
+}
+
+export interface SupportCachePayload {
+  linkCards: SupportCacheLinkCard[];
+  categoriesWithQnas: SupportCacheCategory[];
+}
+
+// Self-heal window: if refreshAllLeaderboardCaches() ever fails silently after
+// a trade completion, the stale cache expires within this many seconds and the
+// next read falls back to the DB.
+const LEADERBOARD_CACHE_TTL_SECONDS = 60;
 
 class AppCache {
   private static instance: AppCache;
@@ -34,19 +80,29 @@ class AppCache {
 
   public async initializeFromDB() {
     try {
+      // Seed must finish before the nav caches are refreshed, otherwise the
+      // cache could be populated from the pre-seed row set (missing the
+      // system home/chat_toggle items) and the user-facing nav would diverge
+      // from what the admin manager shows.
+      await Promise.all([this.initialize(), seedNavMenuIfEmpty()]);
+
       await Promise.all([
-        this.initialize(),
         // 설정 데이터 가져오기
         this.refreshCache(CacheKey.GeneralSettings),
         this.refreshCache(CacheKey.LevelSettings),
         this.refreshCache(CacheKey.UserSettings),
         this.refreshCache(CacheKey.ThreadGeneralSettings),
+        this.refreshCache(CacheKey.TetherSettings),
         this.refreshCache(CacheKey.Topics),
         this.refreshCache(CacheKey.TetherCategories),
         this.refreshCache(CacheKey.Tether),
         this.refreshCache(CacheKey.TradeRanks),
         this.refreshCache(CacheKey.Partners),
         this.refreshCache(CacheKey.Popups),
+        this.refreshCache(CacheKey.Support),
+        this.refreshCache(CacheKey.LeaderboardTotal),
+        this.refreshCache(CacheKey.LeaderboardDaily),
+        this.refreshCache(CacheKey.LeaderboardWeekly),
       ]);
 
       return true;
@@ -62,6 +118,7 @@ class AppCache {
     if (!topic) {
       await handleConnect((prisma) =>
         prisma.topic.createMany({
+          skipDuplicates: true,
           data: [
             removeColumnsFromObject(
               topicDefault({
@@ -108,6 +165,22 @@ class AppCache {
                 name: "이용 가이드",
                 url: "guide",
                 display_order: 6,
+              }),
+              ["id"]
+            ),
+            removeColumnsFromObject(
+              topicDefault({
+                name: "자유홍보",
+                url: "promotion",
+                display_order: 7,
+              }),
+              ["id"]
+            ),
+            removeColumnsFromObject(
+              topicDefault({
+                name: "이벤트",
+                url: "event",
+                display_order: 8,
               }),
               ["id"]
             ),
@@ -169,6 +242,18 @@ class AppCache {
           }
           this.cache.set("threadGeneralSettings", threadGeneralSettings);
           break;
+        case "tetherSettings":
+          let tetherSettings = await handleConnect((prisma) =>
+            prisma.tether_setting.findFirst()
+          );
+          if (tetherSettings === null) {
+            await handleConnect((prisma) => prisma.tether_setting.create({}));
+            tetherSettings = await handleConnect((prisma) =>
+              prisma.tether_setting.findFirst()
+            );
+          }
+          this.cache.set("tetherSettings", tetherSettings);
+          break;
         case "topics":
           const topics: any = {};
           const topicDatas = await handleConnect((prisma) =>
@@ -220,7 +305,6 @@ class AppCache {
                 name: true,
                 url: true,
                 public_banner_image_url: true,
-                public_partner_image_url: true,
               },
             })
           );
@@ -240,6 +324,91 @@ class AppCache {
           );
           this.cache.set("popups", popups ?? []);
           break;
+        case "support": {
+          const [linkCardRows, categoryRows] = (await handleConnect((prisma) =>
+            Promise.all([
+              prisma.support_link_card.findMany({
+                where: { is_active: true },
+                orderBy: [{ display_order: "asc" }, { created_at: "desc" }],
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  url: true,
+                  cloudfront_url: true,
+                  opens_in_new_tab: true,
+                  display_order: true,
+                },
+              }),
+              prisma.support_qna_category.findMany({
+                where: { is_active: true },
+                orderBy: [{ display_order: "asc" }, { id: "asc" }],
+                select: {
+                  id: true,
+                  name: true,
+                  display_order: true,
+                  qnas: {
+                    where: { is_active: true },
+                    orderBy: [{ display_order: "asc" }, { id: "asc" }],
+                    select: {
+                      id: true,
+                      question: true,
+                      answer: true,
+                      content_format: true,
+                      display_order: true,
+                    },
+                  },
+                },
+              }),
+            ])
+          )) ?? [[], []];
+
+          const payload: SupportCachePayload = {
+            linkCards: linkCardRows ?? [],
+            categoriesWithQnas: categoryRows ?? [],
+          };
+          this.cache.set("support", payload);
+          break;
+        }
+        case "leaderboardTotal": {
+          const totalEntries = await fetchLeaderboardFromDB("total", "all");
+          if (totalEntries.length === 0) {
+            await seedTotalLeaderboard();
+            const seeded = await fetchLeaderboardFromDB("total", "all");
+            this.cache.set(
+              "leaderboardTotal",
+              seeded,
+              LEADERBOARD_CACHE_TTL_SECONDS
+            );
+          } else {
+            this.cache.set(
+              "leaderboardTotal",
+              totalEntries,
+              LEADERBOARD_CACHE_TTL_SECONDS
+            );
+          }
+          break;
+        }
+        case "leaderboardDaily": {
+          const { daily } = getCurrentPeriodKeys();
+          const dailyEntries = await fetchLeaderboardFromDB("daily", daily);
+          this.cache.set(
+            "leaderboardDaily",
+            dailyEntries,
+            LEADERBOARD_CACHE_TTL_SECONDS
+          );
+          break;
+        }
+        case "leaderboardWeekly": {
+          const { weekly } = getCurrentPeriodKeys();
+          const weeklyEntries = await fetchLeaderboardFromDB("weekly", weekly);
+          this.cache.set(
+            "leaderboardWeekly",
+            weeklyEntries,
+            LEADERBOARD_CACHE_TTL_SECONDS
+          );
+          break;
+        }
       }
     } catch (error) {
       console.error(`Failed to refresh cache for ${key}:`, error);
@@ -255,8 +424,10 @@ class AppCache {
     return this.cache.get(key);
   }
 
-  public set(key: string, value: any) {
-    return this.cache.set(key, value);
+  public set(key: string, value: any, ttlSeconds?: number) {
+    return ttlSeconds !== undefined
+      ? this.cache.set(key, value, ttlSeconds)
+      : this.cache.set(key, value);
   }
 }
 

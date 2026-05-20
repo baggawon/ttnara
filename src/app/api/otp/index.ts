@@ -11,6 +11,28 @@ import { now } from "@/helpers/basic";
 import { makeRandomText } from "@/helpers/common";
 import { sendEmail } from "@/helpers/server/ses";
 import { emailAuth } from "@/helpers/emailFormat";
+import { getBrandSettings } from "@/helpers/server/brandSettings";
+
+// Shared brand-aware OTP email payload. Centralized so all three call sites
+// stay in lockstep when brand fields or template params change.
+const buildOtpEmail = async (validate_data: string) => {
+  const brand = await getBrandSettings();
+  const siteName = brand.siteName || "";
+  const subject = `[${siteName}] 인증메일입니다.`;
+  return {
+    subject,
+    body: emailAuth({
+      title: subject,
+      time: "30",
+      authCode: validate_data,
+      date: now().format("YYYY-MM-DD HH:mm:ss"),
+      siteName,
+      siteUrl: process.env.NEXTAUTH_URL ?? null,
+      logoUrl: brand.faviconUrl ?? brand.logoImageUrl,
+      contactEmail: process.env.OTP_CONTACT_EMAIL ?? null,
+    }),
+  };
+};
 
 export interface OtpProps {
   email?: string;
@@ -18,12 +40,38 @@ export interface OtpProps {
   otp?: string;
   validate_type: ApiOtpType;
   request_id?: string;
+  dev_log_only?: boolean;
 }
+
+const sendEmailOrDevLog = async (
+  email: string,
+  subject: string,
+  body: string,
+  validate_data: string,
+  validate_type: ApiOtpType,
+  dev_log_only?: boolean
+): Promise<{ MessageId: string | undefined }> => {
+  if (dev_log_only && process.env.NODE_ENV !== "production") {
+    console.log("\n========================================================");
+    console.log(
+      `[DEV] OTP code for ${email} (${validate_type}): ${validate_data}`
+    );
+    console.log("========================================================\n");
+    return { MessageId: `dev-log-${Date.now()}` };
+  }
+  return sendEmail(email, subject, body);
+};
 
 export const POST = async (json: OtpProps) => {
   try {
-    const { otp, request_id, validate_type, phone_number, email }: OtpProps =
-      json;
+    const {
+      otp,
+      request_id,
+      validate_type,
+      phone_number,
+      email,
+      dev_log_only,
+    }: OtpProps = json;
     const isAblePropsToSignup =
       typeof email === "string" && typeof validate_type !== undefined;
 
@@ -63,16 +111,15 @@ export const POST = async (json: OtpProps) => {
           }
         }
         const validate_data = makeRandomText({ length: 6 });
+        const { subject, body } = await buildOtpEmail(validate_data);
 
-        const result = await sendEmail(
+        const result = await sendEmailOrDevLog(
           email,
-          `[테더나라] 인증메일입니다.`,
-          emailAuth({
-            title: "[테더나라] 인증메일입니다.",
-            time: "30",
-            authCode: validate_data,
-            date: now().format("YYYY-MM-DD HH:mm:ss"),
-          })
+          subject,
+          body,
+          validate_data,
+          validate_type,
+          dev_log_only
         );
 
         if (!result.MessageId) throw ToastData.unknown;
@@ -246,16 +293,15 @@ export const POST = async (json: OtpProps) => {
           }
         }
         const validate_data = makeRandomText({ length: 6 });
+        const { subject, body } = await buildOtpEmail(validate_data);
 
-        const result = await sendEmail(
+        const result = await sendEmailOrDevLog(
           email,
-          `[테더나라] 인증메일입니다.`,
-          emailAuth({
-            title: "[테더나라] 인증메일입니다.",
-            time: "30",
-            authCode: validate_data,
-            date: now().format("YYYY-MM-DD HH:mm:ss"),
-          })
+          subject,
+          body,
+          validate_data,
+          validate_type,
+          dev_log_only
         );
         if (!result.MessageId) throw ToastData.unknown;
         console.info(
@@ -307,16 +353,15 @@ export const POST = async (json: OtpProps) => {
         }
       }
       const validate_data = makeRandomText({ length: 6 });
+      const { subject, body } = await buildOtpEmail(validate_data);
 
-      const result = await sendEmail(
+      const result = await sendEmailOrDevLog(
         email,
-        `[테더나라] 인증메일입니다.`,
-        emailAuth({
-          title: "[테더나라] 인증메일입니다.",
-          time: "30",
-          authCode: validate_data,
-          date: now().format("YYYY-MM-DD HH:mm:ss"),
-        })
+        subject,
+        body,
+        validate_data,
+        validate_type,
+        dev_log_only
       );
       if (!result.MessageId) throw ToastData.unknown;
       console.info(`valid sms send success user: ${email}, ${validate_type}`);

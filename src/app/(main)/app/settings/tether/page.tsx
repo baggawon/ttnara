@@ -1,10 +1,13 @@
 import { MyTetherList } from "@/components/4_templates/MyTetherList";
 import { Separator } from "@/components/ui/separator";
 import type { Currency, TetherStatus } from "@/helpers/types";
+import { requireTetherEnabled } from "@/helpers/server/tetherGuard";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function Page(props: { searchParams: SearchParams }) {
+  await requireTetherEnabled();
+
   const searchParams = await props.searchParams;
 
   const page = searchParams.page ? Number(searchParams.page) : undefined;
@@ -26,11 +29,6 @@ export default async function Page(props: { searchParams: SearchParams }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">거래관리</h3>
-        <p className="text-sm text-muted-foreground">거래 내역을 관리합니다.</p>
-      </div>
-      <Separator />
       <MyTetherList
         page={page}
         pageSize={pageSize}

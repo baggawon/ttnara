@@ -10,11 +10,20 @@ import { appCache, CacheKey } from "@/helpers/server/serverCache";
 
 export interface topicsUpdateProps extends topic {}
 
+const RESERVED_TOPIC_URLS = ["tether"];
+
 export const POST = async (json: topicsUpdateProps) => {
   try {
     if (typeof json?.id !== "number") throw ToastData.unknown;
 
     await requestValidator([RequestValidator.Admin], json);
+
+    if (
+      typeof json.url === "string" &&
+      RESERVED_TOPIC_URLS.includes(json.url.trim().toLowerCase())
+    ) {
+      throw `'${json.url}' 경로는 예약된 경로입니다.`;
+    }
 
     const { id, ...data } = json;
     const updateResult = await handleConnect((prisma) =>

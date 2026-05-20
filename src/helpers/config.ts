@@ -1,11 +1,7 @@
 import { SearchType } from "@/helpers/types";
+import packageJson from "../../package.json";
 
-export let version = "";
-
-async function fetchVersion() {
-  version = (await import("../../package.json")).version;
-}
-fetchVersion();
+export const version: string = packageJson.version;
 
 export const PAGESIZES = [5, 10, 20, 50, 100];
 
@@ -31,7 +27,7 @@ export const isAbleLoginCondition = () => ({
 
 export const UPLOAD_FILE_LIMIT = 15;
 
-export const UPLOAD_FILE_SIZE_MB = 10;
+export const UPLOAD_FILE_SIZE_MB = 20;
 
 export const uploadTypes = [
   "image/png",

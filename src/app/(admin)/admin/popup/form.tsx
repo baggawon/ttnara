@@ -30,7 +30,7 @@ import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { useToast } from "@/components/ui/use-toast";
 import { postFormData, refreshCache } from "@/helpers/common";
 import { ToastData } from "@/helpers/toastData";
-import { X, Upload, ImageIcon } from "lucide-react";
+import { X, Upload, ImageIcon, Plus, Trash2 } from "lucide-react";
 import type { popup } from "@prisma/client";
 import { ApiRoute, QueryKey } from "@/helpers/types";
 import Image from "next/image";
@@ -649,21 +649,29 @@ export default function AdminPopupListForm() {
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>팝업 목록</CardTitle>
-            <div className="flex gap-2">
-              <Button onClick={() => setIsCreateSheetOpen(true)} size="sm">
-                팝업 추가
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="min-w-0">팝업 목록</CardTitle>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                onClick={() => setIsCreateSheetOpen(true)}
+                size="sm"
+                aria-label="팝업 추가"
+              >
+                <Plus className="w-4 h-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">팝업 추가</span>
               </Button>
               <Button
                 onClick={handleDelete}
                 variant="destructive"
                 size="sm"
+                aria-label="선택 삭제"
                 disabled={
                   selectedIds.length === 0 || deletePopupsMutation.isPending
                 }
               >
-                선택 삭제 ({selectedIds.length})
+                <Trash2 className="w-4 h-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">선택 삭제 </span>
+                <span>({selectedIds.length})</span>
               </Button>
             </div>
           </div>

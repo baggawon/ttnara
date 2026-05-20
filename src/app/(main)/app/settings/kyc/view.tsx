@@ -17,8 +17,15 @@ import useGetQuery from "@/helpers/customHook/useGetQuery";
 import { userGet } from "@/helpers/get";
 import clsx from "clsx";
 import WithUseWatch from "@/components/2_molecules/WithUseWatch";
-import { ShieldUser } from "lucide-react";
+import { ShieldUser, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import Form from "@/components/1_atoms/Form";
 import { DatePicker } from "@/components/2_molecules/Input/DatePicker";
 import dayjs from "dayjs";
@@ -300,88 +307,162 @@ const SettingsKYCView = () => {
     dependency: [],
   });
 
+  const kycVerified = typeof userData?.profile?.kyc_id === "string";
+
   return (
     <FormProvider {...methods}>
-      <h3 className="flex gap-2 items-center">
-        KYC 인증상태
-        <span
-          className={clsx(
-            "w-4 h-4 rounded-full inline-block",
-            typeof userData?.profile?.kyc_id === "string"
-              ? "bg-green-500"
-              : "bg-red-500"
-          )}
-        />
-      </h3>
-      <WithUseWatch name={["step"]}>
-        {({ step }: SettingsNotificationInitialValues) => (
-          <>
-            {step === 0 && (
-              <section
+      <div className="flex flex-col gap-4">
+        <Card className="overflow-hidden border-none shadow-md">
+          <div
+            className={clsx(
+              "bg-gradient-to-br",
+              kycVerified
+                ? "from-emerald-100 via-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:via-emerald-900/20 dark:to-sky-950/30"
+                : "from-amber-100 via-amber-50 to-rose-50 dark:from-amber-950/40 dark:via-amber-900/20 dark:to-rose-950/30"
+            )}
+          >
+            <div className="p-4 sm:p-6 flex items-center gap-4">
+              <div
                 className={clsx(
-                  "flex flex-col items-center gap-4",
-                  typeof userData?.profile?.kyc_id === "string" && "hidden"
+                  "rounded-full p-3 shrink-0",
+                  kycVerified
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                    : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
                 )}
               >
-                <ShieldUser size={128} />
-                <Button type="button" onClick={startKYC}>
-                  KYC 인증 시작
-                </Button>
-              </section>
-            )}
-            {step === 1 && (
-              <Form
-                onSubmit={startKYC}
-                className="grid grid-cols-1 md:grid-cols-2 gap-4"
-              >
-                <FormInput
-                  name="name"
-                  label="이름"
-                  placeholder="이름을 입력해주세요"
-                />
-                <FormBuilder name="birthday" label="생년월일">
-                  <DatePicker
-                    name="birthday"
-                    fromYear={dayjs().set("years", 1900).toDate()}
-                    toYear={dayjs().toDate()}
-                  />
-                </FormBuilder>
-                <FormInput
-                  name="phone_number"
-                  label="전화번호"
-                  validate={validatePhoneNumber}
-                  placeholder="전화번호를 입력해주세요(숫자만 입력)"
-                />
-                <FormInput name="email" readOnly label="이메일" />
-                <Button type="submit">다음</Button>
-              </Form>
-            )}
-            {step > 0 && (
-              <div>
+                {kycVerified ? (
+                  <ShieldCheck className="w-8 h-8" />
+                ) : (
+                  <ShieldAlert className="w-8 h-8" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-muted-foreground">
+                  KYC 인증상태
+                </div>
                 <div
                   className={clsx(
-                    step !== 2 && "hidden",
-                    "fixed top-0 left-0 h-[calc(100vh-73px)] md:h-screen w-screen z-40"
+                    "mt-0.5 text-2xl sm:text-3xl font-bold",
+                    kycVerified
+                      ? "text-emerald-700 dark:text-emerald-300"
+                      : "text-amber-700 dark:text-amber-300"
                   )}
                 >
-                  <iframe
-                    id="kyc_iframe"
-                    ref={kycRef}
-                    className="w-full h-full relative"
-                    allow="camera"
-                  ></iframe>
-                  <div>
-                    <Logo
-                      href={AppRoute.Main}
-                      className="absolute z-20 top-0 left-0 px-4 bg-white"
+                  {kycVerified ? "인증 완료" : "미인증"}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {kycVerified
+                    ? "본인 인증이 완료되어 모든 거래 기능을 이용할 수 있습니다."
+                    : "P2P 거래 이용을 위해 본인 인증이 필요합니다."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <WithUseWatch name={["step"]}>
+          {({ step }: SettingsNotificationInitialValues) => (
+            <>
+              {step === 0 && !kycVerified && (
+                <Card>
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <ShieldUser className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      본인 인증 시작
+                    </CardTitle>
+                    <CardDescription>
+                      신분증을 준비해 주시면 빠르게 인증이 진행됩니다.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col items-center gap-6 py-8">
+                    <ShieldUser
+                      size={96}
+                      className="text-muted-foreground/60"
                     />
+                    <Button
+                      type="button"
+                      onClick={startKYC}
+                      className="w-full sm:w-auto sm:min-w-48"
+                    >
+                      KYC 인증 시작
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+              {step === 1 && (
+                <Card>
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <ShieldUser className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      본인 정보 입력
+                    </CardTitle>
+                    <CardDescription>
+                      신분증 정보와 일치하도록 정확히 입력해 주세요.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Form
+                      onSubmit={startKYC}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    >
+                      <FormInput
+                        name="name"
+                        label="이름"
+                        placeholder="이름을 입력해주세요"
+                      />
+                      <FormBuilder name="birthday" label="생년월일">
+                        <DatePicker
+                          name="birthday"
+                          fromYear={dayjs().set("years", 1900).toDate()}
+                          toYear={dayjs().toDate()}
+                        />
+                      </FormBuilder>
+                      <FormInput
+                        name="phone_number"
+                        label="전화번호"
+                        validate={validatePhoneNumber}
+                        placeholder="전화번호를 입력해주세요(숫자만 입력)"
+                      />
+                      <FormInput name="email" readOnly label="이메일" />
+                      <div className="md:col-span-2 flex justify-end pt-2">
+                        <Button
+                          type="submit"
+                          className="w-full sm:w-auto sm:min-w-32"
+                        >
+                          다음
+                        </Button>
+                      </div>
+                    </Form>
+                  </CardContent>
+                </Card>
+              )}
+              {step > 0 && (
+                <div>
+                  <div
+                    className={clsx(
+                      step !== 2 && "hidden",
+                      "fixed top-0 left-0 h-[calc(100vh-73px)] md:h-screen w-screen z-40"
+                    )}
+                  >
+                    <iframe
+                      id="kyc_iframe"
+                      ref={kycRef}
+                      className="w-full h-full relative"
+                      allow="camera"
+                    ></iframe>
+                    <div>
+                      <Logo
+                        href={AppRoute.Main}
+                        className="absolute z-20 top-0 left-0 px-4 bg-white"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </>
-        )}
-      </WithUseWatch>
+              )}
+            </>
+          )}
+        </WithUseWatch>
+      </div>
     </FormProvider>
   );
 };

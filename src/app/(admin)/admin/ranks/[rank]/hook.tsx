@@ -3,7 +3,7 @@
 import type { trade_rank } from "@prisma/client";
 import type { RanksUpdateProps } from "@/app/api/admin_di2u3k2j/ranks/update";
 import { useToast } from "@/components/ui/use-toast";
-import { postJson, refreshCache } from "@/helpers/common";
+import { postFormData, postJson, refreshCache } from "@/helpers/common";
 import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { ToastData } from "@/helpers/toastData";
 import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
@@ -16,7 +16,8 @@ import type {
   RanksReadProps,
 } from "@/app/api/admin_di2u3k2j/ranks/read";
 import { validateMinTradeCount } from "@/helpers/validate";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import type { RankBadgeUploadResult } from "@/app/api/admin_di2u3k2j/rank_badges/upload";
 
 export const useAdminRanksEditHook = (rankId: number) => {
   const router = useRouter();
@@ -84,9 +85,71 @@ export const useAdminRanksEditHook = (rankId: number) => {
     disableLoading();
   };
 
+  const [isUploadingBadge, setIsUploadingBadge] = useState(false);
+
+  const unsetBadge = async () => {
+    if (!currentRank) return;
+    setLoading();
+    try {
+      const { isSuccess, hasMessage } = await postJson(
+        ApiRoute.adminRankBadgesUnassign,
+        { rank_id: currentRank.id }
+      );
+      toast({
+        id: hasMessage ?? ToastData.rankBadgeUnassign,
+        type: isSuccess ? "success" : "error",
+      });
+      if (isSuccess) refreshCache(queryClient, QueryKey.ranks);
+    } finally {
+      disableLoading();
+    }
+  };
+
+  const uploadBadge = async (file: File) => {
+    if (!currentRank) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("rangeStart", String(currentRank.rank_level));
+    fd.append("rangeEnd", String(currentRank.rank_level));
+
+    setIsUploadingBadge(true);
+    setLoading();
+    try {
+      const { isSuccess, hasMessage, hasData } = await postFormData(
+        ApiRoute.adminRankBadgesUpload,
+        fd
+      );
+      if (!isSuccess) {
+        toast({
+          id: hasMessage ?? ToastData.rankBadgeUpload,
+          type: "error",
+        });
+        return;
+      }
+      const payload = hasData as RankBadgeUploadResult | false;
+      if (payload && payload.ok === false) {
+        toast({
+          id: ToastData.rankBadgeAssignConflict,
+          type: "error",
+          value: payload.description,
+        });
+        return;
+      }
+      toast({ id: ToastData.rankBadgeUpload, type: "success" });
+      refreshCache(queryClient, QueryKey.ranks);
+    } finally {
+      setIsUploadingBadge(false);
+      disableLoading();
+    }
+  };
+
   return {
     methods,
     goBack,
     submit,
+    currentRank,
+    uploadBadge,
+    unsetBadge,
+    isUploadingBadge,
   };
 };

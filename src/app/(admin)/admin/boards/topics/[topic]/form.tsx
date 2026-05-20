@@ -99,21 +99,12 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
                 게시판을 위젯에 등록하거나 상단 메뉴에 노출합니다
               </CardDescription>
             </CardHeader>
-            <CardContent className="w-full grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <CardContent className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormBuilder name="show_quickmenu" label="빠른 메뉴 표시">
                 <div className="w-full">
                   <SwitchInput name="show_quickmenu" />
                   <CardDescription className="text-xs w-full">
                     상단 메뉴에 표시합니다
-                  </CardDescription>
-                </div>
-              </FormBuilder>
-
-              <FormBuilder name="preview_on_homepage" label="미리보기">
-                <div className="w-full">
-                  <SwitchInput name="preview_on_homepage" />
-                  <CardDescription className="text-xs w-full">
-                    이 게시판의 최신글을 미리보기로 노출합니다
                   </CardDescription>
                 </div>
               </FormBuilder>
@@ -343,42 +334,73 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
                 required
                 validate={validateAllowedExtensions}
               />
-              <FormInput
-                type={InputType.number}
-                name="max_file_size_mb"
-                label="파일 최대 크기 (MB, 개별)"
-                required
-                min={1}
-                max={10}
-                validate={(value) => validateNumberInRange(value, 1, 10)}
-              />
+              <div>
+                <FormInput
+                  type={InputType.number}
+                  name="max_file_size_mb"
+                  label="파일 최대 크기 (MB, 개별)"
+                  required
+                  min={1}
+                  max={20}
+                  validate={(value) => validateNumberInRange(value, 1, 20)}
+                />
+                <CardDescription className="text-xs w-full mt-1">
+                  1~20MB까지 설정 가능합니다.
+                </CardDescription>
+              </div>
             </CardContent>
           </Card>
           <Card className="mb-2">
             <CardHeader>
               <CardTitle>부가 기능 기본값</CardTitle>
             </CardHeader>
-            <CardContent className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <CardContent className="w-full flex flex-col gap-4">
               <FormBuilder name="use_thumbnail" label="게시판 썸네일 표시">
                 <div className="w-full">
                   <SwitchInput name="use_thumbnail" />
                 </div>
               </FormBuilder>
-              <FormBuilder name="use_anonymous" label="게시판 익명 적용">
-                <div className="w-full">
-                  <SwitchInput name="use_anonymous" />
-                </div>
-              </FormBuilder>
-              <FormBuilder name="use_upvote" label="추천 기능 허용">
-                <div className="w-full">
-                  <SwitchInput name="use_upvote" />
-                </div>
-              </FormBuilder>
-              <FormBuilder name="use_downvote" label="비추천 기능 허용">
-                <div className="w-full">
-                  <SwitchInput name="use_downvote" />
-                </div>
-              </FormBuilder>
+
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormBuilder name="use_anonymous" label="게시판 익명 적용">
+                  <div className="w-full">
+                    <SwitchInput
+                      name="use_anonymous"
+                      onCheckedChange={(value) => {
+                        methods.setValue("use_anonymous", value);
+                        if (!value) {
+                          methods.setValue("use_mypostonly", false);
+                        }
+                      }}
+                    />
+                  </div>
+                </FormBuilder>
+                <WithUseWatch name={["use_anonymous"]}>
+                  {({ use_anonymous }: any) => (
+                    <FormBuilder name="use_mypostonly" label="본인 글만 열람">
+                      <div className="w-full">
+                        <SwitchInput
+                          name="use_mypostonly"
+                          disabled={use_anonymous !== "true"}
+                        />
+                      </div>
+                    </FormBuilder>
+                  )}
+                </WithUseWatch>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormBuilder name="use_upvote" label="추천 기능 허용">
+                  <div className="w-full">
+                    <SwitchInput name="use_upvote" />
+                  </div>
+                </FormBuilder>
+                <FormBuilder name="use_downvote" label="비추천 기능 허용">
+                  <div className="w-full">
+                    <SwitchInput name="use_downvote" />
+                  </div>
+                </FormBuilder>
+              </div>
             </CardContent>
           </Card>
           <Card className="mb-2">
@@ -438,8 +460,18 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
           <Card className="mb-2 col-span-1 sm:col-span-full">
             <CardHeader>
               <CardTitle>포인트 설정</CardTitle>
-              <CardDescription className="text-xs w-full">
-                게시판 참여시 제공하거나 차감되는 포인트입니다.
+              <CardDescription className="text-xs w-full space-y-1">
+                <p>
+                  게시판 참여시 사용자에게 지급하거나 차감되는 포인트입니다.
+                </p>
+                <ul className="list-disc pl-5">
+                  <li>양수(예: 10) 입력 시 해당 동작에 포인트를 지급합니다.</li>
+                  <li>
+                    음수(예: -10) 입력 시 해당 동작에 포인트를 차감합니다.
+                  </li>
+                  <li>0 입력 시 해당 동작은 포인트에 영향을 주지 않습니다.</li>
+                  <li>입력 가능 범위: -10,000 ~ 10,000</li>
+                </ul>
               </CardDescription>
             </CardHeader>
             <CardContent className="w-full grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 gap-4">
@@ -448,54 +480,55 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
                 name="points_per_post_create"
                 label="글 작성"
                 required
-                min={0}
+                min={-10000}
                 max={10000}
-                validate={(value) => validateNumberInRange(value, 0, 10000)}
+                validate={(value) =>
+                  validateNumberInRange(value, -10000, 10000)
+                }
               />
               <FormInput
                 type={InputType.number}
                 name="points_per_post_read"
                 label="글 읽기"
                 required
-                min={0}
+                min={-10000}
                 max={10000}
-                validate={(value) => validateNumberInRange(value, 0, 10000)}
+                validate={(value) =>
+                  validateNumberInRange(value, -10000, 10000)
+                }
               />
               <FormInput
                 type={InputType.number}
                 name="points_per_comment_create"
                 label="댓글 작성"
                 required
-                min={0}
+                min={-10000}
                 max={10000}
-                validate={(value) => validateNumberInRange(value, 0, 10000)}
-              />
-              <FormInput
-                type={InputType.number}
-                name="points_per_file_download"
-                label="파일 다운로드 차감"
-                required
-                min={0}
-                max={10000}
-                validate={(value) => validateNumberInRange(value, 0, 10000)}
+                validate={(value) =>
+                  validateNumberInRange(value, -10000, 10000)
+                }
               />
               <FormInput
                 type={InputType.number}
                 name="points_per_upvote"
                 label="글 추천"
                 required
-                min={0}
+                min={-10000}
                 max={10000}
-                validate={(value) => validateNumberInRange(value, 0, 10000)}
+                validate={(value) =>
+                  validateNumberInRange(value, -10000, 10000)
+                }
               />
               <FormInput
                 type={InputType.number}
                 name="points_per_downvote"
                 label="글 비추천"
                 required
-                min={0}
+                min={-10000}
                 max={10000}
-                validate={(value) => validateNumberInRange(value, 0, 10000)}
+                validate={(value) =>
+                  validateNumberInRange(value, -10000, 10000)
+                }
               />
             </CardContent>
           </Card>

@@ -30,7 +30,7 @@ import useGetQuery from "@/helpers/customHook/useGetQuery";
 import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { useToast } from "@/components/ui/use-toast";
 import { postFormData, refreshCache, parseFetchResult } from "@/helpers/common";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
+import { X, Upload, Image as ImageIcon, Plus, Trash2 } from "lucide-react";
 import type { partner } from "@prisma/client";
 import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
 import Image from "next/image";
@@ -66,21 +66,13 @@ function PartnerSheetForm({
   const { toast } = useToast();
   const { setLoading, disableLoading, queryClient } = useLoadingHandler();
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
-  const partnerFileInputRef = useRef<HTMLInputElement>(null);
   const [selectedBannerFile, setSelectedBannerFile] = useState<File | null>(
-    null
-  );
-  const [selectedPartnerFile, setSelectedPartnerFile] = useState<File | null>(
     null
   );
   const [bannerPreviewUrl, setBannerPreviewUrl] = useState<string | null>(
     partner?.public_banner_image_url || null
   );
-  const [partnerPreviewUrl, setPartnerPreviewUrl] = useState<string | null>(
-    partner?.public_partner_image_url || null
-  );
   const [removeBannerImage, setRemoveBannerImage] = useState(false);
-  const [removePartnerImage, setRemovePartnerImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -105,13 +97,8 @@ function PartnerSheetForm({
   const handleClose = () => {
     reset();
     setSelectedBannerFile(null);
-    setSelectedPartnerFile(null);
-    setBannerPreviewUrl(`https://${partner?.public_banner_image_url}` || null);
-    setPartnerPreviewUrl(
-      `https://${partner?.public_partner_image_url}` || null
-    );
+    setBannerPreviewUrl(partner?.public_banner_image_url || null);
     setRemoveBannerImage(false);
-    setRemovePartnerImage(false);
     onClose();
   };
 
@@ -125,12 +112,8 @@ function PartnerSheetForm({
         display_order: partner.display_order ?? 1,
         is_active: partner.is_active ?? true,
       });
-      setBannerPreviewUrl(`https://${partner.public_banner_image_url}` || null);
-      setPartnerPreviewUrl(
-        `https://${partner.public_partner_image_url}` || null
-      );
+      setBannerPreviewUrl(partner.public_banner_image_url || null);
       setRemoveBannerImage(false);
-      setRemovePartnerImage(false);
     } else if (!isEdit) {
       reset({
         name: "",
@@ -139,9 +122,7 @@ function PartnerSheetForm({
         is_active: true,
       });
       setBannerPreviewUrl(null);
-      setPartnerPreviewUrl(null);
       setRemoveBannerImage(false);
-      setRemovePartnerImage(false);
     }
   }, [isOpen, isEdit, partner, reset]);
 
@@ -161,37 +142,12 @@ function PartnerSheetForm({
     }
   };
 
-  const handlePartnerFileSelect = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedPartnerFile(file);
-      setRemovePartnerImage(false);
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPartnerPreviewUrl(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleRemoveBannerImage = () => {
     setSelectedBannerFile(null);
     setBannerPreviewUrl(null);
     setRemoveBannerImage(true);
     if (bannerFileInputRef.current) {
       bannerFileInputRef.current.value = "";
-    }
-  };
-
-  const handleRemovePartnerImage = () => {
-    setSelectedPartnerFile(null);
-    setPartnerPreviewUrl(null);
-    setRemovePartnerImage(true);
-    if (partnerFileInputRef.current) {
-      partnerFileInputRef.current.value = "";
     }
   };
 
@@ -211,16 +167,8 @@ function PartnerSheetForm({
       formData.append("bannerImage", selectedBannerFile);
     }
 
-    if (selectedPartnerFile) {
-      formData.append("partnerImage", selectedPartnerFile);
-    }
-
     if (removeBannerImage) {
       formData.append("removeBannerImage", "true");
-    }
-
-    if (removePartnerImage) {
-      formData.append("removePartnerImage", "true");
     }
     setLoading();
     setIsSubmitting(true);
@@ -261,11 +209,13 @@ function PartnerSheetForm({
     <Sheet open={isOpen} onOpenChange={handleClose}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{isEdit ? "협력사 수정" : "협력사 추가"}</SheetTitle>
+          <SheetTitle>
+            {isEdit ? "협력사 배너 수정" : "협력사 배너 추가"}
+          </SheetTitle>
           <SheetDescription>
             {isEdit
-              ? "협력사 정보를 수정합니다."
-              : "새로운 협력사를 추가합니다."}
+              ? "협력사 배너 정보를 수정합니다."
+              : "새로운 협력사 배너를 추가합니다."}
           </SheetDescription>
         </SheetHeader>
 
@@ -315,16 +265,17 @@ function PartnerSheetForm({
           </div>
 
           <div>
-            <Label>배너 이미지</Label>
+            <Label>협력사 배너 이미지</Label>
             <div className="mt-2">
               {bannerPreviewUrl ? (
                 <div className="relative inline-block">
                   <Image
                     src={bannerPreviewUrl}
                     alt="Banner Preview"
-                    className="w-32 h-32 object-cover border border-gray-300 rounded"
-                    width={128}
-                    height={128}
+                    className="w-full object-cover border border-gray-300 rounded aspect-[308/100]"
+                    width={308}
+                    height={100}
+                    unoptimized
                   />
                   <button
                     type="button"
@@ -338,7 +289,7 @@ function PartnerSheetForm({
                 <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center bg-gray-50">
                   <ImageIcon size={24} className="text-gray-400 mb-2" />
                   <span className="text-sm text-gray-500">
-                    배너 이미지 없음
+                    협력사 배너 이미지 없음
                   </span>
                 </div>
               )}
@@ -358,56 +309,7 @@ function PartnerSheetForm({
                 className="w-full"
               >
                 <Upload size={16} className="mr-2" />
-                배너 이미지 업로드
-              </Button>
-            </div>
-          </div>
-
-          <div>
-            <Label>파트너 이미지</Label>
-            <div className="mt-2">
-              {partnerPreviewUrl ? (
-                <div className="relative inline-block">
-                  <Image
-                    src={partnerPreviewUrl}
-                    alt="Partner Preview"
-                    className="w-32 h-32 object-cover border border-gray-300 rounded"
-                    width={128}
-                    height={128}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRemovePartnerImage}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center bg-gray-50">
-                  <ImageIcon size={24} className="text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-500">
-                    파트너 이미지 없음
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="mt-2">
-              <input
-                ref={partnerFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePartnerFileSelect}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => partnerFileInputRef.current?.click()}
-                className="w-full"
-              >
-                <Upload size={16} className="mr-2" />
-                파트너 이미지 업로드
+                협력사 배너 이미지 업로드
               </Button>
             </div>
           </div>
@@ -512,21 +414,29 @@ export default function AdminPartnersListForm() {
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>협력사 목록</CardTitle>
-            <div className="flex gap-2">
-              <Button onClick={() => setIsCreateSheetOpen(true)} size="sm">
-                협력사 추가
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="min-w-0">협력사 배너 목록</CardTitle>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                onClick={() => setIsCreateSheetOpen(true)}
+                size="sm"
+                aria-label="협력사 배너 추가"
+              >
+                <Plus className="w-4 h-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">협력사 배너 추가</span>
               </Button>
               <Button
                 onClick={handleDelete}
                 variant="destructive"
                 size="sm"
+                aria-label="선택 삭제"
                 disabled={
                   selectedIds.length === 0 || deletePartnersMutation.isPending
                 }
               >
-                선택 삭제 ({selectedIds.length})
+                <Trash2 className="w-4 h-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">선택 삭제 </span>
+                <span>({selectedIds.length})</span>
               </Button>
             </div>
           </div>

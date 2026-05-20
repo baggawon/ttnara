@@ -58,4 +58,7 @@ public/__ENV.js
 .cursorrules
 
 /data
+/.dev-state
 settings.local.json
+
+/deploy-test

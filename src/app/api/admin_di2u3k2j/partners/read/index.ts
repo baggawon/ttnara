@@ -7,6 +7,7 @@ import {
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import type { PaginationInfo } from "@/helpers/types";
+import { getSignedCloudFrontUrl } from "@/helpers/server/s3";
 
 export interface PartnersListResponse {
   partners: partner[];
@@ -67,7 +68,12 @@ async function getPartnersWithPagination(
   manager.setTotalCount(totalCount);
 
   return {
-    partners,
+    partners: partners.map((p) => ({
+      ...p,
+      public_banner_image_url: p.public_banner_image_url
+        ? getSignedCloudFrontUrl(p.public_banner_image_url)
+        : "",
+    })),
     pagination: manager.getPagination(),
   };
 }

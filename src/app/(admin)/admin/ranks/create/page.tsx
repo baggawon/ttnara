@@ -26,17 +26,17 @@ export default function RanksCreatePage() {
   return (
     <FormProvider {...methods}>
       <Form onSubmit={submit}>
-        <section className="w-full flex flex-col gap-4 p-0 md:p-4">
+        <section className="w-full flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>신규 랭크 추가</CardTitle>
+              <CardTitle>신규 등급 추가</CardTitle>
             </CardHeader>
             <CardContent className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
               <FormInput name="name" label="이름" validate={validateRankName} />
               <FormInput
                 name="rank_level"
                 type={InputType.number}
-                label="랭크 레벨"
+                label="등급 레벨"
                 min={1}
                 validate={(value) => validateNumber({ value, min: 1 })}
               />

@@ -2,7 +2,6 @@
 
 import type { ThreadWithProfile } from "@/app/api/threads/read";
 import type { TopicSettings } from "@/app/api/topic/read";
-import { _tempVideoFiles } from "@/components/2_molecules/Input/CkeditorPlugins/VideoUploadPlugin";
 import { useToast } from "@/components/ui/use-toast";
 import { forEach } from "@/helpers/basic";
 import { postFormData, refreshCache } from "@/helpers/common";
@@ -10,15 +9,18 @@ import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { threadDefault } from "@/helpers/defaultValue";
-import { threadGet, topicSettingsGet } from "@/helpers/get";
+import { attachedMediaGet, threadGet, topicSettingsGet } from "@/helpers/get";
+import type { MediaUploadResult } from "@/app/api/uploads/media";
 import { ToastData } from "@/helpers/toastData";
 import { ApiRoute, AppRoute, QueryKey } from "@/helpers/types";
-import { extractMediaFromHtml } from "@/helpers/uploadUtil";
-import { redirect, useRouter } from "next/navigation";
+import { stripCloudFrontSignaturesClient } from "@/helpers/uploadUtil";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useSession } from "next-auth/react";
 // import useBoardAccessControl from "@/helpers/customHook/useBoardAccessContol";
 
 export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
+  const { data: sessionData } = useSession();
   const { data: topicSettings } = useGetQuery<
     TopicSettings, // New type needed
     { topic_url: string }
@@ -45,6 +47,21 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
     { topic_url, thread_id }
   );
 
+  const { data: attachedMedia } = useGetQuery<
+    MediaUploadResult[],
+    { attached_to_type: string; attached_to_id: number }
+  >(
+    {
+      queryKey: [
+        { [QueryKey.attachedMedia]: { type: "thread", id: thread_id } },
+      ],
+      staleTime: Infinity,
+      enabled: thread_id > 0,
+    },
+    attachedMediaGet,
+    { attached_to_type: "thread", attached_to_id: thread_id }
+  );
+
   // const accessControl = useBoardAccessControl({ topicSettings, currentThread });
   // const canWrite = accessControl?.permissions.canWrite;
   // const canEdit = accessControl?.permissions.canEdit;
@@ -64,13 +81,31 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
 
   useEffectFunctionHook({
     Function: () => {
-      if (currentThread) methods.reset(currentThread);
+      if (currentThread) {
+        methods.reset({
+          ...currentThread,
+          content: stripCloudFrontSignaturesClient(currentThread.content ?? ""),
+        });
+      }
 
       if (topicSettings?.id) {
         methods.setValue("topic_id", topicSettings.id);
+        if (topicSettings.use_anonymous) {
+          const canModerate =
+            !!sessionData?.user?.is_app_admin ||
+            (sessionData?.user?.auth_level ?? 0) >=
+              (topicSettings.level_moderator ?? 0);
+          // 익명 필수 토픽에서는 모더레이터/관리자가 아니면 is_secret 항상 true
+          if (!canModerate) {
+            methods.setValue("is_secret", true);
+          } else if (thread_id === 0) {
+            // 신규 글 작성 시 기본값은 익명
+            methods.setValue("is_secret", true);
+          }
+        }
       }
     },
-    dependency: [currentThread, topicSettings],
+    dependency: [currentThread, topicSettings, sessionData],
   });
 
   const goBackList = () => {
@@ -102,10 +137,6 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
 
     setLoading();
 
-    // extractImagesFromHtml 대신 새로운 함수 사용
-    const { formData, modifiedHtml } = extractMediaFromHtml(props.content!);
-    props.content = modifiedHtml;
-
     forEach(["category_id"], (key) => {
       if (
         (props as any)[key] === "" ||
@@ -129,26 +160,9 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
       props.author = null;
     }
 
+    const formData = new FormData();
     formData.append("json", JSON.stringify(props));
     formData.append("topic_url", topic_url);
-
-    // 미디어 파일 삭제 처리
-    if (props.id !== 0 && currentThread) {
-      const oldMedia = currentThread.images;
-
-      // 새 콘텐츠에 있는 미디어 URL 추출
-      const newMediaUrls = extractMediaFromHtml(props.content!);
-
-      // 삭제해야 할 미디어 찾기
-      const toDelete = oldMedia.filter(
-        (media) =>
-          !newMediaUrls.modifiedHtml.includes(media.aws_cloud_front_url)
-      );
-
-      if (toDelete.length > 0) {
-        formData.append("toDelete", JSON.stringify(toDelete));
-      }
-    }
 
     try {
       const { isSuccess, hasMessage } = await postFormData(
@@ -164,10 +178,6 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
         methods.reset(threadDefault());
         refreshCache(queryClient, QueryKey.thread);
         refreshCache(queryClient, QueryKey.threads);
-        // 이미지 키 찾아서 삭제
-        Object.keys(_tempVideoFiles).forEach((key) => {
-          delete _tempVideoFiles[key];
-        });
         goBackList();
       }
     } catch (error) {
@@ -182,6 +192,7 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
   return {
     methods,
     topicSettings,
+    attachedMedia,
     goBackList,
     submit,
   };

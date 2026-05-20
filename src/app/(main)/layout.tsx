@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
-import { TopNavigation } from "@/components/3_organisms/TopNavigation";
-import MainFooterWidget from "@/components/1_atoms/MainFooterWidget";
-import { MobileBottomNav } from "@/components/1_atoms/MobileBottomNav";
+import { TopNavigationServer } from "@/components/3_organisms/TopNavigationServer";
+import { MobileBottomNavServer } from "@/components/1_atoms/MobileBottomNavServer";
 import { getDehydratedQueries } from "@/helpers/query";
 import { QueryKey } from "@/helpers/types";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]";
 import { HydrationBoundary } from "@tanstack/react-query";
-import { PartnerBanners } from "@/components/1_atoms/PartnerBanners";
 import { PopupDisplay } from "@/components/3_organisms/PopupDisplay";
+import { ResponsiveChatWidget } from "@/components/3_organisms/ResponsiveChatWidget";
+
+export const dynamic = "force-dynamic";
 
 export default async function Layout(props: { children: ReactNode }) {
   const queries = await getDehydratedQueries([
@@ -19,23 +20,18 @@ export default async function Layout(props: { children: ReactNode }) {
   ]);
 
   return (
-    <main className="min-h-screen flex flex-col">
+    <main className="h-[100dvh] flex flex-col overflow-hidden">
       <HydrationBoundary state={{ queries, mutations: [] }}>
-        <TopNavigation />
+        <TopNavigationServer />
       </HydrationBoundary>
-      <div className="flex-1 h-full max-w-[100vw] md:max-w-[1900px] mx-auto px-2 w-full md:mb-0">
-        {props.children}
+      <div className="flex-1 min-h-0 max-w-[100vw] md:max-w-[1900px] mx-auto px-2 w-full flex gap-4">
+        <ResponsiveChatWidget />
+        <div className="flex-1 min-w-0 overflow-y-auto scrollbar-hide">
+          <div className="flex flex-col">{props.children}</div>
+        </div>
       </div>
-
-      <div
-        id="mobile-banners"
-        className="flex flex-col md:hidden gap-4 mt-4 mb-20 px-4"
-      >
-        <PartnerBanners position="all" displayMode="all" />
-      </div>
-      <MainFooterWidget />
       {/* Mobile Only bottom nav menu */}
-      <MobileBottomNav />
+      <MobileBottomNavServer />
       {/* Popup Display */}
       <PopupDisplay />
     </main>

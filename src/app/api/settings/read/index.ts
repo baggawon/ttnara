@@ -7,6 +7,7 @@ import {
 } from "@/helpers/server/serverFunctions";
 import type { UserAndSettings } from "@/helpers/types";
 import type { settings } from "@prisma/client";
+import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
 
 export const GET = async (queryParams: any) => {
   try {
@@ -39,6 +40,7 @@ export const GET = async (queryParams: any) => {
               current_rank_level: true,
               current_rank_name: true,
               current_rank_image: true,
+              point: true,
             },
           },
           _count: {
@@ -57,6 +59,15 @@ export const GET = async (queryParams: any) => {
     if (!hasUserData) throw ToastData.unknown;
 
     const convertUserData = { ...userData, settings: {} } as UserAndSettings;
+
+    if (convertUserData.profile?.current_rank_image) {
+      convertUserData.profile = {
+        ...convertUserData.profile,
+        current_rank_image: signStoredCloudFrontUrl(
+          convertUserData.profile.current_rank_image
+        ),
+      };
+    }
 
     if (userData.settings.length > 0) {
       const settingData: any = {};

@@ -1,20 +1,16 @@
 "use client";
 
 import { FormBuilder, Input } from "@/components/2_molecules/Input/FormInput";
-import WithUseWatch from "@/components/2_molecules/WithUseWatch";
-import {
-  type PriceProviderProps,
-  usePriceProvider,
-} from "@/helpers/customHook/usePriceProvider";
+import { usePriceProvider } from "@/helpers/customHook/usePriceProvider";
 import { Currency } from "@/helpers/types";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import SelectInput from "./Input/Select";
 import { Tether } from "@/components/1_atoms/coin/Tether";
 import { Tron } from "@/components/1_atoms/coin/Tron";
 import { Bitcoin } from "@/components/1_atoms/coin/Bitcoin";
 import { Ethereum } from "@/components/1_atoms/coin/Ethereum";
 import { Usdc } from "@/components/1_atoms/coin/Usdc";
-import { useImperativeHandle, useState } from "react";
+import { useEffect, useImperativeHandle, useState } from "react";
 import { lazyUpdate } from "@/helpers/common";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown } from "lucide-react";
@@ -24,6 +20,67 @@ export interface CalculatorWidgetRef {
   updateInputCurrency: (value: Currency) => void;
   updateOutputCurrency: (value: Currency) => void;
 }
+
+// Static — defined at module scope so the array (and the JSX inside) is
+// created once, not on every render of the calculator.
+const CURRENCY_ITEMS = [
+  {
+    value: Currency.원화,
+    label: (
+      <div className="flex gap-2 items-center">
+        <span className="min-w-5 h-5 text-primary-foreground rounded-full flex items-center justify-center bg-primary text-[9px]">
+          ₩
+        </span>
+        원화
+      </div>
+    ),
+  },
+  {
+    value: Currency.테더,
+    label: (
+      <div className="flex gap-2 items-center">
+        <Tether className="min-w-5 w-5 h-5" />
+        테더
+      </div>
+    ),
+  },
+  {
+    value: Currency.트론,
+    label: (
+      <div className="flex gap-2 items-center">
+        <Tron className="min-w-5 w-5 h-5" />
+        트론
+      </div>
+    ),
+  },
+  {
+    value: Currency.비트,
+    label: (
+      <div className="flex gap-2 items-center">
+        <Bitcoin className="min-w-5 w-5 h-5" />
+        비트
+      </div>
+    ),
+  },
+  {
+    value: Currency.이더,
+    label: (
+      <div className="flex gap-2 items-center">
+        <Ethereum className="min-w-5 w-5 h-5" />
+        이더
+      </div>
+    ),
+  },
+  {
+    value: Currency.USDC,
+    label: (
+      <div className="flex gap-2 items-center">
+        <Usdc className="min-w-5 w-5 h-5" />
+        Usdc
+      </div>
+    ),
+  },
+];
 
 interface CalculatorWidgetProps {
   prevValue: string;
@@ -115,128 +172,70 @@ const CalculatorWidget = ({
     );
   };
 
-  const currencyItems = [
-    {
-      value: Currency.원화,
-      label: (
-        <div className="flex gap-2 items-center">
-          <span className="min-w-5 h-5 text-primary-foreground rounded-full flex items-center justify-center bg-primary text-[9px]">
-            ₩
-          </span>
-          원화
-        </div>
-      ),
-    },
-    {
-      value: Currency.테더,
-      label: (
-        <div className="flex gap-2 items-center">
-          <Tether className="min-w-5 w-5 h-5" />
-          테더
-        </div>
-      ),
-    },
-    {
-      value: Currency.트론,
-      label: (
-        <div className="flex gap-2 items-center">
-          <Tron className="min-w-5 w-5 h-5" />
-          트론
-        </div>
-      ),
-    },
-    {
-      value: Currency.비트,
-      label: (
-        <div className="flex gap-2 items-center">
-          <Bitcoin className="min-w-5 w-5 h-5" />
-          비트
-        </div>
-      ),
-    },
-    {
-      value: Currency.이더,
-      label: (
-        <div className="flex gap-2 items-center">
-          <Ethereum className="min-w-5 w-5 h-5" />
-          이더
-        </div>
-      ),
-    },
-    {
-      value: Currency.USDC,
-      label: (
-        <div className="flex gap-2 items-center">
-          <Usdc className="min-w-5 w-5 h-5" />
-          Usdc
-        </div>
-      ),
-    },
-  ];
-
   const [inputCurrency, setInputCurrency] = useState<Currency>(Currency.테더);
   const [outputCurrency, setOutputCurrency] = useState<Currency>(Currency.원화);
 
+  // Subscribe to the input/output currency prices via the hook (NOT via a
+  // JSX-wrapping render-prop). The previous version wrapped the entire form
+  // — labels, inputs, dropdowns, swap button — inside `<WithUseWatch>`, so
+  // every USDT tick re-rendered the whole subtree. Now only this hook runs
+  // and the side-effect (recalculate output) is moved into a useEffect.
+  const watchedPrices = useWatch({
+    control,
+    name: [inputCurrency, outputCurrency] as any,
+  });
+
+  useEffect(() => {
+    const inputPrice = (watchedPrices as any[] | undefined)?.[0]?.trade_price;
+    if (!inputPrice) return;
+    onMessage(inputPrice);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedPrices]);
+
   return (
     <FormProvider {...methods}>
-      <Card className="w-full p-4">
-        <CardContent className="flex flex-col gap-4 p-0">
-          <WithUseWatch
-            name={[inputCurrency, outputCurrency]}
-            control={control}
-          >
-            {(props: PriceProviderProps) => {
-              onMessage(props[inputCurrency].trade_price);
-              return (
-                <>
-                  <FormBuilder name="tradeInput" label="수량">
-                    <div className="flex gap-2">
-                      <Input
-                        name="tradeInput"
-                        onChange={(e) => convertMoney(e.target.value)}
-                        placeholder="수량을 입력하세요."
-                      />
-                      <SelectInput
-                        name="inputCurrency"
-                        onChange={(value) =>
-                          updateInputCurrency(value as Currency)
-                        }
-                        items={currencyItems}
-                        buttonClassName="!w-fit"
-                      />
-                    </div>
-                  </FormBuilder>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      updateInputCurrency(outputCurrency);
-                      updateOutputCurrency(inputCurrency);
-                    }}
-                  >
-                    <ArrowUpDown className="w-4 h-4" />
-                  </Button>
-                  <FormBuilder name="tradeOutput" label="환산금액">
-                    <div className="flex gap-2">
-                      <Input
-                        name="tradeOutput"
-                        readOnly
-                        className="!opacity-100"
-                        inputClassName="w-full"
-                      />
-                      <SelectInput
-                        name="outputCurrency"
-                        onChange={(value) =>
-                          updateOutputCurrency(value as Currency)
-                        }
-                        items={currencyItems}
-                        buttonClassName="!w-fit"
-                      />
-                    </div>
-                  </FormBuilder>
-                </>
-              );
+      <Card className="w-full p-3">
+        <CardContent className="flex flex-col gap-2 p-0">
+          <FormBuilder name="tradeInput" label="수량">
+            <div className="flex gap-2">
+              <Input
+                name="tradeInput"
+                onChange={(e) => convertMoney(e.target.value)}
+                placeholder="수량을 입력하세요."
+              />
+              <SelectInput
+                name="inputCurrency"
+                onChange={(value) => updateInputCurrency(value as Currency)}
+                items={CURRENCY_ITEMS}
+                buttonClassName="!w-fit"
+              />
+            </div>
+          </FormBuilder>
+          <Button
+            type="button"
+            onClick={() => {
+              updateInputCurrency(outputCurrency);
+              updateOutputCurrency(inputCurrency);
             }}
-          </WithUseWatch>
+          >
+            <ArrowUpDown className="w-4 h-4" />
+          </Button>
+          <FormBuilder name="tradeOutput" label="환산금액">
+            <div className="flex gap-2">
+              <Input
+                name="tradeOutput"
+                readOnly
+                className="!opacity-100"
+                inputClassName="w-full"
+              />
+              <SelectInput
+                name="outputCurrency"
+                onChange={(value) => updateOutputCurrency(value as Currency)}
+                items={CURRENCY_ITEMS}
+                buttonClassName="!w-fit"
+              />
+            </div>
+          </FormBuilder>
         </CardContent>
       </Card>
     </FormProvider>

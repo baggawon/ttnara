@@ -47,7 +47,7 @@ const useGetQuery = <T, B>(
     dependency: [queryResponse?.error, queryResponse?.status],
   });
 
-  const status = useRef("");
+  const prevStatus = useRef("");
   useEffectFunctionHook({
     Function: () => {
       if (
@@ -58,17 +58,19 @@ const useGetQuery = <T, B>(
         const targetAction = queryResponse.isPending
           ? setLoading
           : disableLoading;
-        if (status.current !== queryResponse.status) {
-          // targetAction(keyName[0]);
+        if (prevStatus.current !== queryResponse.status) {
           targetAction();
         }
-        status.current = queryResponse.status;
+        prevStatus.current = queryResponse.status;
       }
     },
     dependency: [queryResponse?.status, queryResponse.isPending],
   });
 
-  return { data: (queryResponse?.data as T) ?? null, status: status.current };
+  return {
+    data: (queryResponse?.data as T) ?? null,
+    status: queryResponse.status,
+  };
 };
 
 export default useGetQuery;

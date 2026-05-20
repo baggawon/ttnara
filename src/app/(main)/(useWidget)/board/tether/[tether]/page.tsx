@@ -7,27 +7,22 @@ import { ApiRoute, QueryKey } from "@/helpers/types";
 import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { HydrationBoundary } from "@tanstack/react-query";
+import { requireTetherEnabled } from "@/helpers/server/tetherGuard";
+import { buildPageTitle } from "@/helpers/server/brandSettings";
 
 const getProps = async (props: {
   params: Params;
   searchParams: SearchParams;
 }) => {
-  const [params, searchParams] = await Promise.all([
-    props.params,
-    props.searchParams,
-  ]);
+  const [params] = await Promise.all([props.params, props.searchParams]);
 
   const tether_id = Number(params.tether);
-  const password = searchParams.password
-    ? (searchParams.password as string)
-    : undefined;
 
   const pagination = {
     ...(typeof tether_id === "number" && { id: tether_id }),
-    ...(password && { password }),
   };
 
-  return { password, tether_id, pagination };
+  return { tether_id, pagination };
 };
 
 export async function generateMetadata(props: {
@@ -41,7 +36,7 @@ export async function generateMetadata(props: {
   );
 
   return {
-    title: `${product.tethers?.[0]?.title} - P2P 거래 - 테더나라`,
+    title: await buildPageTitle(`${product.tethers?.[0]?.title} - P2P 거래`),
   };
 }
 
@@ -52,7 +47,9 @@ export default async function Page(props: {
   params: Params;
   searchParams: SearchParams;
 }) {
-  const { tether_id, password, pagination } = await getProps(props);
+  await requireTetherEnabled();
+
+  const { tether_id, pagination } = await getProps(props);
 
   const queries = await getDehydratedQueries([
     {
@@ -71,7 +68,7 @@ export default async function Page(props: {
 
   return (
     <HydrationBoundary state={{ queries, mutations: [] }}>
-      <TetherDetail tether_id={tether_id} password={password} />
+      <TetherDetail tether_id={tether_id} />
     </HydrationBoundary>
   );
 }

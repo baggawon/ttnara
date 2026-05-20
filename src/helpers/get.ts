@@ -147,6 +147,42 @@ export const alarmGet = async (
   return null;
 };
 
+export const pointHistoryGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.pointHistory, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const boardActivityGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.boardActivity, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const rankSummaryGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.rankSummary, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
 export const adminGeneralGet = async (
   router: AppRouterInstance,
   queryClient: QueryClient,
@@ -194,6 +230,50 @@ export const adminThreadGeneralSettingsGet = async (
 
   if (hasData) return hasData;
 
+  return null;
+};
+
+export const adminTetherSettingsGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminTetherSettingsRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const tetherSettingsGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.tetherSettingsRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const adminNavListGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminNavList, { query });
+  if (hasData) return hasData;
+  return null;
+};
+
+export const navListGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: { surface?: string }
+) => {
+  const { hasData } = await get(ApiRoute.navList, { query });
+  if (hasData) return hasData;
   return null;
 };
 
@@ -265,6 +345,18 @@ export const adminRanksGet = async (
   return null;
 };
 
+export const adminRankBadgesGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminRankBadgesList, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
 export const threadGet = async (
   router: AppRouterInstance,
   queryClient: QueryClient,
@@ -283,6 +375,18 @@ export const topicSettingsGet = async (
   query?: any
 ) => {
   const { hasData } = await get(ApiRoute.topicSettingsRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const attachedMediaGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.uploadsMediaList, { query });
 
   if (hasData) return hasData;
 
@@ -313,6 +417,79 @@ export const adminPartnersGet = async (
   return null;
 };
 
+export const adminGuaranteeGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminGuaranteeRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const adminSupportLinkCardsGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminSupportLinkCardsRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const adminSupportQnaCategoriesGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminSupportQnaCategoriesRead, {
+    query,
+  });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const adminSupportQnaGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminSupportQnaRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const adminGuaranteeBannerGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminGuaranteeBannerRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const publicGuaranteeGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.guaranteeRead);
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
 export const adminPopupsGet = async (
   router: AppRouterInstance,
   queryClient: QueryClient,
@@ -322,6 +499,26 @@ export const adminPopupsGet = async (
 
   if (hasData) return hasData;
 
+  return null;
+};
+
+export const adminPushTemplatesGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminPushTemplateRead, { query });
+  if (hasData) return hasData;
+  return null;
+};
+
+export const adminPushHistoryGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminPushHistoryRead, { query });
+  if (hasData) return hasData;
   return null;
 };
 
@@ -335,4 +532,139 @@ export const popupListGet = async (
   if (hasData) return hasData;
 
   return null;
+};
+
+export const leaderboardGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.leaderboardRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const leaderboardUserGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.leaderboardUserRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const boardPreviewGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.boardPreviewRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const chatPublicConfigGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.chatTopicsRead);
+  return hasData ?? null;
+};
+
+export const adminChatSettingsGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.adminChatSettingsRead);
+  return hasData ?? null;
+};
+
+export const adminChatTopicsGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.adminChatTopicsRead);
+  return hasData ?? null;
+};
+
+export const adminChatNoticesGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.adminChatNoticesRead);
+  return hasData ?? null;
+};
+
+export const adminChatBannedWordsGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.adminChatBannedWordsRead);
+  return hasData ?? null;
+};
+
+export const adminChatFixedMessagesGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.adminChatFixedMessagesRead);
+  return hasData ?? null;
+};
+
+export const adminChatMutedUsersGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.adminChatMutedUsers);
+  return hasData ?? null;
+};
+
+export const adminChatBannedUsersGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.adminChatBannedUsers);
+  return hasData ?? null;
+};
+
+export const adminChatHiddenMessagesGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminChatHiddenMessages, { query });
+  return hasData ?? null;
+};
+
+export const adminChatReportsGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminChatReports, { query });
+  return hasData ?? null;
+};
+
+export const adminChatHistoryGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminChatHistoryRead, { query });
+  return hasData ?? null;
+};
+
+export const adminChatTopicStatsGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.adminChatTopicStats);
+  return hasData ?? null;
 };

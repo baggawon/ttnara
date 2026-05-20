@@ -5,6 +5,7 @@ import type {
   level_setting,
   thread_setting,
   tether_category,
+  tether_setting,
   tether_proposal,
   tether_rate,
   thread,
@@ -67,6 +68,7 @@ export const threadDefault = (data?: Partial<thread>): thread => {
     id: 0,
     title: "",
     content: "",
+    content_format: "markdown",
     author_id: "",
     topic_id: -1,
     topic_order: -1,
@@ -79,6 +81,8 @@ export const threadDefault = (data?: Partial<thread>): thread => {
     is_secret: false,
     is_blocked: false,
     is_notice: false,
+    is_push_notify: false,
+    thumbnail_media_id: null,
     ...data,
   };
 };
@@ -89,14 +93,19 @@ export const generalDefault = (
   return {
     id: -1,
     site_name: "",
+    site_title: null,
     site_description: "",
+    site_keywords: null,
+    logo_image_url: null,
+    favicon_url: null,
+    apple_icon_url: null,
     maintenance_mode: false,
     allow_user_registration: true,
     allow_login: true,
+    p2p_paused: false,
     general_manager_id: null,
     user_logs_delete_days: 1,
     admin_logs_delete_days: 1,
-    active_user_interval_seconds: 1,
     ...data,
   };
 };
@@ -148,6 +157,7 @@ export const threadSettingDefault = (
     max_upload_items: 5,
     use_thumbnail: false,
     use_anonymous: false,
+    use_mypostonly: false,
     use_upvote: true,
     use_downvote: false,
     thread_page_size: 20,
@@ -161,6 +171,25 @@ export const threadSettingDefault = (
     thread_disable_edit: 0,
     thread_disable_delete: 0,
     default_topic_id: null,
+    default_thumbnail_url: null,
+    ...data,
+  };
+};
+
+export const tetherSettingDefault = (
+  data?: Partial<tether_setting>
+): tether_setting => {
+  return {
+    id: 1,
+    use_tether_board: true,
+    min_thread_title_length: 1,
+    max_thread_title_length: 200,
+    min_thread_content_length: 1,
+    max_thread_content_length: 10000,
+    use_upload_file: false,
+    allowed_file_extensions: "jpg,png,gif,webp,jpeg,mp4,webm",
+    max_file_size_mb: 5,
+    max_upload_items: 5,
     ...data,
   };
 };
@@ -194,6 +223,7 @@ export const topicDefault = (data?: Partial<topic>): topic => {
     max_upload_items: 5,
     use_thumbnail: false,
     use_anonymous: false,
+    use_mypostonly: false,
     use_upvote: true,
     use_downvote: false,
     thread_page_size: 10,
@@ -229,6 +259,7 @@ export const commentDefault = (data?: Partial<comment>): comment => {
     thread_id: 0,
     author_id: "",
     content: "",
+    content_format: "html",
     created_at,
     updated_at: created_at,
     upvotes: 0,
@@ -247,25 +278,27 @@ export const tetherDefault = (
     user_id: "",
     title: "",
     condition: "",
+    condition_format: "markdown",
     use_author: false,
-    city: null,
-    state: null,
     price: null,
     margin: null,
     min_qty: new Decimal(0),
     max_qty: new Decimal(0),
-    password: "",
-    methods: "",
-    trade_type: "",
+    trade_type: "sell",
     currency: Currency.테더,
     status: TetherStatus.Open,
     price_type: TetherPriceTypes.Fixed,
     address_type: TetherAddressTypes.Category,
     custom_address: null,
+    contact_method: null,
+    contact_id: null,
+    preferred_time: null,
+    hide_contact: true,
     created_at: new Date(),
     updated_at: new Date(),
     user: null,
     tether_proposals: [],
+    region_category_ids: [],
     ...data,
   };
 };

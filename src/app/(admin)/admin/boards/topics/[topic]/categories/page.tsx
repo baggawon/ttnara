@@ -23,7 +23,7 @@ export default function BoardTopics(props: { params: Params }) {
   } = useAdminTopicCategoriesHook(Number(params.topic));
   return (
     <FormProvider {...methods}>
-      <section className="w-full flex flex-col gap-4 p-0 md:p-4">
+      <section className="w-full flex flex-col gap-4">
         <h2>{topicsData?.topics[0].name} 소분류</h2>
         <div className="w-full flex gap-2">
           <Input

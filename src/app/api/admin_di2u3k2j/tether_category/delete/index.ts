@@ -4,6 +4,7 @@ import {
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
+import { appCache, CacheKey } from "@/helpers/server/serverCache";
 
 export interface TetherCategoryDeleteProps {
   deleteTetherCategoryId: number;
@@ -16,20 +17,20 @@ export const POST = async (json: TetherCategoryDeleteProps) => {
 
     await requestValidator([RequestValidator.Admin], json);
 
-    const deleteResult = await handleConnect((prisma) =>
-      prisma.tether_category.deleteMany({
+    const updateResult = await handleConnect((prisma) =>
+      prisma.tether_category.updateMany({
         where: {
           OR: [
-            {
-              id: json.deleteTetherCategoryId,
-            },
+            { id: json.deleteTetherCategoryId },
             { parent_id: json.deleteTetherCategoryId },
           ],
         },
+        data: { is_active: false },
       })
     );
-    if (!deleteResult) throw ToastData.unknown;
+    if (!updateResult) throw ToastData.unknown;
 
+    await appCache.refreshCache(CacheKey.TetherCategories);
     return {
       result: true,
     };

@@ -35,7 +35,7 @@ export default function AdminUserViewForm({ user_id }: { user_id: string }) {
   const kycStatus = getKycStatus(userData?.profile?.kyc_id);
 
   return (
-    <section className="w-full flex flex-col gap-4 p-0 md:p-4">
+    <section className="w-full flex flex-col gap-4">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -101,7 +101,7 @@ export default function AdminUserViewForm({ user_id }: { user_id: string }) {
                     <div className="space-y-4">
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          거래 랭크
+                          거래 등급
                         </Label>
                         <p className="text-lg font-medium">
                           {userData?.profile?.current_rank_level || "-"}

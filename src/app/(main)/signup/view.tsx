@@ -16,6 +16,7 @@ import {
 import WithUseWatch from "@/components/2_molecules/WithUseWatch";
 import SignupHook from "@/app/(main)/signup/hook";
 import EmailValidator from "@/components/2_molecules/EmailValidator";
+import DevLogToggle from "@/components/2_molecules/DevLogToggle";
 
 export const enum SignupFormIds {
   Userid = "username",
@@ -68,6 +69,7 @@ const SignupView = () => {
             autoComplete="displayname"
             {...setTestId(SignupFormIds.Nickname)}
           />
+          <DevLogToggle />
           <EmailValidator validate_type={ApiOtpType.EmailSignup} />
           {/* <WithUseWatch name={["request_id", "status", "message"]}>
             {({ status, message }: SignupInitialValues) => (

@@ -22,10 +22,13 @@ import useGetQuery from "@/helpers/customHook/useGetQuery";
 import { sessionGet, threadsGet, topicSettingsGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { AppRoute, QueryKey } from "@/helpers/types";
-import { SearchIcon } from "lucide-react";
+import { ImageOff, SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
-import { getColumnHeaderTitle, getDisplayname } from "@/helpers/common";
+import {
+  getColumnHeaderTitle,
+  getBoardPosterDisplayname,
+} from "@/helpers/common";
 import {
   ToggleGroupInput,
   ToggleGroupItem,
@@ -35,8 +38,9 @@ import { Badge } from "@/components/ui/badge";
 import type { Session } from "next-auth";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { Tether } from "@/components/1_atoms/coin/Tether";
 import type { TopicSettings } from "@/app/api/topic/read";
+import { ThreadBadges } from "@/components/1_atoms/ThreadBadges";
+import useTopicPoints from "@/helpers/customHook/useTopicPoints";
 
 export const ThreadList = ({
   page,
@@ -76,6 +80,15 @@ export const ThreadList = ({
   const levelCreate = topicSettings?.level_create ?? 1;
   const canWrite = authLevel >= levelCreate;
 
+  const topicPoints = useTopicPoints(topicSettings);
+  const writeBlocked =
+    topicPoints.cost.write > 0 && !topicPoints.canAfford.write;
+  const writeTitle = writeBlocked
+    ? `포인트가 부족합니다 (필요: ${topicPoints.cost.write.toLocaleString()}P)`
+    : topicPoints.cost.write > 0
+      ? `${topicPoints.cost.write.toLocaleString()}P 차감`
+      : undefined;
+
   const use_thumbnail = topicSettings?.use_thumbnail;
   const topicPageNavSize = topicSettings?.thread_page_nav_size ?? 10;
 
@@ -112,14 +125,9 @@ export const ThreadList = ({
       headerClassName: "w-[74px] hidden sm:table-cell md:hidden lg:table-cell",
       cellClassName: "w-[74px] hidden sm:table-cell md:hidden lg:table-cell",
       cell: (props) => {
-        const isNotice = props.row.original.is_notice;
-        return isNotice ? (
-          <span className="text-red-500 font-bold">[공지]</span>
-        ) : props.row.original.id === thread_id ? (
-          "열람중"
-        ) : (
-          props.getValue()
-        );
+        return props.row.original.id === thread_id
+          ? "열람중"
+          : props.getValue();
       },
     },
     ...(use_thumbnail
@@ -132,16 +140,34 @@ export const ThreadList = ({
             enableSorting: false,
             cell: (props) => {
               const images = props.row.original.images;
-              return images.length > 0 ? (
-                <Image
-                  src={`https://${images[0].aws_cloud_front_url}`}
-                  alt="Thread Image"
-                  className="w-[80px] h-[60px] object-contain"
-                  width={80}
-                  height={60}
-                />
-              ) : (
-                <Tether className="w-[80px] h-[60px]" />
+              const fallback = threadsData?.default_thumbnail_url;
+              if (images.length > 0) {
+                return (
+                  <Image
+                    src={images[0].aws_cloud_front_url}
+                    alt="Thread Image"
+                    className="w-[80px] h-[60px] object-contain"
+                    width={80}
+                    height={60}
+                  />
+                );
+              }
+              if (fallback) {
+                return (
+                  <Image
+                    src={fallback}
+                    alt="Default thumbnail"
+                    className="w-[80px] h-[60px] object-contain"
+                    width={80}
+                    height={60}
+                  />
+                );
+              }
+              return (
+                <div className="w-[80px] h-[60px] border border-dashed border-neutral-300 rounded-sm flex flex-col items-center justify-center gap-0.5 bg-neutral-50 text-neutral-400">
+                  <ImageOff className="w-4 h-4" />
+                  <span className="text-[10px] leading-none">이미지 없음</span>
+                </div>
               );
             },
           },
@@ -163,6 +189,13 @@ export const ThreadList = ({
         return (
           <div className="flex space-x-2 w-full">
             <span className="flex gap-1 items-center w-full">
+              <ThreadBadges
+                commentCount={props.row.original.comments.length}
+                views={props.row.original.views}
+              />
+              {isNotice && (
+                <span className="text-red-500 font-bold shrink-0">[공지]</span>
+              )}
               <b
                 className={clsx(
                   "truncate",
@@ -201,7 +234,14 @@ export const ThreadList = ({
       headerClassName: "hidden lg:table-cell w-[100px]",
       cellClassName: "hidden lg:table-cell w-[100px]",
       header: ({ column }) => getColumnHeaderTitle(column),
-      cell: (props) => getDisplayname(props.row.original.author?.profile),
+      cell: (props) =>
+        props.row.original.is_secret
+          ? "익명"
+          : getBoardPosterDisplayname(
+              props.row.original.author?.profile,
+              topicSettings?.level_moderator,
+              session?.user
+            ),
     },
     {
       accessorKey: "created_at",
@@ -398,6 +438,8 @@ export const ThreadList = ({
                 <Button
                   type="button"
                   onClick={goWrite}
+                  disabled={writeBlocked}
+                  title={writeTitle}
                   className="px-4 bg-primary hover:bg-primary/90 w-full sm:w-auto shrink-0"
                 >
                   <svg

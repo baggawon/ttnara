@@ -7,6 +7,8 @@ import { handleConnect } from "@/helpers/server/prisma";
 import { uploadFileToS3, deleteFileFromS3 } from "@/helpers/server/s3";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
 
+const IMAGE_MAX_BYTES = 20 * 1024 * 1024;
+
 export const POST = async (formData: FormData) => {
   try {
     await requestValidator([RequestValidator.Admin], formData);
@@ -18,9 +20,7 @@ export const POST = async (formData: FormData) => {
       parseInt(formData.get("display_order") as string) || 1;
     const is_active = formData.get("is_active") === "true";
     const bannerImageFile = formData.get("bannerImage") as File | null;
-    const partnerImageFile = formData.get("partnerImage") as File | null;
     const removeBannerImage = formData.get("removeBannerImage") === "true";
-    const removePartnerImage = formData.get("removePartnerImage") === "true";
 
     if (!id || !name || !url) {
       return {
@@ -29,7 +29,6 @@ export const POST = async (formData: FormData) => {
       };
     }
 
-    // Get current partner data
     const currentPartner = await handleConnect((prisma) =>
       prisma.partner.findUnique({
         where: { id },
@@ -39,18 +38,15 @@ export const POST = async (formData: FormData) => {
     if (!currentPartner) {
       return {
         result: false,
-        message: "파트너를 찾을 수 없습니다.",
+        message: "협력사를 찾을 수 없습니다.",
       };
     }
 
     const imageUrls = {
       public_banner_image_url: currentPartner.public_banner_image_url,
       banner_image_url: currentPartner.banner_image_url,
-      public_partner_image_url: currentPartner.public_partner_image_url,
-      partner_image_url: currentPartner.partner_image_url,
     };
 
-    // Handle banner image removal
     if (removeBannerImage && currentPartner.banner_image_url) {
       try {
         await deleteFileFromS3(currentPartner.banner_image_url);
@@ -58,26 +54,17 @@ export const POST = async (formData: FormData) => {
         imageUrls.banner_image_url = "";
       } catch (deleteError) {
         console.error("Banner image deletion error:", deleteError);
-        // Continue with update even if deletion fails
       }
     }
 
-    // Handle partner image removal
-    if (removePartnerImage && currentPartner.partner_image_url) {
-      try {
-        await deleteFileFromS3(currentPartner.partner_image_url);
-        imageUrls.public_partner_image_url = "";
-        imageUrls.partner_image_url = "";
-      } catch (deleteError) {
-        console.error("Partner image deletion error:", deleteError);
-        // Continue with update even if deletion fails
-      }
-    }
-
-    // Handle new banner image upload
     if (bannerImageFile && bannerImageFile.size > 0) {
+      if (bannerImageFile.size > IMAGE_MAX_BYTES) {
+        return {
+          result: false,
+          message: "배너 이미지 크기가 너무 큽니다 (최대 20MB)",
+        };
+      }
       try {
-        // Delete old banner image if exists
         if (currentPartner.banner_image_url && !removeBannerImage) {
           try {
             await deleteFileFromS3(currentPartner.banner_image_url);
@@ -90,40 +77,13 @@ export const POST = async (formData: FormData) => {
           bannerImageFile,
           "partners/banners"
         );
-        imageUrls.public_banner_image_url = uploadResult.aws_cloud_front_url;
+        imageUrls.public_banner_image_url = uploadResult.filename;
         imageUrls.banner_image_url = uploadResult.aws_url;
       } catch (uploadError) {
         console.error("Banner image upload error:", uploadError);
         return {
           result: false,
-          message: "배너 이미지 업로드에 실패했습니다.",
-        };
-      }
-    }
-
-    // Handle new partner image upload
-    if (partnerImageFile && partnerImageFile.size > 0) {
-      try {
-        // Delete old partner image if exists
-        if (currentPartner.partner_image_url && !removePartnerImage) {
-          try {
-            await deleteFileFromS3(currentPartner.partner_image_url);
-          } catch (deleteError) {
-            console.error("Old partner image deletion error:", deleteError);
-          }
-        }
-
-        const uploadResult = await uploadFileToS3(
-          partnerImageFile,
-          "partners/logos"
-        );
-        imageUrls.public_partner_image_url = uploadResult.aws_cloud_front_url;
-        imageUrls.partner_image_url = uploadResult.aws_url;
-      } catch (uploadError) {
-        console.error("Partner image upload error:", uploadError);
-        return {
-          result: false,
-          message: "파트너 이미지 업로드에 실패했습니다.",
+          message: "협력사 배너 이미지 업로드에 실패했습니다.",
         };
       }
     }

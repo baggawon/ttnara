@@ -6,6 +6,8 @@ import type {
   TopicsReadProps,
   TopicWithPoint,
 } from "@/app/api/admin_di2u3k2j/topics/read";
+import type { topicsUpdateProps } from "@/app/api/admin_di2u3k2j/topics/update";
+import type { BoardPreviewResponse } from "@/app/api/board-preview/read";
 import ConfirmDialog from "@/components/1_atoms/ConfirmDialog";
 import type { CustomColumDef } from "@/components/2_molecules/Table/DataTable";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,7 @@ import { forEach } from "@/helpers/basic";
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
-import { adminTopicsGet } from "@/helpers/get";
+import { adminTopicsGet, boardPreviewGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
 import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
@@ -43,6 +45,13 @@ export const useAdminTopicsHook = () => {
     adminTopicsGet,
     pagination
   );
+
+  const { data: previewData } = useGetQuery<
+    BoardPreviewResponse | null,
+    undefined
+  >({ queryKey: [QueryKey.boardPreview] }, boardPreviewGet);
+
+  const previewCount = previewData?.topics?.length ?? 0;
 
   const updatePagination = () => {
     const prevProps = methods.getValues();
@@ -85,6 +94,27 @@ export const useAdminTopicsHook = () => {
       cellClassName: "!max-w-[40px]",
       headerTitle: "활성화",
       convertValue: (value) => (value ? "활성" : "비활성"),
+    },
+    {
+      accessorKey: "preview_on_homepage",
+      headerTitle: "미리보기",
+      headerClassName: "!max-w-[80px]",
+      cellClassName: "!max-w-[80px]",
+      cell: (props) => {
+        const topic = topicsData?.topics[props.row.index];
+        if (!topic) return null;
+        return (
+          <Button
+            type="button"
+            className="!p-2 !h-fit"
+            variant={topic.preview_on_homepage ? "default" : "outline"}
+            disabled={!topic.is_active}
+            onClick={() => togglePreview(props.row.index)}
+          >
+            {topic.preview_on_homepage ? "ON" : "OFF"}
+          </Button>
+        );
+      },
     },
     {
       accessorKey: "control",
@@ -168,6 +198,40 @@ export const useAdminTopicsHook = () => {
     disableLoading();
   };
 
+  const togglePreview = async (index: number) => {
+    if (!topicsData) return;
+    const topic = topicsData.topics[index];
+
+    if (!topic.preview_on_homepage && previewCount >= 2) {
+      toast({
+        id: "미리보기는 최대 2개까지 설정할 수 있습니다",
+        type: "error",
+      });
+      return;
+    }
+
+    setLoading();
+    try {
+      const { isSuccess, hasMessage } = await postJson<topicsUpdateProps>(
+        ApiRoute.adminTopicsUpdate,
+        {
+          ...topic,
+          preview_on_homepage: !topic.preview_on_homepage,
+        }
+      );
+      if (hasMessage) {
+        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
+      }
+      if (isSuccess) {
+        refreshCache(queryClient, QueryKey.topics);
+        refreshCache(queryClient, QueryKey.boardPreview);
+      }
+    } catch (error) {
+      toast({ id: ToastData.unknown, type: "error" });
+    }
+    disableLoading();
+  };
+
   const newCreateTopic = () => {
     router.push(`${AdminAppRoute.Boards}/0`);
   };
@@ -178,5 +242,7 @@ export const useAdminTopicsHook = () => {
     updatePagination,
     topicsData,
     newCreateTopic,
+    togglePreview,
+    deleteTopic,
   };
 };

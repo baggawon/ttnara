@@ -4,7 +4,7 @@ import { get, postJson, refreshCache } from "@/helpers/common";
 import { AlarmTypes, ApiRoute, TetherStatus } from "@/helpers/types";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
-import { Handshake, Mail } from "lucide-react";
+import { Handshake, Mail, MessageSquare, Megaphone } from "lucide-react";
 import type { alarm } from "@prisma/client";
 import type { alarmUpdateProps } from "@/app/api/alarm/update";
 import { useToast } from "@/components/ui/use-toast";
@@ -27,7 +27,12 @@ const AlarmItem = ({ alarm }: { alarm: alarm }) => {
       case AlarmTypes.P2POwnerCancel:
       case AlarmTypes.P2PProgress:
       case AlarmTypes.P2PProposalCancel:
+      case AlarmTypes.P2PRateRequest:
         return <Handshake className="w-4 h-4" />;
+      case AlarmTypes.BoardComment:
+        return <MessageSquare className="w-4 h-4" />;
+      case AlarmTypes.BoardAdminNotice:
+        return <Megaphone className="w-4 h-4" />;
       default:
         return null;
     }
@@ -68,6 +73,7 @@ const AlarmItem = ({ alarm }: { alarm: alarm }) => {
       case AlarmTypes.P2PProgress:
       case AlarmTypes.P2PProposalCancel:
       case AlarmTypes.P2POwnerCancel:
+      case AlarmTypes.P2PRateRequest:
         id = Number(alarm.url.split("/").at(-1));
         readData = await get(ApiRoute.tethersRead, {
           query: {
@@ -89,27 +95,34 @@ const AlarmItem = ({ alarm }: { alarm: alarm }) => {
           });
         } else if (readResult) router.push(alarm.url);
         break;
+      case AlarmTypes.BoardComment:
+      case AlarmTypes.BoardAdminNotice:
+        if (alarm.is_read === false) {
+          await readMessage(alarm);
+        }
+        router.push(alarm.url);
+        break;
     }
   };
 
   return (
     <button
-      className="py-4 border-b border-border w-full text-left h-[96px]"
+      className="py-4 border-b border-border w-full text-left min-h-[96px]"
       type="button"
       onClick={actionUrlClick}
     >
       <div className="flex items-start gap-4 relative">
-        <div className="relative flex items-center justify-center flex-col gap-2">
+        <div className="relative flex items-center justify-center flex-col gap-2 shrink-0">
           {getIcon(alarm.type)}
         </div>
-        <div className="flex-1">
-          <h3 className="font-medium w-full flex justify-between">
-            {alarm.title}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-medium w-full flex justify-between gap-2 items-start">
+            <span className="break-words min-w-0">{alarm.title}</span>
             {!alarm.is_read && (
-              <span className="bg-red-500 w-2 h-2 rounded-full" />
+              <span className="bg-red-500 w-2 h-2 rounded-full mt-2 shrink-0" />
             )}
           </h3>
-          <p className="text-sm mt-1">{alarm.body}</p>
+          <p className="text-sm mt-1 break-words">{alarm.body}</p>
           <p className="text-xs mt-1 opacity-50">
             {dayjs(alarm.created_at).format("YYYY-MM-DD HH:mm")}
           </p>

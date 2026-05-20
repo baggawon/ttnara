@@ -11,6 +11,7 @@ import {
 } from "@/components/2_molecules/Input/FormInput";
 import {
   type Currency,
+  TetherAddressTypes,
   TetherPriceTypes,
   TetherProposalMessengerTypes,
   TetherProposalStatus,
@@ -28,7 +29,7 @@ import {
 } from "@/helpers/validate";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import ConfirmDialog from "@/components/1_atoms/ConfirmDialog";
 import FormDialog from "@/components/1_atoms/FormDialog";
 import { StarInput } from "@/components/2_molecules/Input/StarInput";
@@ -36,7 +37,8 @@ import {
   type ProposalMethods,
   useTetherDetail,
 } from "@/app/(main)/(useWidget)/board/tether/[tether]/hook";
-import CkeditorViewer from "@/components/1_atoms/CkeditorViewer";
+import HTMLViewer from "@/components/1_atoms/HTMLViewer";
+import { TetherRegionGroups } from "@/components/3_organisms/TetherRegionGroups";
 import type { PriceProviderProps } from "@/helpers/customHook/usePriceProvider";
 import {
   ToggleGroupInput,
@@ -48,15 +50,10 @@ import { AlertP2PTrade } from "@/components/1_atoms/AlertP2PTrade";
 import { CircleLight } from "@/components/1_atoms/CircleLight";
 import { Switch } from "@/components/ui/switch";
 
-export const TetherDetail = ({
-  tether_id,
-  password,
-}: {
-  tether_id?: number;
-  password: string | undefined;
-}) => {
+export const TetherDetail = ({ tether_id }: { tether_id?: number }) => {
   const {
     currentTether,
+    categories,
     control,
     methods,
     goEdit,
@@ -71,7 +68,8 @@ export const TetherDetail = ({
     tryDelete,
     getAddress,
     dialogControllRef,
-  } = useTetherDetail({ tether_id, password });
+    sessionUid,
+  } = useTetherDetail({ tether_id });
 
   return (
     <>
@@ -159,9 +157,23 @@ export const TetherDetail = ({
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 items-start">
+                    <div className="flex flex-col gap-2 items-start md:col-span-1">
                       <Label>거래 희망지역</Label>
-                      <Input readOnly value={getAddress()} />
+                      {currentTether.address_type ===
+                      TetherAddressTypes.Category ? (
+                        (currentTether as any).region_selections?.length > 0 ? (
+                          <TetherRegionGroups
+                            regions={
+                              (currentTether as any).region_selections ?? []
+                            }
+                            categories={categories}
+                          />
+                        ) : (
+                          <Input readOnly value="" />
+                        )
+                      ) : (
+                        <Input readOnly value={getAddress()} />
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-2 items-start">
@@ -194,14 +206,68 @@ export const TetherDetail = ({
 
                     <div className="flex flex-col gap-2 items-start col-span-1 md:col-span-3">
                       <Label>거래내용</Label>
-                      <CkeditorViewer
+                      <HTMLViewer
                         htmlContent={currentTether.condition ?? ""}
+                        format={
+                          (currentTether.condition_format as
+                            | "html"
+                            | "markdown") ?? "html"
+                        }
                         className="border w-full"
                       />
                     </div>
                   </CardContent>
                 </Card>
               </div>
+
+              {!currentTether.hide_contact &&
+                (currentTether.contact_method ||
+                  currentTether.contact_id ||
+                  currentTether.preferred_time) && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>게시자 연락 정보</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {currentTether.contact_method && (
+                        <div className="flex flex-col gap-2 items-start">
+                          <Label>연락수단</Label>
+                          <div className="flex items-center gap-2">
+                            {currentTether.contact_method ===
+                              TetherProposalMessengerTypes.Telegram && (
+                              <>
+                                <Telegram className="w-4 h-4" />
+                                <span>텔레그램</span>
+                              </>
+                            )}
+                            {currentTether.contact_method ===
+                              TetherProposalMessengerTypes.KakaoTalk && (
+                              <>
+                                <Kakaotalk className="w-4 h-4" />
+                                <span>카카오톡</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {currentTether.contact_id && (
+                        <div className="flex flex-col gap-2 items-start">
+                          <Label>아이디</Label>
+                          <Input readOnly value={currentTether.contact_id} />
+                        </div>
+                      )}
+                      {currentTether.preferred_time && (
+                        <div className="flex flex-col gap-2 items-start">
+                          <Label>선호 시간대</Label>
+                          <Input
+                            readOnly
+                            value={currentTether.preferred_time}
+                          />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
               <AlertP2PTrade />
 
@@ -467,106 +533,21 @@ export const TetherDetail = ({
                         <p className="col-span-1 md:col-span-3 flex gap-4 w-full">
                           거래완료는 실제 거래 완료후에 눌러주세요.
                         </p>
-                        <div className="col-span-1 md:col-span-3 flex gap-4 w-full">
-                          {owner && (
-                            <>
-                              {currentTether.status !==
-                                TetherStatus.Complete && (
-                                <>
-                                  <ConfirmDialog
-                                    title="거래완료"
-                                    description="거래를 완료하시려면 확인을 눌러주세요."
-                                    onConfirm={ownerConfirm}
-                                  >
-                                    <Button type="button">거래완료</Button>
-                                  </ConfirmDialog>
-                                  {currentTether._count.tether_proposals ===
-                                    0 && (
-                                    <ConfirmDialog
-                                      title="거래취소"
-                                      description="거래를 취소하시려면 확인을 눌러주세요."
-                                      onConfirm={ownerCancel}
-                                    >
-                                      <Button type="button" variant="outline">
-                                        거래취소
-                                      </Button>
-                                    </ConfirmDialog>
-                                  )}
-                                  {currentTether._count.tether_proposals ===
-                                    1 && (
-                                    <ConfirmDialog
-                                      title="거래취소"
-                                      description="거래를 취소하시려면 공식 텔레그램으로 연락바랍니다."
-                                      onConfirm={() => {}}
-                                    >
-                                      <Button type="button" variant="outline">
-                                        거래취소
-                                      </Button>
-                                    </ConfirmDialog>
-                                  )}
-                                </>
-                              )}
-                            </>
-                          )}
-                          {isProposer && (
-                            <>
-                              {proposal.status ===
-                                TetherProposalStatus.Open && (
-                                <>
-                                  <FormDialog
-                                    title="거래완료"
-                                    description="거래를 완료하시려면 확인을 눌러주세요."
-                                    onConfirm={proposalConfirm}
-                                    initialize={() =>
-                                      tetherRateDefault({
-                                        tether_proposal_id: proposal.id,
-                                      })
-                                    }
-                                    dialogControllRef={dialogControllRef}
-                                    formChildren={
-                                      <>
-                                        <FormBuilder
-                                          name="rate"
-                                          label="평점"
-                                          formClassName="!flex flex-col items-center"
-                                        >
-                                          <StarInput name="rate" />
-                                        </FormBuilder>
-                                      </>
-                                    }
-                                  >
-                                    <Button type="button">거래완료</Button>
-                                  </FormDialog>
-                                  {currentTether.status !==
-                                    TetherStatus.Complete && (
-                                    <ConfirmDialog
-                                      title="거래 취소"
-                                      description="거래를 취소하시려면 확인을 눌러주세요."
-                                      onConfirm={proposalCancel}
-                                    >
-                                      <Button type="button" variant="outline">
-                                        거래취소
-                                      </Button>
-                                    </ConfirmDialog>
-                                  )}
-
-                                  {currentTether.status ===
-                                    TetherStatus.Complete && (
-                                    <ConfirmDialog
-                                      title="거래취소"
-                                      description="거래를 취소하시려면 공식 텔레그램으로 연락바랍니다."
-                                      onConfirm={() => {}}
-                                    >
-                                      <Button type="button" variant="outline">
-                                        거래취소
-                                      </Button>
-                                    </ConfirmDialog>
-                                  )}
-                                </>
-                              )}
-                            </>
-                          )}
-                        </div>
+                        <TradeActions
+                          proposal={proposal}
+                          owner={owner}
+                          isProposer={isProposer}
+                          sessionUid={sessionUid}
+                          tetherStatus={currentTether.status}
+                          tetherProposalCount={
+                            currentTether._count.tether_proposals
+                          }
+                          ownerConfirm={ownerConfirm}
+                          ownerCancel={ownerCancel}
+                          proposalConfirm={proposalConfirm}
+                          proposalCancel={proposalCancel}
+                          dialogControllRef={dialogControllRef}
+                        />
                       </Fragment>
                     ))}
                   </CardContent>
@@ -603,5 +584,143 @@ export const TetherDetail = ({
         </FormProvider>
       </div>
     </>
+  );
+};
+
+type TradeActionsProps = {
+  proposal: any;
+  owner: boolean | "" | null | undefined;
+  isProposer: boolean | "" | null | undefined;
+  sessionUid: string | null;
+  tetherStatus: string;
+  tetherProposalCount: number;
+  ownerConfirm: any;
+  ownerCancel: () => void;
+  proposalConfirm: any;
+  proposalCancel: () => void;
+  dialogControllRef: any;
+};
+
+const TradeActions = ({
+  proposal,
+  owner,
+  isProposer,
+  sessionUid,
+  tetherStatus,
+  tetherProposalCount,
+  ownerConfirm,
+  ownerCancel,
+  proposalConfirm,
+  proposalCancel,
+  dialogControllRef,
+}: TradeActionsProps) => {
+  const { hasRatedByMe, otherHasRated } = useMemo(() => {
+    const rates: { user_id: string }[] = proposal.tether_rate ?? [];
+    return {
+      hasRatedByMe: rates.some((r) => r.user_id === sessionUid),
+      otherHasRated: rates.some(
+        (r) => sessionUid != null && r.user_id !== sessionUid
+      ),
+    };
+  }, [proposal.tether_rate, sessionUid]);
+
+  const tradeIsDone = tetherStatus === TetherStatus.Complete;
+
+  const waitingMessage = otherHasRated
+    ? null
+    : "평가 완료. 상대방의 평가를 기다리고 있습니다.";
+
+  const rateDialog = (onConfirm: any) => (
+    <FormDialog
+      title="거래완료"
+      description="거래를 완료하시려면 상대방에 대한 평가를 제출해주세요."
+      onConfirm={onConfirm}
+      initialize={() =>
+        tetherRateDefault({
+          tether_proposal_id: proposal.id,
+        })
+      }
+      dialogControllRef={dialogControllRef}
+      formChildren={
+        <>
+          <FormBuilder
+            name="rate"
+            label="평점"
+            formClassName="!flex flex-col items-center"
+          >
+            <StarInput name="rate" />
+          </FormBuilder>
+        </>
+      }
+    >
+      <Button type="button">거래완료</Button>
+    </FormDialog>
+  );
+
+  return (
+    <div className="col-span-1 md:col-span-3 flex gap-4 w-full flex-wrap items-center">
+      {owner && !tradeIsDone && (
+        <>
+          {!hasRatedByMe && rateDialog(ownerConfirm)}
+          {hasRatedByMe && waitingMessage && (
+            <p className="text-sm opacity-70">{waitingMessage}</p>
+          )}
+          {!hasRatedByMe && tetherProposalCount === 0 && (
+            <ConfirmDialog
+              title="거래취소"
+              description="거래를 취소하시려면 확인을 눌러주세요."
+              onConfirm={ownerCancel}
+            >
+              <Button type="button" variant="outline">
+                거래취소
+              </Button>
+            </ConfirmDialog>
+          )}
+          {hasRatedByMe && (
+            <ConfirmDialog
+              title="거래취소"
+              description="거래를 취소하시려면 공식 텔레그램으로 연락바랍니다."
+              onConfirm={() => {}}
+            >
+              <Button type="button" variant="outline">
+                거래취소
+              </Button>
+            </ConfirmDialog>
+          )}
+        </>
+      )}
+      {isProposer &&
+        !tradeIsDone &&
+        proposal.status === TetherProposalStatus.Open && (
+          <>
+            {!hasRatedByMe && rateDialog(proposalConfirm)}
+            {hasRatedByMe && waitingMessage && (
+              <p className="text-sm opacity-70">{waitingMessage}</p>
+            )}
+            {!hasRatedByMe && (
+              <ConfirmDialog
+                title="거래 취소"
+                description="거래를 취소하시려면 확인을 눌러주세요."
+                onConfirm={proposalCancel}
+              >
+                <Button type="button" variant="outline">
+                  거래취소
+                </Button>
+              </ConfirmDialog>
+            )}
+            {hasRatedByMe && (
+              <ConfirmDialog
+                title="거래취소"
+                description="거래를 취소하시려면 공식 텔레그램으로 연락바랍니다."
+                onConfirm={() => {}}
+              >
+                <Button type="button" variant="outline">
+                  거래취소
+                </Button>
+              </ConfirmDialog>
+            )}
+          </>
+        )}
+    </div>
   );
 };

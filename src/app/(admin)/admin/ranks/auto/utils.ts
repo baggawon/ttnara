@@ -8,26 +8,20 @@ export const generatePoints = (
   numPoints: number
 ) => {
   const points = [];
-  const minTradeCount = Math.max(1, Math.floor(maxTradeCount * 0.01));
 
   for (let i = 0; i <= numPoints; i++) {
-    let progress = i / numPoints;
+    const x = 1 + (i / numPoints) * (maxRank - 1);
+    let progress = maxRank > 1 ? (x - 1) / (maxRank - 1) : 0;
 
     if (progressionType === "convex") {
       progress = Math.pow(progress, progressionRate);
     } else if (progressionType === "concave") {
-      progress = Math.pow(progress, 1 / progressionRate);
+      progress = 1 - Math.pow(1 - progress, progressionRate);
     }
 
-    const calculatedTradeCount = Math.round(maxTradeCount * progress);
-    const tradeCount = Math.max(
-      minTradeCount * (progress * maxRank),
-      calculatedTradeCount
-    );
-
     points.push({
-      x: progress * maxRank,
-      y: tradeCount,
+      x,
+      y: Math.round(maxTradeCount * progress),
     });
   }
 

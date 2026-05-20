@@ -8,6 +8,12 @@ import {
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import type { PaginationInfo } from "@/helpers/types";
+import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
+
+const signBadge = (r: trade_rank): trade_rank => ({
+  ...r,
+  badge_image: r.badge_image ? signStoredCloudFrontUrl(r.badge_image) : null,
+});
 
 export interface RanksListResponse {
   ranks: trade_rank[];
@@ -38,7 +44,7 @@ async function getRanksWithPagination(
     );
     if (!rank) throw ToastData.unknown;
     return {
-      ranks: [rank],
+      ranks: [signBadge(rank)],
       pagination: manager.getPagination(),
     };
   }
@@ -96,7 +102,7 @@ async function getRanksWithPagination(
   manager.setTotalCount(totalCount);
 
   return {
-    ranks,
+    ranks: ranks.map(signBadge),
     pagination: manager.getPagination(),
   };
 }

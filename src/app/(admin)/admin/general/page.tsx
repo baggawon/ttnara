@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function General() {
   return (
-    <section className="w-full flex flex-col gap-4 p-0 md:p-4">
+    <section className="w-full flex flex-col gap-4">
       <h2>일반 설정</h2>
 
       <Card>

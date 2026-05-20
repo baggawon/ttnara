@@ -1,15 +1,10 @@
 import { SendEmailCommand, SESClient } from "@aws-sdk/client-ses";
 
-// AWS SES 클라이언트 초기화
-export const sesClient = new SESClient([
-  {
-    region: process.env.AWS_REGION, // 예: "us-east-1"
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    },
-  },
-]);
+// AWS SES 클라이언트 초기화 (lazy — env vars are read at call time)
+const getSesClient = () =>
+  new SESClient({
+    region: process.env.AWS_REGION,
+  });
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
   // 이메일 파라미터 설정
@@ -37,5 +32,5 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
   const command = new SendEmailCommand(params);
 
   // 이메일 전송 실행
-  return await sesClient.send(command);
+  return await getSesClient().send(command);
 };

@@ -1,7 +1,6 @@
 import {
   Prisma,
   type profile,
-  type thread_image,
   type user,
   type category,
   type comment,
@@ -14,11 +13,20 @@ import { appCache, CacheKey } from "@/helpers/server/serverCache";
 import { paginationManager } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import { SearchType, type PaginationInfo } from "@/helpers/types";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]";
+import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
+
+export interface ThreadVoteInfo {
+  user_id: string;
+  vote_type: string;
+}
 
 export interface ThreadWithProfile extends thread {
   author: SimpleProfile | null;
   comments: CommentWithProfile[];
-  images: Pick<thread_image, "aws_cloud_front_url">[];
+  images: { aws_cloud_front_url: string }[];
+  votes?: ThreadVoteInfo[];
 }
 
 export interface CommentWithProfile extends comment {
@@ -26,7 +34,7 @@ export interface CommentWithProfile extends comment {
 }
 
 export interface SimpleProfile extends Pick<user, "username"> {
-  profile: Pick<profile, "displayname" | "is_app_admin"> | null;
+  profile: Pick<profile, "displayname" | "is_app_admin" | "auth_level"> | null;
 }
 
 export interface ThreadListResponse {
@@ -36,6 +44,7 @@ export interface ThreadListResponse {
   categories: category[];
   topic_id: number;
   use_thumbnail: boolean;
+  default_thumbnail_url: string | null;
   settings: TopicSettings;
 }
 
@@ -57,6 +66,7 @@ export const threadInclude = {
         select: {
           displayname: true,
           is_app_admin: true,
+          auth_level: true,
         },
       },
     },
@@ -70,6 +80,7 @@ export const threadInclude = {
             select: {
               displayname: true,
               is_app_admin: true,
+              auth_level: true,
             },
           },
         },
@@ -79,12 +90,14 @@ export const threadInclude = {
       created_at: Prisma.SortOrder.asc,
     },
   },
-  images: {
+};
+
+export const threadDetailInclude = {
+  ...threadInclude,
+  votes: {
     select: {
-      aws_cloud_front_url: true,
-    },
-    orderBy: {
-      id: Prisma.SortOrder.asc,
+      user_id: true,
+      vote_type: true,
     },
   },
 };
@@ -116,6 +129,14 @@ async function getTopicThreadsWithPagination(
   const topic = topics[json.topic_url];
   const use_thumbnail = topic.use_thumbnail;
 
+  const threadGeneralSettings = appCache.getByKey(
+    CacheKey.ThreadGeneralSettings
+  ) as { default_thumbnail_url?: string | null } | undefined;
+  const rawDefaultThumb = threadGeneralSettings?.default_thumbnail_url ?? null;
+  const default_thumbnail_url = rawDefaultThumb
+    ? signStoredCloudFrontUrl(rawDefaultThumb)
+    : null;
+
   const topicSettings: TopicSettings = {
     id: topic.id,
     name: topic.name,
@@ -142,6 +163,7 @@ async function getTopicThreadsWithPagination(
     max_upload_items: topic.max_upload_items,
     use_thumbnail: topic.use_thumbnail,
     use_anonymous: topic.use_anonymous,
+    use_mypostonly: topic.use_mypostonly,
     use_upvote: topic.use_upvote,
     use_downvote: topic.use_downvote,
     thread_page_size: topic.thread_page_size,
@@ -167,6 +189,7 @@ async function getTopicThreadsWithPagination(
       categories,
       topic_id,
       use_thumbnail,
+      default_thumbnail_url,
       settings: topicSettings,
     };
   }
@@ -224,6 +247,27 @@ async function getTopicThreadsWithPagination(
     }
   }
 
+  // use_mypostonly: 익명 글은 작성자 본인과 관리자만 열람 가능
+  if (topic.use_mypostonly) {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
+    const isAdmin = session?.user?.is_app_admin ?? false;
+
+    if (!isAdmin) {
+      const mypostFilter: Prisma.threadWhereInput = {
+        OR: [{ is_secret: false }, { author_id: userId ?? "" }],
+      };
+      where.AND = [
+        ...(Array.isArray(where.AND)
+          ? where.AND
+          : where.AND
+            ? [where.AND]
+            : []),
+        mypostFilter,
+      ];
+    }
+  }
+
   const { page, pageSize } = manager.getPageInfo();
 
   const result = await handleConnect((prisma) =>
@@ -247,13 +291,66 @@ async function getTopicThreadsWithPagination(
 
   manager.setTotalCount(totalCount);
 
+  // Resolve thumbnails from media_upload: prefer thread.thumbnail_media_id, else first uploaded.
+  const threadsWithImages = threads.map((t) => ({
+    ...t,
+    images: [] as { aws_cloud_front_url: string }[],
+  }));
+
+  if (use_thumbnail && threadsWithImages.length > 0) {
+    const threadIds = threadsWithImages.map((t) => t.id);
+    const mediaRows = await handleConnect((prisma) =>
+      prisma.media_upload.findMany({
+        where: {
+          attached_to_type: "thread",
+          attached_to_id: { in: threadIds },
+          media_type: "image",
+        },
+        select: {
+          id: true,
+          attached_to_id: true,
+          aws_cloud_front_url: true,
+        },
+        orderBy: { id: Prisma.SortOrder.asc },
+      })
+    );
+
+    const byThread = new Map<
+      number,
+      { id: number; aws_cloud_front_url: string }[]
+    >();
+    for (const row of mediaRows ?? []) {
+      if (row.attached_to_id == null) continue;
+      const arr = byThread.get(row.attached_to_id) ?? [];
+      arr.push({ id: row.id, aws_cloud_front_url: row.aws_cloud_front_url });
+      byThread.set(row.attached_to_id, arr);
+    }
+
+    for (const t of threadsWithImages) {
+      const candidates = byThread.get(t.id) ?? [];
+      if (candidates.length === 0) continue;
+      const chosen =
+        (t.thumbnail_media_id != null &&
+          candidates.find((c) => c.id === t.thumbnail_media_id)) ||
+        candidates[0];
+      t.images = [
+        {
+          aws_cloud_front_url: signStoredCloudFrontUrl(
+            chosen.aws_cloud_front_url
+          ),
+        },
+      ];
+    }
+  }
+
   return {
-    threads,
+    threads: threadsWithImages as ThreadWithProfile[],
     pagination: manager.getPagination(),
     name: topic.name,
     categories,
     topic_id,
     use_thumbnail,
+    default_thumbnail_url,
     settings: topicSettings,
   };
 }

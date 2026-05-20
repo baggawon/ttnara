@@ -90,6 +90,10 @@ const userExtension = Prisma.defineExtension((client) => {
             { queryKey: QueryKey.summaryThreads },
           ]),
       },
+      leaderboard_entry: {
+        update: (prismaProps) =>
+          makeExtension(prismaProps, [{ queryKey: QueryKey.leaderboard }]),
+      },
       alarm: {
         create: (prismaProps) =>
           makeExtension(prismaProps, [

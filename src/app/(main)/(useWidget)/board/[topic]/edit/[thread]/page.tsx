@@ -10,6 +10,7 @@ import type { TopicSettings } from "@/app/api/topic/read";
 import type { ThreadWithProfile } from "@/app/api/threads/read";
 import { HydrationBoundary } from "@tanstack/react-query";
 import { getDehydratedQueries } from "@/helpers/query";
+import { buildPageTitle } from "@/helpers/server/brandSettings";
 
 const getProps = async (props: { params: Params }) => {
   const params = await props.params;
@@ -36,7 +37,9 @@ export async function generateMetadata(props: {
     ]);
 
   return {
-    title: `${currentThread?.title ? "글 수정" : "새 글 작성"} - ${settings?.name ?? ""} - 테더나라`,
+    title: await buildPageTitle(
+      `${currentThread?.title ? "글 수정" : "새 글 작성"} - ${settings?.name ?? ""}`
+    ),
   };
 }
 

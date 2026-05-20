@@ -8,6 +8,9 @@ import { map } from "@/helpers/basic";
 import { deleteMultipleFilesFromS3 } from "@/helpers/server/s3";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
 import { BoardAccessService } from "@/lib/boardAccess";
+import { refundThreadAuthor } from "@/helpers/server/pointService";
+import { recordActivity } from "@/helpers/server/boardActivity";
+import { BoardActivityAction } from "@/helpers/boardActivity";
 
 export interface threadDeleteProps {
   deleteThreadId: number;
@@ -22,7 +25,10 @@ export const POST = async (json: threadDeleteProps) => {
     )
       throw ToastData.unknown;
 
-    const { session } = await requestValidator([RequestValidator.User], json);
+    const { uid, session } = await requestValidator(
+      [RequestValidator.User],
+      json
+    );
     const topics = appCache.getByKey(CacheKey.Topics) as any;
     const topicSettings = topics[json.topic_url];
     const topic_id = topics[json.topic_url].id;
@@ -45,22 +51,62 @@ export const POST = async (json: threadDeleteProps) => {
       };
     }
 
+    const threadMeta = await handleConnect((prisma) =>
+      prisma.thread.findUnique({
+        where: { id: json.deleteThreadId, topic_id },
+        select: { id: true, author_id: true, created_at: true },
+      })
+    );
+
+    const attachedMedia = await handleConnect((prisma) =>
+      prisma.media_upload.findMany({
+        where: {
+          attached_to_type: "thread",
+          attached_to_id: json.deleteThreadId,
+        },
+        select: { id: true, aws_cloud_front_url: true },
+      })
+    );
+
     const deleteResult = await handleConnect((prisma) =>
       prisma.thread.delete({
         where: {
           id: json.deleteThreadId,
           topic_id,
         },
-        select: {
-          images: true,
-        },
+        select: { id: true },
       })
     );
     if (!deleteResult) throw ToastData.unknown;
 
-    if (deleteResult.images.length > 0) {
+    // Anti-farming refund: only if the author deleted their own thread
+    // within the refund window. Other earnings (readers, voters, commenters)
+    // are not clawed back.
+    if (
+      threadMeta &&
+      uid &&
+      threadMeta.author_id === uid &&
+      threadMeta.created_at
+    ) {
+      await refundThreadAuthor({
+        thread_id: threadMeta.id,
+        author_uid: threadMeta.author_id,
+        created_at: threadMeta.created_at,
+      });
+    }
+
+    if (uid) {
+      await recordActivity({
+        uid,
+        action: BoardActivityAction.post_delete,
+        topic_id,
+        thread_id: json.deleteThreadId,
+      });
+    }
+
+    if (attachedMedia && attachedMedia.length > 0) {
       const toDelete = map(
-        deleteResult.images,
+        attachedMedia,
         (image) => `https://${image.aws_cloud_front_url}`
       );
 
@@ -68,6 +114,12 @@ export const POST = async (json: threadDeleteProps) => {
       if (results.failed.length > 0) {
         throw ToastData.unknown;
       }
+
+      await handleConnect((prisma) =>
+        prisma.media_upload.deleteMany({
+          where: { id: { in: attachedMedia.map((m) => m.id) } },
+        })
+      );
     }
 
     return {

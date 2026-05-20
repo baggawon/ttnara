@@ -47,15 +47,15 @@ export default function RanksAutoCreatePage() {
   return (
     <FormProvider {...methods}>
       <Form onSubmit={submit}>
-        <section className="flex flex-col gap-4 p-0 md:p-4">
+        <section className="flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>자동 랭크 추가</CardTitle>
+              <CardTitle>자동 등급 추가</CardTitle>
             </CardHeader>
             <CardContent className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
               <FormInput
                 name="maxRank"
-                label="최대 랭크 수"
+                label="최대 등급 수"
                 type={InputType.number}
                 validate={(value) => validateNumber({ value, min: 1 })}
               />
@@ -114,7 +114,7 @@ export default function RanksAutoCreatePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>랭크 생성 시뮬레이션</CardTitle>
+              <CardTitle>등급 생성 시뮬레이션</CardTitle>
             </CardHeader>
             <CardContent className="mt-6">
               {!hasSimulated ? (
@@ -131,7 +131,7 @@ export default function RanksAutoCreatePage() {
                           className="p-4 border rounded-lg"
                         >
                           <div className="font-semibold">
-                            랭크 {rank.rank_level}
+                            등급 {rank.rank_level}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             필요 거래 횟수:{" "}
@@ -142,7 +142,7 @@ export default function RanksAutoCreatePage() {
                     </div>
                     <div className="text-sm text-muted-foreground text-center">
                       {methods.getValues().maxRank > 9 &&
-                        "* 전체 랭크 중 처음 3개, 중간 3개, 마지막 3개의 랭크만 표시됩니다"}
+                        "* 전체 등급 중 처음 3개, 중간 3개, 마지막 3개의 등급만 표시됩니다"}
                     </div>
                   </div>
                   <div className="h-[400px] w-full">
@@ -155,7 +155,7 @@ export default function RanksAutoCreatePage() {
                         <XAxis
                           dataKey="x"
                           label={{
-                            value: "랭크 레벨",
+                            value: "등급 레벨",
                             position: "insideBottom",
                             offset: -10,
                           }}
@@ -195,8 +195,8 @@ export default function RanksAutoCreatePage() {
             <CardFooter>
               <div className="w-full flex justify-end">
                 <ConfirmDialog
-                  title="랭크 자동 생성"
-                  description="시뮬레이션대로 자동을 진행하시겠습니까? 기존의 랭크를 모두 삭제합니다."
+                  title="등급 자동 생성"
+                  description="시뮬레이션대로 자동을 진행하시겠습니까? 기존의 등급를 모두 삭제합니다."
                   onConfirm={() => submit(methods.getValues())}
                 >
                   <Button type="button" disabled={!hasSimulated}>

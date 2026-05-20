@@ -15,6 +15,12 @@ import SelectInput from "@/components/2_molecules/Input/Select";
 import { Input } from "@/components/ui/input";
 import { SearchIcon } from "lucide-react";
 import { searchItemsForAlarm } from "@/helpers/config";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 
 const SettingsNotificationListView = ({
   page,
@@ -94,65 +100,76 @@ const SettingsNotificationListView = ({
 
   return (
     <FormProvider {...methods}>
-      <WithUseWatch name={["isRead"]}>
-        {({ isRead }: AlarmReadProps) => (
-          <Tabs
-            value={String(isRead)}
-            onValueChange={selectIsRead}
-            className="w-full flex gap-4 flex-wrap"
-          >
-            <TabsList>
-              <TabsTrigger value="total">전체</TabsTrigger>
-              <TabsTrigger value="false">안읽음</TabsTrigger>
-              <TabsTrigger value="true">읽음</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
-      </WithUseWatch>
-      <section>
-        {(alarms?.alarms?.length ?? 0) > 0 ? (
-          map(alarms!.alarms, (alarm) => (
-            <AlarmItem key={alarm.id} alarm={alarm} />
-          ))
-        ) : (
-          <div className="h-[400px] w-full flex justify-center items-center">
-            알림이 없습니다.
-          </div>
-        )}
-      </section>
-      <GnuboardPaginationSSR
-        pagination={alarms?.pagination}
-        setPageIndexAction={(index) => {
-          methods.setValue("page", index);
-          updatePagination();
-        }}
-      />
-
-      <div className="flex justify-center gap-4 w-full">
-        <SelectInput
-          name="column"
-          items={searchItemsForAlarm}
-          buttonClassName="!w-full sm:!w-[150px]"
-          buttonWrapClassName="w-full sm:w-fit"
-        />
-        <div className="relative w-full sm:w-[228px]">
-          <Input
-            name="search"
-            className="w-full"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                updatePagination();
-              }
-            }}
+      <Card>
+        <CardHeader className="p-4 sm:p-6">
+          <WithUseWatch name={["isRead"]}>
+            {({ isRead }: AlarmReadProps) => (
+              <Tabs
+                value={String(isRead)}
+                onValueChange={selectIsRead}
+                className="w-full flex gap-4 flex-wrap"
+              >
+                <TabsList>
+                  <TabsTrigger value="total">전체</TabsTrigger>
+                  <TabsTrigger value="false">안읽음</TabsTrigger>
+                  <TabsTrigger value="true">읽음</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+          </WithUseWatch>
+        </CardHeader>
+        <CardContent className="p-0">
+          <section className="border-t">
+            {(alarms?.alarms?.length ?? 0) > 0 ? (
+              <div className="px-4 sm:px-6">
+                {map(alarms!.alarms, (alarm) => (
+                  <AlarmItem key={alarm.id} alarm={alarm} />
+                ))}
+              </div>
+            ) : (
+              <div className="h-[300px] sm:h-[400px] w-full flex justify-center items-center text-sm text-muted-foreground">
+                알림이 없습니다.
+              </div>
+            )}
+          </section>
+          {(alarms?.alarms?.length ?? 0) > 0 && (
+            <div className="border-t px-4 py-3 sm:px-6">
+              <GnuboardPaginationSSR
+                pagination={alarms?.pagination}
+                setPageIndexAction={(index) => {
+                  methods.setValue("page", index);
+                  updatePagination();
+                }}
+              />
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row sm:justify-center gap-2 sm:gap-4 w-full border-t p-4 sm:p-6">
+          <SelectInput
+            name="column"
+            items={searchItemsForAlarm}
+            buttonClassName="!w-full sm:!w-[150px]"
+            buttonWrapClassName="w-full sm:w-fit"
           />
-          <button
-            onClick={updatePagination}
-            className="absolute top-1/2 right-4 -translate-y-1/2"
-          >
-            <SearchIcon width={20} height={20} />
-          </button>
-        </div>
-      </div>
+          <div className="relative w-full sm:w-[228px]">
+            <Input
+              name="search"
+              className="w-full"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  updatePagination();
+                }
+              }}
+            />
+            <button
+              onClick={updatePagination}
+              className="absolute top-1/2 right-4 -translate-y-1/2"
+            >
+              <SearchIcon width={20} height={20} />
+            </button>
+          </div>
+        </CardFooter>
+      </Card>
     </FormProvider>
   );
 };

@@ -8,6 +8,8 @@ import { appCache, CacheKey } from "@/helpers/server/serverCache";
 import { uploadFileToS3, deleteFileFromS3 } from "@/helpers/server/s3";
 import type { popup } from "@prisma/client";
 
+const IMAGE_MAX_BYTES = 20 * 1024 * 1024;
+
 export interface PopupUpdateProps extends popup {
   image_file?: File;
   remove_image?: string;
@@ -20,6 +22,8 @@ export const POST = async (formData: FormData) => {
       id: parseInt(formData.get("id") as string),
       title: formData.get("title") as string,
       content: formData.get("content") as string,
+      content_format:
+        (formData.get("content_format") as string | null) ?? "html",
       image_cloud_front_url: null, // will be set later
       image_aws_url: null, // will be set later
       link_url: formData.get("link_url") as string,
@@ -65,6 +69,14 @@ export const POST = async (formData: FormData) => {
     }
     // 새 이미지 업로드
     else if (json.image_file && json.image_file.size > 0) {
+      if (json.image_file.size > IMAGE_MAX_BYTES) {
+        return {
+          result: false,
+          isSuccess: false,
+          hasMessage: "이미지 크기가 너무 큽니다 (최대 20MB)",
+          message: "이미지 크기가 너무 큽니다 (최대 20MB)",
+        };
+      }
       // 기존 이미지가 있으면 삭제 (cloud_front_url 우선 사용)
       if (existingPopup.image_cloud_front_url) {
         await deleteFileFromS3(existingPopup.image_cloud_front_url);

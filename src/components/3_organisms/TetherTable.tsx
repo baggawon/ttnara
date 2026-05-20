@@ -14,7 +14,6 @@ import {
   Currency,
   type PaginationInfo,
   TetherAddressTypes,
-  TetherMethods,
   TetherPriceTypes,
   TetherStatus,
 } from "@/helpers/types";
@@ -22,6 +21,7 @@ import type {
   AuthProfile,
   TetherPublicWithProfile,
   TetherWithProfile,
+  TetherRegionSelectionWithCategory,
 } from "@/app/api/tethers/read";
 import type { Session } from "next-auth";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
@@ -47,12 +47,11 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { ToastData } from "@/helpers/toastData";
 import { ProposalPrice } from "@/components/2_molecules/ProposalPrice";
-import { FreeTrade } from "@/components/1_atoms/FreeTrade";
-import { PromiseTransaction } from "@/components/1_atoms/PromiseTransaction";
 import { useIsMobile } from "@/helpers/customHook/useWindowSize";
 import { useRef } from "react";
 import type { VisibilityState } from "@tanstack/react-table";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { CircleLight } from "@/components/1_atoms/CircleLight";
 import { KYCAuthor } from "@/components/1_atoms/KYCAuthor";
 
@@ -64,7 +63,7 @@ export const TetherTable = ({
 }: {
   session: Session | null | undefined;
   pagination?: PaginationInfo | undefined;
-  tethers: TetherPublicWithProfile[] | TetherWithProfile[] | undefined;
+  tethers: (TetherPublicWithProfile | TetherWithProfile)[] | undefined;
   setPageIndexAction: (index: number) => void;
 }) => {
   const getCurrency = (currency: Currency, className?: string) => {
@@ -143,10 +142,10 @@ export const TetherTable = ({
 
   const getSuccessPercent = (user: AuthProfile | null) => {
     if (user === null) return "0.00";
-    if (user.trade_total === 0 || user.trade_count === 0) return "0.00";
+    const denominator = user.trade_total + user.trade_joined;
+    if (denominator === 0 || user.trade_count === 0) return "0.00";
 
-    const percent =
-      ((user.trade_count - user.trade_cancel) / user.trade_total) * 100;
+    const percent = (user.trade_count / denominator) * 100;
 
     if (percent < 0) return "0.00";
     if (percent > 100) return "100.00";
@@ -175,15 +174,12 @@ export const TetherTable = ({
           <Label className="leading-normal pl-4">
             완료 거래: {user?.trade_count ?? 0}회
           </Label>
-          <Label className="leading-normal pl-4">
-            취소 거래: {user?.trade_cancel ?? 0}회
-          </Label>
         </PopoverContent>
       </Popover>
     );
   };
 
-  const columns: CustomColumDef<TetherWithProfile | TetherPublicWithProfile>[] =
+  const columns: CustomColumDef<TetherPublicWithProfile | TetherWithProfile>[] =
     setDefaultColumn([
       {
         accessorKey: "title",
@@ -219,9 +215,9 @@ export const TetherTable = ({
                   KYC 인증
                 </p>
 
-                {(user?.trade_total ?? 0) > 0 && (
+                {(user?.trade_count ?? 0) > 0 && (
                   <p className="leading-[140%] text-[11px]">
-                    총 거래: {user?.trade_total}회, 성사율:
+                    총 거래: {user?.trade_count}회, 성사율:
                     {` ${getSuccessPercent(user)}`}%
                   </p>
                 )}
@@ -267,25 +263,19 @@ export const TetherTable = ({
 
         cell: (props) => {
           const {
-            methods: method,
             min_qty,
             max_qty,
             address_type,
-            city,
-            state,
             currency,
             custom_address,
             use_author,
           } = props.row.original;
+          const regions = (props.row.original as any).region_selections as
+            | TetherRegionSelectionWithCategory[]
+            | undefined;
           return (
             <span className="flex flex-col gap-2">
               <div className="flex items-center gap-4">
-                {method === TetherMethods.Public && (
-                  <FreeTrade className="[&>p]:text-[11px]" />
-                )}
-                {method === TetherMethods.Promise && (
-                  <PromiseTransaction className="[&>p]:text-[11px]" />
-                )}
                 {use_author && <KYCAuthor className="[&>p]:text-[11px]" />}
               </div>
               <div className="[&>p]:leading-[140%] [&>p]:text-sm block">
@@ -296,10 +286,20 @@ export const TetherTable = ({
                 </p>
               </div>
               {address_type === TetherAddressTypes.Category && (
-                <p>
-                  {city}
-                  {state !== "" && state !== null ? ` ${state}` : ""}
-                </p>
+                <div className="flex flex-wrap gap-1">
+                  {(regions ?? []).slice(0, 3).map((r) => (
+                    <Badge
+                      key={r.id}
+                      variant="secondary"
+                      className="text-[11px] px-1.5 py-0"
+                    >
+                      {r.category?.name ?? ""}
+                    </Badge>
+                  ))}
+                  {(regions?.length ?? 0) > 3 && (
+                    <span className="text-[11px]">+{regions!.length - 3}</span>
+                  )}
+                </div>
               )}
               {address_type === TetherAddressTypes.Custom && (
                 <p>{custom_address}</p>
@@ -351,18 +351,18 @@ export const TetherTable = ({
             currency,
             user,
             title,
-            methods: method,
             min_qty,
             max_qty,
             price_type,
             price,
             margin,
             address_type,
-            city,
-            state,
             custom_address,
             use_author,
           } = props.row.original;
+          const regions = (props.row.original as any).region_selections as
+            | TetherRegionSelectionWithCategory[]
+            | undefined;
 
           const { getButtonColor, getButtonLabel } = getStateFunction(
             props.row.original
@@ -373,26 +373,15 @@ export const TetherTable = ({
                 <b
                   className={clsx(
                     "truncate font-normal",
-                    method === TetherMethods.Public &&
-                      "max-w-[calc(100%-0.25rem-58.04px)]",
-                    method === TetherMethods.Promise &&
-                      "max-w-[calc(100%-0.25rem-62.04px)]",
-                    ![TetherMethods.Public, TetherMethods.Promise].includes(
-                      method as TetherMethods
-                    ) && "max-w-[calc(100%-0.005rem)]"
+                    use_author
+                      ? "max-w-[calc(100%-0.25rem-40px)]"
+                      : "max-w-[calc(100%-0.005rem)]"
                   )}
                 >
                   {getCurrency(currency as Currency)}
                   {title}
                 </b>
                 <div className="flex items-center gap-2">
-                  {method === TetherMethods.Public && (
-                    <FreeTrade className="[&>p]:text-[11px] whitespace-nowrap" />
-                  )}
-                  {method === TetherMethods.Promise && (
-                    <PromiseTransaction className="[&>p]:text-[11px] whitespace-nowrap" />
-                  )}
-
                   {use_author && <KYCAuthor className="[&>p]:text-[11px]" />}
                 </div>
               </span>
@@ -428,10 +417,22 @@ export const TetherTable = ({
                 </div>
 
                 {address_type === TetherAddressTypes.Category && (
-                  <p>
-                    {city}
-                    {state !== "" && state !== null ? ` ${state}` : ""}
-                  </p>
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {(regions ?? []).slice(0, 2).map((r) => (
+                      <Badge
+                        key={r.id}
+                        variant="secondary"
+                        className="text-[11px] px-1.5 py-0"
+                      >
+                        {r.category?.name ?? ""}
+                      </Badge>
+                    ))}
+                    {(regions?.length ?? 0) > 2 && (
+                      <span className="text-[11px]">
+                        +{regions!.length - 2}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {address_type === TetherAddressTypes.Custom && (
                   <p>{custom_address}</p>

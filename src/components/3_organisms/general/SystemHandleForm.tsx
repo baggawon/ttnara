@@ -1,19 +1,17 @@
 "use client";
 
-import type { general_setting } from "@prisma/client";
-import type { GeneralReadProps } from "@/app/api/admin_di2u3k2j/settings/general/read";
+import type {
+  GeneralReadProps,
+  GeneralReadResult,
+} from "@/app/api/admin_di2u3k2j/settings/general/read";
 import type { generalUpdateProps } from "@/app/api/admin_di2u3k2j/settings/general/update";
 import clsx from "clsx";
 import Form from "@/components/1_atoms/Form";
-import {
-  FormBuilder,
-  FormInput,
-} from "@/components/2_molecules/Input/FormInput";
+import { FormBuilder } from "@/components/2_molecules/Input/FormInput";
 import { SwitchInput } from "@/components/2_molecules/Input/SwitchInput";
 import { Button } from "@/components/ui/button";
 import { CardDescription } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { removeColumnsFromObject } from "@/helpers/basic";
 import { postJson, refreshCache } from "@/helpers/common";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
@@ -25,7 +23,10 @@ import { ApiRoute, QueryKey } from "@/helpers/types";
 import { FormProvider, useForm } from "react-hook-form";
 
 export const SystemHandleForm = ({ className }: { className?: string }) => {
-  const { data: generalData } = useGetQuery<general_setting, GeneralReadProps>(
+  const { data: generalData } = useGetQuery<
+    GeneralReadResult,
+    GeneralReadProps
+  >(
     {
       queryKey: [QueryKey.generalSettings],
     },
@@ -38,7 +39,6 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
   });
 
   const { toast } = useToast();
-
   const { setLoading, disableLoading, queryClient } = useLoadingHandler();
 
   useEffectFunctionHook({
@@ -47,19 +47,16 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
     },
     dependency: [generalData],
   });
-  const trySave = async (props: general_setting) => {
+
+  const trySave = async (props: generalUpdateProps) => {
     setLoading();
     try {
       const { isSuccess, hasMessage } = await postJson<generalUpdateProps>(
         ApiRoute.adminGeneralUpdate,
-        removeColumnsFromObject(props, [
-          "site_name",
-          "site_description",
-          "general_manager_id",
-          "user_logs_delete_days",
-          "admin_logs_delete_days",
-          "active_user_interval_seconds",
-        ])
+        {
+          id: props.id,
+          allow_user_registration: props.allow_user_registration,
+        }
       );
       if (hasMessage) {
         toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
@@ -67,7 +64,7 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
       if (isSuccess) {
         refreshCache(queryClient, QueryKey.generalSettings);
       }
-    } catch (error) {
+    } catch {
       toast({
         id: ToastData.unknown,
         type: "error",
@@ -85,29 +82,11 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
           className
         )}
       >
-        <FormBuilder name="maintenance_mode" label="유지보수 모드">
-          <div className="w-full">
-            <SwitchInput name="maintenance_mode" />
-            <CardDescription className="text-xs w-full">
-              유지보수 모드가 활성화되면 사이트 접근이 제한됩니다. 개발팀만 접근
-              가능합니다.
-            </CardDescription>
-          </div>
-        </FormBuilder>
         <FormBuilder name="allow_user_registration" label="회원가입 허용">
           <div className="w-full">
             <SwitchInput name="allow_user_registration" />
             <CardDescription className="text-xs w-full">
               해제하면 새로운 회원가입이 제한됩니다.
-            </CardDescription>
-          </div>
-        </FormBuilder>
-        <FormBuilder name="allow_login" label="로그인 허용">
-          <div className="w-full">
-            <SwitchInput name="allow_login" />
-            <CardDescription className="text-xs w-full">
-              해제하면 관리자 포함 모든 로그인이 제한됩니다. 개발팀만 접근
-              가능합니다.
             </CardDescription>
           </div>
         </FormBuilder>

@@ -22,11 +22,6 @@ export default async function Page(props: { searchParams: SearchParams }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">알림 내역</h3>
-        <p className="text-sm text-muted-foreground">알림 내역을 관리합니다.</p>
-      </div>
-      <Separator />
       <SettingsNotificationListView
         page={page}
         pageSize={pageSize}

@@ -30,6 +30,7 @@ export interface TopicSettings
     | "max_upload_items"
     | "use_thumbnail"
     | "use_anonymous"
+    | "use_mypostonly"
     | "use_upvote"
     | "use_downvote"
     | "thread_page_size"
@@ -97,6 +98,7 @@ async function getTopicSettings(
     max_upload_items: topic.max_upload_items,
     use_thumbnail: topic.use_thumbnail,
     use_anonymous: topic.use_anonymous,
+    use_mypostonly: topic.use_mypostonly,
     use_upvote: topic.use_upvote,
     use_downvote: topic.use_downvote,
     thread_page_size: topic.thread_page_size,

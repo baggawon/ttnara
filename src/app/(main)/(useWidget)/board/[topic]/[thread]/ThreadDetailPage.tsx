@@ -1,6 +1,7 @@
 "use client";
 
 import type { ThreadWithProfile } from "@/app/api/threads/read";
+import { ThreadBadges } from "@/components/1_atoms/ThreadBadges";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,7 +19,11 @@ import useGetQuery from "@/helpers/customHook/useGetQuery";
 import { sessionGet, threadGet, topicSettingsGet } from "@/helpers/get";
 import { ApiRoute, AppRoute, QueryKey } from "@/helpers/types";
 import { redirect, useRouter } from "next/navigation";
-import { getDisplayname, postJson, refreshCache } from "@/helpers/common";
+import {
+  getBoardPosterDisplayname,
+  postJson,
+  refreshCache,
+} from "@/helpers/common";
 import { ThreadList } from "@/components/4_templates/ThreadList";
 import { useToast } from "@/components/ui/use-toast";
 import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
@@ -33,10 +38,11 @@ import { validateComment } from "@/helpers/validate";
 import { FormTextarea } from "@/components/2_molecules/Input/FormTextarea";
 import { map } from "@/helpers/basic";
 import type { CommentUpdateProps } from "@/app/api/threads/comment/update";
-import CkeditorViewer from "@/components/1_atoms/CkeditorViewer";
+import HTMLViewer from "@/components/1_atoms/HTMLViewer";
 import type { Session } from "next-auth";
 import type { TopicSettings } from "@/app/api/topic/read";
-// import useBoardAccessControl from "@/helpers/customHook/useBoardAccessContol";
+import { VoteButtons } from "@/components/2_molecules/VoteButtons";
+import useTopicPoints from "@/helpers/customHook/useTopicPoints";
 
 export const ThreadDetailPage = ({
   page,
@@ -99,6 +105,15 @@ export const ThreadDetailPage = ({
   const canRead = authLevel >= levelRead;
   const canEdit = isAppAdmin || isModerator || isAuthor;
   const canComment = authLevel >= levelComment;
+
+  const topicPoints = useTopicPoints(topicSettings);
+  const commentBlocked =
+    topicPoints.cost.comment > 0 && !topicPoints.canAfford.comment;
+  const commentTitle = commentBlocked
+    ? `포인트가 부족합니다 (필요: ${topicPoints.cost.comment.toLocaleString()}P)`
+    : topicPoints.cost.comment > 0
+      ? `${topicPoints.cost.comment.toLocaleString()}P 차감`
+      : undefined;
 
   const router = useRouter();
 
@@ -240,7 +255,11 @@ export const ThreadDetailPage = ({
       <div className="w-full flex flex-col gap-4">
         <Card className="overflow-hidden border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b p-3 sm:p-6">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words flex items-center gap-1.5">
+              <ThreadBadges
+                commentCount={currentThread?.comments?.length ?? 0}
+                views={currentThread?.views ?? 0}
+              />
               {currentThread?.title}
             </h1>
             <CardDescription className="flex flex-wrap gap-2 sm:gap-4 items-center text-xs sm:text-sm md:text-base">
@@ -263,8 +282,23 @@ export const ThreadDetailPage = ({
                 <span>
                   작성자{" "}
                   <b className="text-primary">
-                    {getDisplayname(currentThread?.author?.profile)}
+                    {currentThread?.is_secret
+                      ? "익명"
+                      : getBoardPosterDisplayname(
+                          currentThread?.author?.profile,
+                          topicSettings?.level_moderator,
+                          session?.user
+                        )}
                   </b>
+                  {currentThread?.is_secret && (isAppAdmin || isAuthor) && (
+                    <span className="ml-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5 rounded">
+                      {getBoardPosterDisplayname(
+                        currentThread?.author?.profile,
+                        topicSettings?.level_moderator,
+                        session?.user
+                      )}
+                    </span>
+                  )}
                 </span>
               </div>
               <div className="flex items-center gap-1 sm:gap-2">
@@ -360,10 +394,37 @@ export const ThreadDetailPage = ({
           </CardHeader>
           <CardContent className="p-4 sm:p-6 md:p-8">
             <div className="prose dark:prose-invert max-w-none">
-              <CkeditorViewer htmlContent={currentThread?.content ?? ""} />
+              <HTMLViewer
+                htmlContent={currentThread?.content ?? ""}
+                format={
+                  (currentThread?.content_format as "html" | "markdown") ??
+                  "html"
+                }
+              />
             </div>
           </CardContent>
         </Card>
+
+        {(topicSettings?.use_upvote || topicSettings?.use_downvote) &&
+          currentThread && (
+            <VoteButtons
+              thread_id={thread_id}
+              topic_url={topic_url}
+              upvotes={currentThread.upvotes ?? 0}
+              downvotes={currentThread.downvotes ?? 0}
+              showUpvote={topicSettings?.use_upvote ?? false}
+              showDownvote={topicSettings?.use_downvote ?? false}
+              userVote={
+                (currentThread.votes?.find(
+                  (v) => v.user_id === (session as any)?.user?.id
+                )?.vote_type as "up" | "down") ?? null
+              }
+              upvoteCost={topicPoints.cost.upvote}
+              downvoteCost={topicPoints.cost.downvote}
+              canAffordUpvote={topicPoints.canAfford.upvote}
+              canAffordDownvote={topicPoints.canAfford.downvote}
+            />
+          )}
 
         {currentThread?.comments && currentThread?.comments.length === 0 && (
           <Card className="overflow-hidden border-none shadow-md">
@@ -415,7 +476,23 @@ export const ThreadDetailPage = ({
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">
-                        {getDisplayname(comment.author?.profile)}
+                        {currentThread?.is_secret
+                          ? "익명"
+                          : getBoardPosterDisplayname(
+                              comment.author?.profile,
+                              topicSettings?.level_moderator,
+                              session?.user
+                            )}
+                        {currentThread?.is_secret &&
+                          (isAppAdmin || isAuthor) && (
+                            <span className="ml-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5 rounded">
+                              {getBoardPosterDisplayname(
+                                comment.author?.profile,
+                                topicSettings?.level_moderator,
+                                session?.user
+                              )}
+                            </span>
+                          )}
                       </span>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
                         {dayjs(comment.created_at)
@@ -498,6 +575,8 @@ export const ThreadDetailPage = ({
                 <div className="flex justify-end">
                   <Button
                     type="submit"
+                    disabled={commentBlocked}
+                    title={commentTitle}
                     className="px-4 bg-primary hover:bg-primary/90"
                   >
                     <svg

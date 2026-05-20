@@ -1,58 +1,53 @@
+"use client";
+
 import clsx from "clsx";
 import Link from "next/link";
-import { Tether } from "@/components/1_atoms/coin/Tether";
+import { ImageIcon } from "lucide-react";
+import { useBrand } from "@/components/1_atoms/BrandProvider";
+import { cn } from "@/components/lib/utils";
+
+const SIZE_CLASS = {
+  small: { h: "h-10", placeholderW: "w-20" },
+  large: { h: "h-12", placeholderW: "w-24" },
+} as const;
 
 export default function Logo({
   href = "/",
   className = "",
+  imgClassName = "",
   size = "small",
-  logoText = "테더나라",
-  textClassName = "font-gongGothicMedium",
-  mode = "full",
+}: {
+  href?: string;
+  className?: string;
+  imgClassName?: string;
+  size?: "small" | "large";
 }) {
-  const GradientLogo = ({ size = "text-xl" }) => (
-    <div
-      className={`${textClassName} ${size} font-bold py-2 rounded-md`}
-      style={{
-        background:
-          "linear-gradient(135deg, #26A17B 0%, #26A17B 50%, #e9c40f 100%)",
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        backgroundClip: "text",
-
-        display: "inline-block",
-      }}
-    >
-      {logoText}
-    </div>
-  );
-
-  // Determine if we should show the image
-  const showImage = mode === "image" || mode === "full";
-  // Determine if we should show the text
-  const showText = mode === "text" || mode === "full" || mode === "image";
+  const brand = useBrand();
+  const logoUrl = brand?.logoImageUrl ?? null;
+  const altText = brand?.siteName || "logo";
+  const sizeClass = SIZE_CLASS[size];
 
   return (
-    <Link
-      href={href}
-      className={clsx("flex items-center space-x-3", className)}
-    >
-      {showImage && (
-        <Tether
-          className={clsx(
-            size === "small" && "w-8 h-8",
-            size === "large" && "w-12 h-12"
-          )}
+    <Link href={href} className={clsx("flex items-center", className)}>
+      {logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logoUrl}
+          alt={altText}
+          className={cn("w-auto object-contain", sizeClass.h, imgClassName)}
         />
-      )}
-
-      {showText && (
-        <GradientLogo
-          size={clsx(
-            size === "small" && "text-2xl",
-            size === "large" && "text-3xl"
+      ) : (
+        <div
+          className={cn(
+            "flex items-center justify-center rounded-md border border-dashed border-black/20 bg-black/5 text-black/30",
+            sizeClass.h,
+            sizeClass.placeholderW,
+            imgClassName
           )}
-        />
+          aria-label="logo placeholder"
+        >
+          <ImageIcon className="w-4 h-4" />
+        </div>
       )}
     </Link>
   );

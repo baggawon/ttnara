@@ -166,61 +166,6 @@ p {
   display: block;
 }
 
-/* ckeditor */
-
-.ck-editor__editable {
-  min-height: 500px;
-}
-
-.ck.ck-toolbar.ck-toolbar_grouping > .ck-toolbar__items {
-  flex-wrap: wrap !important;
-}
-
-.ck.ck-editor__main > .ck-editor__editable {
-  @apply !bg-card;
-}
-
-.ck-reset_all :not(.ck-reset_all-excluded *) {
-  @apply !text-foreground;
-}
-
-.ck.ck-toolbar .ck.ck-toolbar__separator {
-  @apply !bg-input;
-}
-
-.ck.ck-toolbar,
-.ck.ck-dialog,
-.ck.ck-input,
-.ck.ck-label,
-.ck.ck-splitbutton.ck-splitbutton_open
-  > .ck-button:not(.ck-on):not(.ck-disabled):not(:hover),
-.ck.ck-button.ck-on,
-.ck.ck-dropdown__panel,
-.ck.ck-list,
-.ck.ck-button.ck-list-item-button:not(:hover) {
-  @apply !bg-card;
-}
-
-.ck.ck-tooltip {
-  @apply !bg-background drop-shadow-lg border;
-}
-
-.ck.ck-tooltip,
-.ck.ck-editor__top .ck-sticky-panel .ck-sticky-panel__content,
-.ck.ck-editor__main > .ck-editor__editable:not(.ck-focused) {
-  @apply !border-input;
-}
-
-.ck.ck-editor__top .ck-sticky-panel .ck-sticky-panel__content,
-.ck.ck-reset_all,
-.ck-reset_all :not(.ck-reset_all-excluded *) {
-  @apply !rounded-t-md;
-}
-
-.ck.ck-editor__main > .ck-editor__editable:not(.ck-focused) {
-  @apply !rounded-b-md;
-}
-
 /* slider */
 
 .slick-dots li.slick-active button:before {
@@ -286,5 +231,17 @@ p {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide,
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar,
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }

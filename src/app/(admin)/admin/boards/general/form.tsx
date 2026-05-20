@@ -2,6 +2,8 @@
 
 import type { thread_setting } from "@prisma/client";
 import clsx from "clsx";
+import { useRef, useState } from "react";
+import { Loader2, Trash2 } from "lucide-react";
 import Form from "@/components/1_atoms/Form";
 import {
   FormBuilder,
@@ -17,14 +19,125 @@ import {
 } from "@/components/ui/card";
 import SelectInput from "@/components/2_molecules/Input/Select";
 import WithUseWatch from "@/components/2_molecules/WithUseWatch";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   validateAllowedExtensions,
   validateNumberInRange,
 } from "@/helpers/validate";
-import { FormProvider } from "react-hook-form";
+import { FormProvider, useFormContext } from "react-hook-form";
 import { SwitchInput } from "@/components/2_molecules/Input/SwitchInput";
 import { useAdminThreadGeneralEditHook } from "@/app/(admin)/admin/boards/general/hook";
+import { useToast } from "@/components/ui/use-toast";
+import { ToastData } from "@/helpers/toastData";
+import { ApiRoute } from "@/helpers/types";
+import { version } from "@/helpers/config";
+import type { MediaUploadResult } from "@/app/api/uploads/media";
+
+const DefaultThumbnailUploader = () => {
+  const { watch, setValue } = useFormContext<thread_setting>();
+  const url = watch("default_thumbnail_url") as string | null;
+  const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const onPick: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ id: ToastData.attachedTypeLimit, type: "error" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("version", version);
+      const res = await fetch(ApiRoute.uploadsMedia, {
+        method: "POST",
+        body: fd,
+      });
+      const json = (await res.json()) as {
+        result: boolean;
+        message?: string;
+        data?: MediaUploadResult;
+      };
+      if (!json.result || !json.data) {
+        toast({ id: ToastData.unknown, type: "error" });
+        return;
+      }
+      setValue("default_thumbnail_url", json.data.awsCloudFrontUrl, {
+        shouldDirty: true,
+      });
+    } catch {
+      toast({ id: ToastData.unknown, type: "error" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="sm:col-span-2 flex flex-col gap-2">
+      <Label className="text-sm font-medium">기본 썸네일 이미지</Label>
+      <div className="flex items-center gap-4">
+        <div className="w-[80px] h-[60px] border rounded-md flex items-center justify-center bg-neutral-50 overflow-hidden shrink-0">
+          {uploading ? (
+            <Loader2 className="w-4 h-4 animate-spin text-black/40" />
+          ) : url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={url}
+              alt="기본 썸네일"
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <span className="text-xs text-black/30">없음</span>
+          )}
+        </div>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Label
+              htmlFor="default-thumbnail-input"
+              className={clsx(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "cursor-pointer w-fit",
+                uploading && "opacity-50 pointer-events-none"
+              )}
+            >
+              이미지 선택
+              <input
+                ref={inputRef}
+                id="default-thumbnail-input"
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                className="hidden"
+                onChange={onPick}
+                disabled={uploading}
+              />
+            </Label>
+            {url && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setValue("default_thumbnail_url", null, { shouldDirty: true })
+                }
+              >
+                <Trash2 className="w-3 h-3 mr-1" /> 제거
+              </Button>
+            )}
+          </div>
+          <CardDescription className="text-xs">
+            게시판 목록에서 글에 이미지가 없을 때 표시되는 기본 썸네일입니다.
+            설정하지 않으면 빈 영역으로 표시됩니다.
+          </CardDescription>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const BoardGeneralForm = ({ className }: { className?: string }) => {
   const { methods, submit } = useAdminThreadGeneralEditHook();
@@ -318,15 +431,20 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
                 required
                 validate={validateAllowedExtensions}
               />
-              <FormInput
-                type={InputType.number}
-                name="max_file_size_mb"
-                label="파일 최대 크기 (MB, 개별)"
-                required
-                min={1}
-                max={10}
-                validate={(value) => validateNumberInRange(value, 1, 10)}
-              />
+              <div>
+                <FormInput
+                  type={InputType.number}
+                  name="max_file_size_mb"
+                  label="파일 최대 크기 (MB, 개별)"
+                  required
+                  min={1}
+                  max={20}
+                  validate={(value) => validateNumberInRange(value, 1, 20)}
+                />
+                <CardDescription className="text-xs w-full mt-1">
+                  1~20MB까지 설정 가능합니다.
+                </CardDescription>
+              </div>
             </CardContent>
           </Card>
           <Card className="mb-2">
@@ -357,6 +475,7 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
                   <SwitchInput name="use_downvote" />
                 </div>
               </FormBuilder>
+              <DefaultThumbnailUploader />
             </CardContent>
           </Card>
           <Card className="mb-2">

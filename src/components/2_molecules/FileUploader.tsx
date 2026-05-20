@@ -79,6 +79,7 @@ const FileUploader = ({
             toast({
               id: ToastData.attachedSizeLimit,
               type: "error",
+              value: String(UPLOAD_FILE_SIZE_MB),
             });
           }
         } else {

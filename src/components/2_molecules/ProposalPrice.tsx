@@ -7,6 +7,7 @@ import { Triangle } from "lucide-react";
 import { decimalToNumber } from "@/helpers/common";
 import type Decimal from "decimal.js";
 import clsx from "clsx";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import type { Currency } from "@/helpers/types";
 import type { TetherKrwRate } from "@/app/api/currency/tether/route";
@@ -28,13 +29,22 @@ export const ProposalPrice = ({
 }) => {
   const { control } = usePriceProvider();
 
+  // WebSocket-pushed prices can populate the form before hydration completes,
+  // so reading them during the first client render would diverge from SSR
+  // (which always sees the empty defaults). Render the neutral 0.00% / target
+  // output until after mount, matching what the server produced.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const wonWidget = <b className="font-semibold">원</b>;
 
   const calculateDiffPercent = (target: number) => (
     <WithUseWatch name={[currency]} control={control}>
       {(props: PriceProviderProps) => {
         let price = props[currency][usePrice];
-        if (price === "") {
+        if (!mounted || price === "") {
           price = target.toString();
         }
         const diff = target - Number(price);
@@ -72,7 +82,7 @@ export const ProposalPrice = ({
     <WithUseWatch name={[currency]} control={control}>
       {(props: PriceProviderProps) => {
         let price = props[currency][usePrice];
-        if (price === "") {
+        if (!mounted || price === "") {
           price = target.toString();
         }
         const diff = Number(price) + (Number(price) * target) / 100;

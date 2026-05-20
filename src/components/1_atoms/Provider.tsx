@@ -19,6 +19,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PriceProvider from "@/helpers/customHook/usePriceProvider";
 import SubscribeSSE from "@/components/1_atoms/SubscribeSSE";
 import SessionWrapper from "@/components/1_atoms/SessionWrapper";
+
+// Isolated subscriber: the loading-counter changes every time any
+// `useGetQuery` instance flips status, app-wide. Keeping the subscription in
+// a 1-line component prevents `<Providers>` (and therefore the entire app
+// tree below it) from re-rendering on every query state transition.
+function LoadingOverlay() {
+  const { loading } = useLoading();
+  if (!loading) return null;
+  return (
+    <div className="top-0 left-0 fixed z-[9999] w-screen h-screen bg-black/20">
+      <Loader />
+    </div>
+  );
+}
+
 function Providers({ children }: React.PropsWithChildren) {
   const [queryClient] = useState(
     () =>
@@ -32,15 +47,14 @@ function Providers({ children }: React.PropsWithChildren) {
         },
       })
   );
-  const { loading } = useLoading();
   return (
     <QueryClientProvider client={queryClient}>
       <QueryErrorResetBoundary>
         {({ reset }) => (
           <ErrorBoundary
             onReset={reset}
-            onError={() => {
-              window.location.reload();
+            onError={(error, info) => {
+              console.error("ErrorBoundary caught:", error, info);
             }}
             fallbackRender={({ resetErrorBoundary }) => (
               <Card className="w-[300px] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -58,11 +72,7 @@ function Providers({ children }: React.PropsWithChildren) {
             <SessionWrapper>
               <PriceProvider>{children}</PriceProvider>
               <ReactQueryDevtools initialIsOpen={false} />
-              {loading && (
-                <div className="top-0 left-0 fixed z-[9999] w-screen h-screen bg-black/20">
-                  <Loader />
-                </div>
-              )}
+              <LoadingOverlay />
               <Toaster />
               <VersionManage />
               <ViewPortCalculator />

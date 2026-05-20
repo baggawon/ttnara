@@ -27,11 +27,10 @@ export const RightWidgets = () => {
     dependency: [pathname],
   });
   return (
-    <section className="min-w-[308px] max-w-[308px] h-fit hidden flex-col md:flex gap-4 sticky top-4">
+    <section className="min-w-[240px] max-w-[240px] h-fit hidden flex-col xl:flex gap-3 sticky top-4 mt-4">
       <CalculatorWidget calculatorRef={calculatorRef} />
       <PriceWidget calculatorRef={calculatorRef} />
-
-      <PartnerBanners position="right" displayMode="pc" />
+      <PartnerBanners variant="sidebar" />
     </section>
   );
 };

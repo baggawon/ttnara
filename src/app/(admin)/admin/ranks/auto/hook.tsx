@@ -60,12 +60,19 @@ export const useAdminRanksAutoCreateHook = () => {
       // Calculate all ranks first
       const allRanks = [];
       for (let i = 1; i <= props.maxRank; i++) {
-        const currentRankMaxTradeCount = Math.round(
-          props.maxTradeCount * (i / props.maxRank)
-        );
+        let minTradeCount = 0;
+        if (i > 1 && props.maxRank > 1) {
+          let progress = (i - 1) / (props.maxRank - 1);
+          if (props.progressionType === "convex") {
+            progress = Math.pow(progress, props.progressionRate);
+          } else if (props.progressionType === "concave") {
+            progress = 1 - Math.pow(1 - progress, props.progressionRate);
+          }
+          minTradeCount = Math.round(props.maxTradeCount * progress);
+        }
         allRanks.push({
           rank_level: i,
-          min_trade_count: currentRankMaxTradeCount,
+          min_trade_count: minTradeCount,
         });
       }
 
@@ -99,37 +106,25 @@ export const useAdminRanksAutoCreateHook = () => {
     progressionRate: number
   ): SimulatedRank[] => {
     const allRanks: SimulatedRank[] = [];
-    const minTradeCount = Math.max(1, Math.floor(maxTradeCount * 0.01)); // Ensure at least 1% of max for first rank
 
     for (let i = 1; i <= maxRank; i++) {
-      let progress = i / maxRank;
+      let minTradeCountValue = 0;
+      if (i > 1 && maxRank > 1) {
+        let progress = (i - 1) / (maxRank - 1);
 
-      // Apply progression type and rate
-      if (progressionType === "convex") {
-        // For convex (exponential)
-        progress = Math.pow(progress, progressionRate);
-      } else if (progressionType === "concave") {
-        // For concave (logarithmic)
-        progress = Math.pow(progress, 1 / progressionRate);
+        if (progressionType === "convex") {
+          progress = Math.pow(progress, progressionRate);
+        } else if (progressionType === "concave") {
+          progress = 1 - Math.pow(1 - progress, progressionRate);
+        }
+
+        minTradeCountValue = Math.round(maxTradeCount * progress);
       }
-      // linear keeps progress as is
-
-      // Calculate trade count with minimum threshold
-      const calculatedTradeCount = Math.round(maxTradeCount * progress);
-      const currentRankMaxTradeCount = Math.max(
-        minTradeCount * i, // Linear minimum increase
-        calculatedTradeCount
-      );
 
       allRanks.push({
         rank_level: i,
-        min_trade_count: currentRankMaxTradeCount,
+        min_trade_count: minTradeCountValue,
       });
-    }
-
-    // Normalize the last rank to exactly maxTradeCount
-    if (allRanks.length > 0) {
-      allRanks[allRanks.length - 1].min_trade_count = maxTradeCount;
     }
 
     // If maxRank <= 9, return all ranks

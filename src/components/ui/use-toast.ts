@@ -187,6 +187,9 @@ function toast({ ...props }: Toast) {
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
 
+  // Subscribe once on mount; the [state] dep would re-subscribe on every
+  // toast change, which is wasteful and was a long-standing bug in the
+  // upstream shadcn template.
   React.useEffect(() => {
     listeners.push(setState);
     return () => {
@@ -195,7 +198,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []);
 
   return {
     ...state,

@@ -3,7 +3,6 @@ import { AlarmTypes, AppRoute, UserSettings } from "@/helpers/types";
 
 import { getServerSession, type Session } from "next-auth";
 import {
-  admins,
   isAbleLoginCondition,
   PAGINAGION_SIZE,
   version,
@@ -11,7 +10,6 @@ import {
 import { authOptions } from "@/app/api/auth/[...nextauth]";
 import { ToastData } from "@/helpers/toastData";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
-import type { SiteSettings } from "@/app/api/initialize/data";
 import { filterMap, map } from "@/helpers/basic";
 import webpush from "@/helpers/server/webPush";
 import type { profile, settings, user } from "@prisma/client";
@@ -137,15 +135,8 @@ export const requestValidator = async (
   types: RequestValidator[],
   input: any
 ) => {
-  const generalSettings = appCache.getByKey(CacheKey.GeneralSettings) as
-    | SiteSettings
-    | undefined;
   const session = await getServerSession(authOptions);
 
-  if (generalSettings) {
-    if (!generalSettings.allow_login && session?.user?.auth !== admins[1])
-      throw ToastData.noAuth;
-  }
   if (
     (input?.version ??
       (typeof input.get === "function" && input?.get("version"))) !== version
@@ -389,6 +380,10 @@ const getSettingType = (payload: WebPushPayload) => {
     case AlarmTypes.P2POwnerCancel:
     case AlarmTypes.P2PProposalCancel:
       return UserSettings.tether_notification;
+    case AlarmTypes.BoardComment:
+    case AlarmTypes.BoardAdminNotice:
+    case AlarmTypes.AdminManualPush:
+      return UserSettings.board_notification;
   }
 };
 
@@ -397,11 +392,13 @@ export const canSendWebPush = (
     settings: Pick<settings, "key" | "value">[];
   },
   settingType: UserSettings
-) =>
-  user.push_token.length > 0 &&
-  user.settings?.some(
-    (setting) => setting.key === settingType && setting.value === "true"
-  );
+) => {
+  if (user.push_token.length === 0) return false;
+  const setting = user.settings?.find((s) => s.key === settingType);
+  // If no setting row exists, treat as opted-in (not explicitly disabled)
+  if (!setting) return true;
+  return setting.value === "true";
+};
 
 const getPayloadTitle = (type: AlarmTypes) => {
   switch (type) {
@@ -415,19 +412,36 @@ const getPayloadTitle = (type: AlarmTypes) => {
     case AlarmTypes.P2PCancel:
     case AlarmTypes.P2PProposalCancel:
       return "거래취소";
+    case AlarmTypes.P2PRateRequest:
+      return "거래 평가 요청";
+    case AlarmTypes.BoardComment:
+      return "새 댓글";
+    case AlarmTypes.BoardAdminNotice:
+      return "공지사항";
+    case AlarmTypes.AdminManualPush:
+      return "관리자 알림";
   }
 };
 
-const getPayloadUrl = (type: AlarmTypes, tether_id?: number) => {
+const getPayloadUrl = (
+  type: AlarmTypes,
+  opts?: { tether_id?: number; topic_url?: string; thread_id?: number }
+) => {
   switch (type) {
     case AlarmTypes.Message:
-      return `${process.env.NEXTAUTH_URL}/${AppRoute.MessageInbox}`;
+      return `${process.env.NEXTAUTH_URL}${AppRoute.MessageInbox}`;
     case AlarmTypes.P2PComplete:
     case AlarmTypes.P2PProgress:
     case AlarmTypes.P2POwnerCancel:
     case AlarmTypes.P2PCancel:
     case AlarmTypes.P2PProposalCancel:
-      return `${process.env.NEXTAUTH_URL}/${AppRoute.Tether}/${tether_id}`;
+    case AlarmTypes.P2PRateRequest:
+      return `${process.env.NEXTAUTH_URL}${AppRoute.Tether}/${opts?.tether_id}`;
+    case AlarmTypes.BoardComment:
+    case AlarmTypes.BoardAdminNotice:
+      return `${process.env.NEXTAUTH_URL}${AppRoute.Threads}/${opts?.topic_url}/${opts?.thread_id}`;
+    default:
+      return `${process.env.NEXTAUTH_URL}`;
   }
 };
 
@@ -436,6 +450,8 @@ export const makeMessagePayload = ({
   type,
   user,
   tether_id,
+  topic_url,
+  thread_id,
 }: {
   body: string;
   type: AlarmTypes;
@@ -444,11 +460,13 @@ export const makeMessagePayload = ({
     settings: Pick<settings, "key" | "value">[];
   };
   tether_id?: number;
+  topic_url?: string;
+  thread_id?: number;
 }) => {
   return {
     title: getPayloadTitle(type),
     body,
-    url: getPayloadUrl(type, tether_id),
+    url: getPayloadUrl(type, { tether_id, topic_url, thread_id }),
     uid: user.id,
     tokens: user.push_token,
     type,

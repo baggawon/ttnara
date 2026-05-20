@@ -46,6 +46,7 @@ interface BoardAccessControl {
   // Feature toggles
   features: {
     anonymous: boolean;
+    myPostOnly: boolean;
     upvote: boolean;
     downvote: boolean;
     thumbnail: boolean;
@@ -97,7 +98,7 @@ const useBoardAccessControl = ({
         min: topicSettings?.min_thread_content_length ?? 1,
       },
       commentLength: {
-        max: topicSettings?.max_thread_comment_length ?? 5000,
+        max: topicSettings?.max_thread_comment_length ?? 300,
         min: topicSettings?.min_thread_comment_length ?? 1,
       },
       permissions: {
@@ -119,6 +120,7 @@ const useBoardAccessControl = ({
       features: {
         thumbnail: topicSettings?.use_thumbnail ?? false,
         anonymous: topicSettings?.use_anonymous ?? false,
+        myPostOnly: topicSettings?.use_mypostonly ?? false,
         upvote: topicSettings?.use_upvote ?? true,
         downvote: topicSettings?.use_downvote ?? false,
         singleCommentOnly: topicSettings?.single_comment_only ?? false,

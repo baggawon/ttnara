@@ -6,7 +6,7 @@ export default async function BoardTopics(props: { params: Params }) {
 
   const topic_id = Number(params.topic);
   return (
-    <section className="w-full flex flex-col gap-4 p-0 md:p-4">
+    <section className="w-full flex flex-col gap-4">
       <BoardTopicsForm topic_id={topic_id} />
     </section>
   );

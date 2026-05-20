@@ -5,13 +5,20 @@ import type {
   TetherWithProfile,
 } from "@/app/api/tethers/read";
 import { useToast } from "@/components/ui/use-toast";
-import { filterMap, forEach } from "@/helpers/basic";
+import { forEach } from "@/helpers/basic";
 import { decimalToNumber, postJson } from "@/helpers/common";
 import { useUserGuard } from "@/helpers/customHook/useGuard";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { tetherDefault } from "@/helpers/defaultValue";
-import { tethersGet, userGet } from "@/helpers/get";
+import {
+  attachedMediaGet,
+  tethersGet,
+  tetherSettingsGet,
+  userGet,
+} from "@/helpers/get";
+import type { MediaUploadResult } from "@/app/api/uploads/media";
+import type { TetherPublicSettings } from "@/app/api/tether/settings/read";
 import { ToastData } from "@/helpers/toastData";
 import {
   ApiRoute,
@@ -25,8 +32,7 @@ import { useForm } from "react-hook-form";
 import type { TetherUpdateProps } from "@/app/api/tethers/update";
 
 export interface InnerTetherWithProfile extends TetherWithProfile {
-  parent_id: number;
-  isPasswordShow: boolean;
+  region_category_ids: number[];
 }
 
 export const useTetherEditHook = (tether_id?: number) => {
@@ -50,32 +56,55 @@ export const useTetherEditHook = (tether_id?: number) => {
     pagination
   );
 
+  const { data: tetherSettings } = useGetQuery<TetherPublicSettings, undefined>(
+    {
+      queryKey: [QueryKey.tetherSettings],
+      staleTime: Infinity,
+    },
+    tetherSettingsGet
+  );
+
+  const { data: attachedMedia } = useGetQuery<
+    MediaUploadResult[],
+    { attached_to_type: string; attached_to_id: number }
+  >(
+    {
+      queryKey: [
+        {
+          [QueryKey.attachedMedia]: { type: "tether", id: tether_id ?? 0 },
+        },
+      ],
+      staleTime: Infinity,
+      enabled: !!tether_id && tether_id > 0,
+    },
+    attachedMediaGet,
+    { attached_to_type: "tether", attached_to_id: tether_id ?? 0 }
+  );
+
   const router = useRouter();
 
-  const tether = tethersData?.tethers[0];
+  const tether = tethersData?.tethers[0] as TetherWithProfile | undefined;
   const methods = useForm<InnerTetherWithProfile>({
     defaultValues: tether
       ? {
           ...tether,
-          min_qty: decimalToNumber(tether.min_qty).toLocaleString(),
-          max_qty: decimalToNumber(tether.max_qty).toLocaleString(),
+          min_qty: decimalToNumber(tether.min_qty).toLocaleString() as any,
+          max_qty: decimalToNumber(tether.max_qty).toLocaleString() as any,
           ...(tether.price && {
-            price: decimalToNumber(tether.price).toLocaleString(),
+            price: decimalToNumber(tether.price).toLocaleString() as any,
           }),
-          parent_id:
-            tethersData?.tether_categories.find(
-              (category) => category.name === tether.city
-            )?.id ?? 0,
-          isPasswordShow: false,
+          hide_contact:
+            tether.hide_contact ||
+            (tether.contact_method === null && tether.contact_id === null),
+          region_category_ids:
+            tether.region_selections?.map((r) => r.category_id) ?? [],
         }
       : {
           ...tetherDefault({
             id: tether_id,
             condition:
-              "<p>1. KYC 인증이 완료된 회원과의 거래를 우선적으로 진행하시기를 권장드립니다.<br><br>2. KYC 인증이 완료되지 않은 회원과의 거래로 발생하는 문제에 대해서는 지원이 어려울 수 있습니다.<br><br>3. 거래 전, 텔레그램이나 카카오톡 등 메신저를 통한 추가 신원 확인 절차를 권장드립니다.<br><br>4. 본 플랫폼은 마약, 도박 등 불법 행위와 관련된 거래에 이용될 수 없습니다.</p>",
+              "1. KYC 인증이 완료된 회원과의 거래를 우선적으로 진행하시기를 권장드립니다.\n\n2. KYC 인증이 완료되지 않은 회원과의 거래로 발생하는 문제에 대해서는 지원이 어려울 수 있습니다.\n\n3. 거래 전, 텔레그램이나 카카오톡 등 메신저를 통한 추가 신원 확인 절차를 권장드립니다.\n\n4. 본 플랫폼은 마약, 도박 등 불법 행위와 관련된 거래에 이용될 수 없습니다.",
           }),
-          parent_id: 0,
-          isPasswordShow: false,
         },
     reValidateMode: "onSubmit",
   });
@@ -101,13 +130,7 @@ export const useTetherEditHook = (tether_id?: number) => {
       props.margin = null;
     }
 
-    forEach(["parent_id", "isPasswordShow"], (key) => {
-      if (typeof (props as any)[key] !== undefined) {
-        delete (props as any)[key];
-      }
-    });
-
-    forEach(["city", "state", "price", "margin", "custom_address"], (key) => {
+    forEach(["price", "margin", "custom_address"], (key) => {
       if ((props as any)[key] === "" || (props as any)[key] === undefined) {
         (props as any)[key] = null;
       }
@@ -115,32 +138,47 @@ export const useTetherEditHook = (tether_id?: number) => {
 
     forEach(["price", "margin", "min_qty", "max_qty"], (key) => {
       if ((props as any)[key] !== null) {
-        if (typeof (props as any)[key].toNumber === "function") {
+        if (typeof (props as any)[key]?.toNumber === "function") {
           (props as any)[key] = (props as any)[key].toNumber();
         } else {
-          (props as any)[key] = Number((props as any)[key].replaceAll(",", ""));
+          (props as any)[key] = Number(
+            String((props as any)[key]).replaceAll(",", "")
+          );
         }
       }
     });
 
+    if (props.hide_contact) {
+      props.contact_method = null;
+      props.contact_id = null;
+      props.preferred_time = null;
+    } else {
+      forEach(["contact_method", "contact_id", "preferred_time"], (key) => {
+        if ((props as any)[key] === "" || (props as any)[key] === undefined) {
+          (props as any)[key] = null;
+        }
+      });
+    }
+
     if (props.user) {
       props.user = null;
     }
-    if (props.tether_proposals.length > 0) {
+    if (props.tether_proposals?.length > 0) {
       props.tether_proposals = [];
     }
+    delete (props as any).region_selections;
 
     try {
       const { isSuccess, hasMessage } = await postJson<TetherUpdateProps>(
         ApiRoute.tethersUpdate,
-        props
+        props as unknown as TetherUpdateProps
       );
       if (hasMessage) {
         toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
       }
 
       if (isSuccess) {
-        methods.reset(tetherDefault());
+        methods.reset(tetherDefault() as any);
         goBackList();
       }
     } catch (error) {
@@ -152,34 +190,13 @@ export const useTetherEditHook = (tether_id?: number) => {
     disableLoading();
   };
 
-  const parentCategories: {
-    label: string;
-    value: string;
-  }[] = filterMap(
-    tethersData?.tether_categories ?? [],
-    (category) =>
-      category.parent_id === null && {
-        label: category.name,
-        value: category.name,
-      }
-  );
-
-  const onParentChange = (value: string) => {
-    methods.setValue("state", "");
-    methods.setValue("city", value);
-    const parent_id = tethersData?.tether_categories.find(
-      (category) => category.name === value
-    )?.id;
-    if (parent_id) methods.setValue("parent_id", parent_id);
-  };
-
   return {
     methods,
     tethersData,
+    tetherSettings,
+    attachedMedia,
     goBackList,
     editSave,
-    parentCategories,
-    onParentChange,
     userData,
   };
 };

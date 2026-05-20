@@ -1,26 +1,33 @@
 import { NextResponse } from "next/server";
 import type { MetadataRoute } from "next";
+import { isTetherEnabled } from "@/helpers/server/tetherGuard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600; // 1 hour
 
-// Static URLs that don't change frequently
-const staticUrls: MetadataRoute.Sitemap = [
-  {
-    url: process.env.CLIENT_URL || "https://ttnara.com",
-    lastModified: new Date().toISOString(),
-    changeFrequency: "daily",
-    priority: 1.0,
-  },
-  {
-    url: `${process.env.CLIENT_URL || "https://ttnara.com"}/board/tether`,
-    lastModified: new Date().toISOString(),
-    changeFrequency: "daily",
-    priority: 0.8,
-  },
-];
+const buildStaticUrls = async (): Promise<MetadataRoute.Sitemap> => {
+  const base = process.env.CLIENT_URL || "https://ttnara.com";
+  const urls: MetadataRoute.Sitemap = [
+    {
+      url: base,
+      lastModified: new Date().toISOString(),
+      changeFrequency: "daily",
+      priority: 1.0,
+    },
+  ];
+  if (await isTetherEnabled()) {
+    urls.push({
+      url: `${base}/board/tether`,
+      lastModified: new Date().toISOString(),
+      changeFrequency: "daily",
+      priority: 0.8,
+    });
+  }
+  return urls;
+};
 
 export async function GET() {
+  const staticUrls = await buildStaticUrls();
   console.log("[Commons Sitemap] Generating commons sitemap");
   try {
     const baseUrl =

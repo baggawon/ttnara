@@ -18,11 +18,15 @@ import { Input } from "@/components/2_molecules/Input/FormInput";
 import SelectInput from "@/components/2_molecules/Input/Select";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ApiRoute,
   AppRoute,
   Currency,
   QueryKey,
+  TetherAddressTypes,
   TetherCategories,
   TetherOrderby,
+  TetherPriceTypes,
+  TetherProposalMessengerTypes,
   TetherRange,
   TetherStatus,
 } from "@/helpers/types";
@@ -43,10 +47,14 @@ import {
 } from "@/components/ui/popover";
 import { useState } from "react";
 import { TetherTable } from "@/components/3_organisms/TetherTable";
-import MobilePriceWidget from "@/components/1_atoms/MobilePriceWidget";
-import { searchItems } from "@/helpers/config";
+import { admins, searchItems } from "@/helpers/config";
 import { Card, CardHeader } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
+import { postJson } from "@/helpers/common";
+import { useQueryClient } from "@tanstack/react-query";
+import type { TetherUpdateProps } from "@/app/api/tethers/update";
+
+import Decimal from "decimal.js";
 
 export const TetherList = ({
   page,
@@ -57,6 +65,7 @@ export const TetherList = ({
   orderby,
   status,
   range,
+  region,
   search,
   column,
 }: {
@@ -68,6 +77,7 @@ export const TetherList = ({
   orderby?: TetherOrderby;
   status?: TetherStatus;
   range?: TetherRange;
+  region?: string;
   search?: string;
   column?: string;
 }) => {
@@ -79,11 +89,130 @@ export const TetherList = ({
   );
 
   const canWrite = session?.user !== null && session?.user !== undefined;
+  const isAdmin = session?.user?.auth && admins.includes(session.user.auth);
+  const queryClient = useQueryClient();
+  const [isMockGenerating, setIsMockGenerating] = useState(false);
+
+  const generateMockTethers = async () => {
+    const input = window.prompt("생성할 테스트 거래 수를 입력하세요", "5");
+    if (!input) return;
+    const count = parseInt(input, 10);
+    if (isNaN(count) || count < 1 || count > 100) {
+      alert("1~100 사이의 숫자를 입력해주세요.");
+      return;
+    }
+
+    setIsMockGenerating(true);
+    try {
+      const tradeTypes = ["buy", "sell"];
+      const currencies = [Currency.테더, Currency.트론];
+      const preferredTimes = [
+        "평일 저녁 7시 이후",
+        "주말 오전",
+        "언제든",
+        "평일 점심",
+      ];
+      const customAddresses = [
+        "서울 강남구 테헤란로",
+        "부산 해운대구",
+        "인천공항 근처",
+        "대전 둔산동",
+      ];
+      const categories = (tethersData?.tether_categories ?? []).filter(
+        (c) => c.is_active
+      );
+
+      const pickN = <T,>(arr: T[], n: number): T[] => {
+        if (arr.length === 0) return [];
+        const pool = [...arr];
+        const out: T[] = [];
+        const take = Math.min(n, pool.length);
+        for (let i = 0; i < take; i++) {
+          const idx = Math.floor(Math.random() * pool.length);
+          out.push(pool.splice(idx, 1)[0]);
+        }
+        return out;
+      };
+      const pickOne = <T,>(arr: T[]): T =>
+        arr[Math.floor(Math.random() * arr.length)];
+
+      for (let i = 0; i < count; i++) {
+        const tradeType = pickOne(tradeTypes);
+        const currency = pickOne(currencies);
+        const priceValue = Math.floor(Math.random() * 900 + 100);
+        const minQty = Math.floor(Math.random() * 50 + 10);
+        const maxQty = minQty + Math.floor(Math.random() * 200 + 50);
+
+        const isNegotiation = Math.random() < 0.3;
+        const isCustomAddress = categories.length === 0 || Math.random() < 0.2;
+        const hideContact = Math.random() < 0.5;
+
+        const regionIds = isCustomAddress
+          ? []
+          : pickN(categories, 1 + Math.floor(Math.random() * 3)).map(
+              (c) => c.id
+            );
+
+        const mockData: TetherUpdateProps = {
+          id: 0,
+          user_id: "",
+          title: `[테스트] 모의 거래 #${i + 1} - 실제 거래 아님`,
+          condition:
+            "<p>[⚠️ 테스트 데이터] 자동 생성된 모의 거래입니다. 실제 거래가 아닙니다.</p>",
+          condition_format: "html",
+          use_author: false,
+          price: isNegotiation ? null : new Decimal(priceValue),
+          margin: null,
+          min_qty: new Decimal(minQty),
+          max_qty: new Decimal(maxQty),
+          trade_type: tradeType,
+          price_type: isNegotiation
+            ? TetherPriceTypes.Negotiation
+            : TetherPriceTypes.Fixed,
+          address_type: isCustomAddress
+            ? TetherAddressTypes.Custom
+            : TetherAddressTypes.Category,
+          custom_address: isCustomAddress
+            ? `${pickOne(customAddresses)} ${Math.floor(Math.random() * 200 + 1)}번지`
+            : null,
+          currency,
+          status: TetherStatus.Open,
+          contact_method: hideContact
+            ? null
+            : pickOne([
+                TetherProposalMessengerTypes.Telegram,
+                TetherProposalMessengerTypes.KakaoTalk,
+              ]),
+          contact_id: hideContact
+            ? null
+            : `user_${Math.random().toString(36).slice(2, 8)}`,
+          preferred_time: hideContact ? null : pickOne(preferredTimes),
+          hide_contact: hideContact,
+          created_at: new Date(),
+          updated_at: new Date(),
+          user: null,
+          tether_proposals: [],
+          region_category_ids: regionIds,
+        };
+
+        await postJson<TetherUpdateProps>(ApiRoute.tethersUpdate, mockData);
+      }
+
+      queryClient.invalidateQueries({ queryKey: [QueryKey.tethers] });
+      alert(`테스트 거래 ${count}건이 생성되었습니다.`);
+    } catch {
+      alert("테스트 거래 생성 중 오류가 발생했습니다.");
+    } finally {
+      setIsMockGenerating(false);
+    }
+  };
 
   const pagination: TethersReadProps = {
     page: 1,
     pageSize: 20,
-    range: TetherRange.In24Hours,
+    range: TetherRange.Total,
+    orderby: TetherOrderby.PriceCheap,
+    status: TetherStatus.Open,
     ...(page && { page }),
     ...(pageSize && { pageSize }),
     ...(currency && { currency }),
@@ -92,6 +221,7 @@ export const TetherList = ({
     ...(typeof tether_id === "number" && { tether_id }),
     ...(status && { status }),
     ...(range && { range }),
+    ...(region && { region }),
     ...(search && { search }),
     ...(column && { column }),
   };
@@ -111,13 +241,15 @@ export const TetherList = ({
 
   const methods = useForm<TethersReadProps>({
     defaultValues: {
-      search: "",
-      column: "title",
-      category_name: "total",
-      currency: Currency.원화,
-      orderby: TetherOrderby.CreateNewer,
-      status: TetherStatus.Total,
       ...pagination,
+      search: pagination.search ?? "",
+      column: pagination.column ?? "title",
+      category_name: pagination.category_name ?? "total",
+      currency: (pagination.currency as Currency) ?? Currency.원화,
+      orderby: pagination.orderby ?? TetherOrderby.PriceCheap,
+      status: pagination.status ?? TetherStatus.Open,
+      range: pagination.range ?? TetherRange.Total,
+      region: pagination.region ?? "total",
     },
     reValidateMode: "onSubmit",
   });
@@ -132,12 +264,6 @@ export const TetherList = ({
     },
     dependency: [currency],
   });
-  useEffectFunctionHook({
-    Function: () =>
-      methods.setValue("orderby", orderby ?? TetherOrderby.CreateNewer),
-    dependency: [orderby],
-  });
-
   const pathname = usePathname();
 
   const updatePagination = () => {
@@ -158,6 +284,7 @@ export const TetherList = ({
       orderby: prevProps.orderby,
       status: prevProps.status,
       range: prevProps.range,
+      region: prevProps.region === "total" ? undefined : prevProps.region,
     };
     forEach(Object.entries(newProps), ([key, value]) => {
       if (value === undefined) delete (newProps as any)[key];
@@ -178,11 +305,6 @@ export const TetherList = ({
     updatePagination();
   };
 
-  const selectOrderby = (orderby: TetherOrderby) => {
-    methods.setValue("orderby", orderby);
-    updatePagination();
-  };
-
   const selectStatus = (status: TetherStatus) => {
     methods.setValue("status", status);
     updatePagination();
@@ -190,6 +312,16 @@ export const TetherList = ({
 
   const selectRange = (range: TetherRange) => {
     methods.setValue("range", range);
+    updatePagination();
+  };
+
+  const selectRegion = (region: string) => {
+    methods.setValue("region", region === "total" ? undefined : region);
+    updatePagination();
+  };
+
+  const selectOrderby = (orderby: TetherOrderby) => {
+    methods.setValue("orderby", orderby);
     updatePagination();
   };
 
@@ -201,7 +333,6 @@ export const TetherList = ({
 
   return (
     <div className="w-full flex flex-col gap-4">
-      <MobilePriceWidget />
       <Card>
         <FormProvider {...methods}>
           <CardHeader>
@@ -249,65 +380,75 @@ export const TetherList = ({
                       )
                     )}
                   </ToggleGroupInput>
-                  <div className="ml-auto flex gap-2 md:gap-4 items-center flex-wrap">
+                  <div className="ml-auto flex gap-1.5 items-center flex-wrap">
                     <SelectInput
                       name="range"
                       onChange={selectRange}
-                      buttonClassName="!w-fit"
+                      buttonClassName="!w-fit h-8 px-2 text-xs"
                       items={[
                         {
+                          value: TetherRange.Total,
+                          label: "전체",
+                        },
+                        {
                           value: TetherRange.In24Hours,
-                          label: "최근 24시간",
+                          label: "오늘",
                         },
                         {
                           value: TetherRange.InOneWeek,
-                          label: "최근 1주일",
+                          label: "이번주",
                         },
                         {
                           value: TetherRange.InOneMonth,
-                          label: "최근 한달",
+                          label: "이번달",
                         },
                       ]}
                     />
                     <SelectInput
                       name="status"
                       onChange={selectStatus}
-                      buttonClassName="!w-fit"
+                      buttonClassName="!w-fit h-8 px-2 text-xs"
                       items={[
                         {
-                          value: TetherStatus.Total,
-                          label: "전체보기",
-                        },
-                        {
                           value: TetherStatus.Open,
-                          label: "거래가능 물품",
+                          label: "거래가능",
                         },
                         {
                           value: TetherStatus.Progress,
-                          label: "거래중인 물품",
+                          label: "거래중",
                         },
                         {
                           value: TetherStatus.Complete,
-                          label: "거래완료 물품",
+                          label: "거래완료",
                         },
+                      ]}
+                    />
+                    <SelectInput
+                      name="region"
+                      onChange={selectRegion}
+                      buttonClassName="!w-fit h-8 px-2 text-xs"
+                      items={[
+                        { value: "total", label: "전체 지역" },
+                        ...(tethersData?.tether_categories ?? [])
+                          .filter((c) => c.parent_id === null && c.is_active)
+                          .map((c) => ({
+                            value: c.name,
+                            label: c.name,
+                          })),
                       ]}
                     />
                     <SelectInput
                       name="orderby"
                       onChange={selectOrderby}
-                      buttonClassName="!w-fit"
+                      buttonClassName="!w-fit h-8 px-2 text-xs"
                       items={[
                         {
-                          value: TetherOrderby.CreateNewer,
-                          label: "최신순",
+                          value: TetherOrderby.PriceCheap,
+                          label: "낮은 가격순",
                         },
                         {
                           value: TetherOrderby.PriceExpensive,
-                          label: "높은가격순",
-                        },
-                        {
-                          value: TetherOrderby.PriceCheap,
-                          label: "낮은가격순",
+                          label: "높은 가격순",
                         },
                         {
                           value: TetherOrderby.GoodTrader,
@@ -317,8 +458,13 @@ export const TetherList = ({
                     />
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" size="icon" type="button">
-                          <RefreshCcw className="h-[1.2rem] w-[1.2rem]" />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          type="button"
+                          className="h-8 w-8"
+                        >
+                          <RefreshCcw className="h-3.5 w-3.5" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="p-0 w-fit flex flex-col">
@@ -420,6 +566,16 @@ export const TetherList = ({
               {canWrite && (
                 <Button type="button" onClick={goWrite}>
                   거래생성
+                </Button>
+              )}
+              {isAdmin && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generateMockTethers}
+                  disabled={isMockGenerating}
+                >
+                  {isMockGenerating ? "생성중..." : "테스트 생성"}
                 </Button>
               )}
             </div>

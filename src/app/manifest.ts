@@ -1,25 +1,27 @@
 import type { MetadataRoute } from "next";
+import { getBrandSettings } from "@/helpers/server/brandSettings";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const brand = await getBrandSettings();
+  const name = brand.siteName || brand.siteTitle || "";
+
+  // Icons: prefer the admin-uploaded apple/favicon (PNG-friendly). Without
+  // explicit sizes the browser will still install the PWA — it just can't
+  // pick an ideal raster, which is an acceptable trade for not maintaining
+  // brand-specific static icon files.
+  const brandIcon = brand.appleIconUrl ?? brand.faviconUrl;
+  const icons: MetadataRoute.Manifest["icons"] = brandIcon
+    ? [{ src: brandIcon, sizes: "any", type: "image/png", purpose: "any" }]
+    : [];
+
   return {
-    name: "테더나라",
-    short_name: "테더나라",
-    description: "테더나라에 오신것을 환영합니다.",
+    name,
+    short_name: name,
+    description: brand.siteDescription || name,
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#000000",
-    icons: [
-      {
-        src: "/web-app-manifest-192x192.png",
-        sizes: "192x192",
-        type: "image/png",
-      },
-      {
-        src: "/web-app-manifest-512x512.png",
-        sizes: "512x512",
-        type: "image/png",
-      },
-    ],
+    icons,
   };
 }

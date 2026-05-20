@@ -1,4 +1,13 @@
+"use client";
+
+import { useBrand } from "@/components/1_atoms/BrandProvider";
+
 export const Seo = () => {
+  const brand = useBrand();
+  // Fall back to "테더" so the surrounding marketing prose still reads naturally
+  // on a fresh deployment with no brand configured yet. The page's first job is
+  // SEO copy about tether trading — leaving "본 서비스" here would look broken.
+  const siteName = brand?.siteName?.trim() || "테더";
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-900 rounded-2xl shadow-xl">
       {/* Background decoration */}
@@ -20,7 +29,7 @@ export const Seo = () => {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
                 </span>
                 <span>
-                  <b>테더나라</b>
+                  <b>{siteName}</b>
                 </span>
               </div>
 
@@ -58,19 +67,19 @@ export const Seo = () => {
                       />
                     </svg>
                     <span className="font-semibold">
-                      <b>테더나라</b> 소개
+                      <b>{siteName}</b> 소개
                     </span>
                   </div>
                   <p className="text-slate-300">
                     <span className="font-semibold text-blue-400">
-                      <b>테더나라</b>
+                      <b>{siteName}</b>
                     </span>
                     는 테더 P2P 거래, 테더 매매, 송금, 지갑 사용법, 재정거래,
                     OTC 거래, 코인 레버리지 등 다양한 정보를 제공하는
                     플랫폼입니다.
                   </p>
                   <p className="text-slate-300">
-                    본 가이드를 통해 테더 시세 확인 방법과 <b>테더나라</b>에서
+                    본 가이드를 통해 테더 시세 확인 방법과 <b>{siteName}</b>에서
                     P2P 거래를 안전하고 효율적으로 진행하는 방법을 상세히
                     알아보겠습니다.
                   </p>
@@ -234,7 +243,7 @@ export const Seo = () => {
           {/* <div className="absolute inset-0 bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-2xl" /> */}
 
           <h2 className="text-3xl font-bold text-slate-200 mb-12 relative z-10">
-            <b>테더나라</b>에서 테더 시세 확인 방법
+            <b>{siteName}</b>에서 테더 시세 확인 방법
           </h2>
           <p className="text-slate-300 leading-relaxed mb-6 relative z-10">
             테더(USDT)는 스테이블코인이지만, 거래소마다 가격 차이가 발생할 수
@@ -257,7 +266,7 @@ export const Seo = () => {
                 빗썸 테더 시세와 글로벌 테더 시세 비교
               </h3>
               <p className="text-slate-300 leading-relaxed mb-6 relative z-10">
-                <b>테더나라</b>에서는 다양한 거래소의 테더 시세를 실시간으로
+                <b>{siteName}</b>에서는 다양한 거래소의 테더 시세를 실시간으로
                 확인할 수 있으며, 주요 거래소들의 시세를 비교하여 최적의 거래
                 타이밍을 파악할 수 있습니다.
               </p>
@@ -319,7 +328,7 @@ export const Seo = () => {
           <div className="relative">
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 shadow-lg">
               <h2 className="text-4xl font-bold text-slate-200 mb-6">
-                <b>테더나라</b>에서 테더 P2P 거래란?
+                <b>{siteName}</b>에서 테더 P2P 거래란?
               </h2>
               <h3 className="text-3xl font-semibold text-blue-400 mb-4">
                 P2P 거래의 개념
@@ -349,7 +358,7 @@ export const Seo = () => {
         {/* Buying and Selling Tether Section */}
         <section className="max-w-6xl mx-auto px-4 py-12">
           <h2 className="text-4xl font-bold text-slate-200 mb-6">
-            <b>테더나라</b>에서 테더 구매 및 매매 방법
+            <b>{siteName}</b>에서 테더 구매 및 매매 방법
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Buying Section */}
@@ -358,7 +367,7 @@ export const Seo = () => {
                 테더 구매 방법
               </h3>
               <p className="text-slate-300 text-lg leading-relaxed mb-4">
-                P2P 거래 – <b>테더나라</b>에서 직접 매수/매도 등록
+                P2P 거래 – <b>{siteName}</b>에서 직접 매수/매도 등록
                 <br />
                 거래소에서 구매 – 빗썸, 바이낸스 등을 활용
                 <br />
@@ -372,7 +381,7 @@ export const Seo = () => {
                 테더 판매 방법
               </h3>
               <p className="text-slate-300 text-lg leading-relaxed mb-4">
-                <b>테더나라</b>에서 매도 주문 등록
+                <b>{siteName}</b>에서 매도 주문 등록
                 <br />
                 빗썸 테더 시세 및 환율을 고려한 최적의 가격 설정
                 <br />
@@ -384,7 +393,7 @@ export const Seo = () => {
         {/* Cryptocurrency Trading Strategies Section */}
         <section className="max-w-6xl mx-auto px-4 py-12">
           <h2 className="text-4xl font-bold text-slate-200 mb-6">
-            <b>테더나라</b>에서 암호화폐 거래 전략
+            <b>{siteName}</b>에서 암호화폐 거래 전략
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Arbitrage Strategy Card */}
@@ -424,7 +433,7 @@ export const Seo = () => {
                   확보
                 </li>
                 <li>
-                  ✔️ <b>테더나라</b>에서 안전한 OTC 매칭 서비스 제공
+                  ✔️ <b>{siteName}</b>에서 안전한 OTC 매칭 서비스 제공
                 </li>
               </ul>
             </div>
@@ -464,11 +473,11 @@ export const Seo = () => {
         <section className="max-w-6xl mx-auto px-4 py-12 bg-slate-900 rounded-2xl shadow-lg relative">
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 shadow-lg">
             <h2 className="text-3xl font-bold text-slate-200 mb-6">
-              <b>테더나라</b>에서 안전하고 효율적인 P2P 거래를 시작하세요!
+              <b>{siteName}</b>에서 안전하고 효율적인 P2P 거래를 시작하세요!
             </h2>
             <p className="text-slate-300 text-lg leading-relaxed mb-4">
-              <b>테더나라</b>는 테더 P2P 거래를 전문적으로 지원하는 플랫폼으로,
-              안전하고 효율적인 거래 환경을 제공합니다.
+              <b>{siteName}</b>는 테더 P2P 거래를 전문적으로 지원하는
+              플랫폼으로, 안전하고 효율적인 거래 환경을 제공합니다.
             </p>
             <ul className="text-slate-300 text-lg leading-relaxed space-y-2">
               <li>✔️ 테더 P2P 거래 및 OTC 거래 지원</li>
@@ -481,7 +490,7 @@ export const Seo = () => {
         {/* Call to Action Section */}
         <section className="max-w-6xl mx-auto px-4 py-12 bg-gradient-to-r from-blue-600 to-teal-400 rounded-2xl shadow-lg text-center">
           <h2 className="text-4xl font-bold text-white mb-6">
-            지금 바로 <b>테더나라</b>에서 테더 P2P 거래를 시작하세요!
+            지금 바로 <b>{siteName}</b>에서 테더 P2P 거래를 시작하세요!
           </h2>
           <p className="text-lg text-white mb-4">
             안전하고 빠르게 USDT를 매매해보세요!

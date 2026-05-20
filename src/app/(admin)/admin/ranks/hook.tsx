@@ -72,7 +72,7 @@ export const useAdminRanksHook = () => {
   const columns: CustomColumDef<trade_rank>[] = setDefaultColumn([
     {
       accessorKey: "rank_level",
-      headerTitle: "랭크",
+      headerTitle: "등급",
     },
     {
       accessorKey: "name",
@@ -142,8 +142,8 @@ export const useAdminRanksHook = () => {
               수정
             </Button>
             <ConfirmDialog
-              title="랭크 삭제"
-              description="랭크를 삭제하시려면 확인을 눌러주세요."
+              title="등급 삭제"
+              description="등급를 삭제하시려면 확인을 눌러주세요."
               onConfirm={() => deleteRank(props.row.index)}
             >
               <Button type="button" className="!p-2 !h-fit" variant="outline">

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/components/lib/utils";
-import { Home, DollarSign, Lightbulb, Bell, Newspaper, X } from "lucide-react";
+import { Home, MessageCircle, X } from "lucide-react";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
+import { useChatStore } from "@/helpers/chatStore";
 import type { AlarmListResponse, AlarmReadProps } from "@/app/api/alarm/read";
 import { ApiRoute, AppRoute, QueryKey } from "@/helpers/types";
 import { alarmGet } from "@/helpers/get";
@@ -17,8 +18,8 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { LenBadge } from "./LenBadge";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+// import "slick-carousel/slick/slick.css";
+// import "slick-carousel/slick/slick-theme.css";
 import { postJson, refreshCache } from "@/helpers/common";
 import type { alarmUpdateProps } from "@/app/api/alarm/update";
 import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
@@ -26,41 +27,15 @@ import { useToast } from "@/components/ui/use-toast";
 import { Close } from "@radix-ui/react-popover";
 import { useRef } from "react";
 import clsx from "clsx";
+import { renderNavIcon } from "@/components/2_molecules/Input/NavIconPicker";
+import type { NavParentItem } from "@/helpers/server/navMenuRead";
 
-const navigationMenus = [
-  {
-    title: "P2P 거래",
-    href: "/board/tether",
-    icon: DollarSign,
-    disabled: false,
-  },
-  {
-    title: "정보공유",
-    href: "/board/tips",
-    icon: Lightbulb,
-    disabled: false,
-  },
-  {
-    title: "알림",
-    href: AppRoute.NotificationList,
-    icon: Bell,
-    child: (children: React.ReactNode) => (
-      <AlarmNavigation key="알림" className="p-0 h-fit gap-0 [&_svg]:size-5">
-        {children}
-      </AlarmNavigation>
-    ),
-    disabled: false,
-  },
-  {
-    title: "제휴업체",
-    href: AppRoute.Partner,
-    icon: Newspaper,
-    disabled: false,
-  },
-];
+const ALARM_PATH = AppRoute.NotificationList;
 
-export function MobileBottomNav() {
+export function MobileBottomNav({ menuItems }: { menuItems: NavParentItem[] }) {
   const pathname = usePathname();
+  const isChatOpen = useChatStore((s) => s.isOpen);
+  const toggleChat = useChatStore((s) => s.toggleChat);
 
   // Function to determine if a navigation item is active
   const isActive = (href: string) =>
@@ -76,61 +51,101 @@ export function MobileBottomNav() {
   };
 
   return (
-    <div className="md:hidden fixed bottom-0 w-screen bg-white dark:bg-slate-950 border-t py-2 px-4 mt-20">
-      <div className="flex justify-between items-center mx-4">
-        {/* Home */}
-        <Link href="/" className="flex flex-col items-center">
-          <div className="p-2">
-            <Home
-              className={`h-5 w-5 ${isActive("/") ? "text-primary" : ""}`}
-              strokeWidth={2}
-            />
-          </div>
-          <span
-            className={`text-xs mt-1 ${isActive("/") ? "font-bold" : ""}`}
-            style={isActive("/") ? activeGradientStyle : {}}
-          >
-            Home
-          </span>
-        </Link>
+    <div className="lg:hidden fixed bottom-0 w-screen bg-white dark:bg-slate-950 border-t py-1 px-1 mt-20">
+      <div className="flex justify-between items-center">
+        {map(menuItems, (item) => {
+          // ── Home (system) ──────────────────────────────────────
+          if (item.kind === "home") {
+            const homeActive = isActive("/");
+            return (
+              <Link
+                key={item.id}
+                href="/"
+                className="flex-1 flex flex-col items-center"
+              >
+                <div className="p-2">
+                  <Home
+                    className={cn("h-5 w-5", homeActive && "text-primary")}
+                    strokeWidth={2}
+                  />
+                </div>
+                <span
+                  className={cn("text-xs mt-1", homeActive && "font-bold")}
+                  style={homeActive ? activeGradientStyle : {}}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            );
+          }
 
-        {/* Board Items - dynamically generated from navigationMenus */}
-        {map(navigationMenus, (item) => {
-          const IconComponent = item.icon;
-          // Ensure href is a string
-          const href = item.href || "/";
-          // Only check for active state if not disabled
-          const itemIsActive = !item.disabled && isActive(href);
+          // ── Chat toggle (system) ───────────────────────────────
+          if (item.kind === "chat_toggle") {
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={toggleChat}
+                aria-pressed={isChatOpen}
+                className="flex-1 flex flex-col items-center"
+              >
+                <div className="p-2">
+                  <MessageCircle
+                    className={cn("h-5 w-5", isChatOpen && "text-primary")}
+                    strokeWidth={2}
+                  />
+                </div>
+                <span
+                  className={cn("text-xs mt-1", isChatOpen && "font-bold")}
+                  style={isChatOpen ? activeGradientStyle : {}}
+                >
+                  {item.label}
+                </span>
+              </button>
+            );
+          }
 
-          const children = (
+          // ── Regular link ───────────────────────────────────────
+          const href = item.url || "/";
+          const itemIsActive = isActive(href);
+          const inner = (
             <>
               <div className="p-2">
-                <IconComponent
-                  className={`h-5 w-5 ${itemIsActive ? "text-primary" : ""}`}
-                  strokeWidth={2}
-                />
+                {renderNavIcon(
+                  item.icon,
+                  cn("h-5 w-5", itemIsActive && "text-primary")
+                )}
               </div>
               <span
-                className={`text-xs mt-1 ${itemIsActive ? "font-bold" : ""}`}
+                className={cn("text-xs mt-1", itemIsActive && "font-bold")}
                 style={itemIsActive ? activeGradientStyle : {}}
               >
-                {item.title}
+                {item.label}
               </span>
             </>
           );
-          if (item.child) return item.child(children);
 
+          if (href === ALARM_PATH) {
+            return (
+              <AlarmNavigation
+                key={item.id}
+                className="flex-1 p-0 h-fit gap-0 [&_svg]:size-5"
+              >
+                {inner}
+              </AlarmNavigation>
+            );
+          }
+
+          const isExternal = item.is_external;
           return (
             <Link
-              key={item.title}
+              key={item.id}
               href={href}
-              className={cn(
-                "flex flex-col items-center",
-                item.disabled &&
-                  "opacity-50 cursor-not-allowed pointer-events-none"
-              )}
+              target={isExternal ? "_blank" : undefined}
+              rel={isExternal ? "noopener noreferrer" : undefined}
+              className="flex-1 flex flex-col items-center"
             >
-              {children}
+              {inner}
             </Link>
           );
         })}

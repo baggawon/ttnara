@@ -211,46 +211,23 @@ export const useAdminPartnersListHook = () => {
     },
     {
       accessorKey: "public_banner_image_url",
-      headerTitle: "배너 이미지",
+      headerTitle: "협력사 배너 이미지",
       headerClassName: "!max-w-[80px]",
       cellClassName: "!max-w-[80px]",
       cell: (props) => {
         const imageUrl = props.getValue() as string;
         return imageUrl ? (
           <Image
-            src={`https://` + imageUrl}
+            src={imageUrl}
             alt="Banner"
-            className="w-12 h-12 object-cover rounded"
-            width={48}
-            height={48}
+            className="w-full object-cover rounded aspect-[308/100]"
+            width={308}
+            height={100}
             unoptimized
           />
         ) : (
           <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs">
             No Banner
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "public_partner_image_url",
-      headerTitle: "파트너 이미지",
-      headerClassName: "!max-w-[80px]",
-      cellClassName: "!max-w-[80px]",
-      cell: (props) => {
-        const imageUrl = props.getValue() as string;
-        return imageUrl ? (
-          <Image
-            src={`https://` + imageUrl}
-            alt="Partner"
-            className="w-12 h-12 object-cover rounded"
-            width={48}
-            height={48}
-            unoptimized
-          />
-        ) : (
-          <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs">
-            No Partner
           </div>
         );
       },

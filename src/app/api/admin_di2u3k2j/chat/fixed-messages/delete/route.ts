@@ -1,0 +1,12 @@
+import { ResponseValues } from "@/helpers/server/serverResponse";
+import type { ApiReturnProps } from "@/helpers/types";
+import type { NextRequest, NextResponse } from "next/server";
+import { POST as fixedDelete } from "@/app/api/admin_di2u3k2j/chat/fixed-messages/delete";
+import type { ChatFixedMessageDeleteProps } from "@/app/api/admin_di2u3k2j/chat/fixed-messages/delete";
+
+export const POST = async (req: NextRequest): Promise<NextResponse> => {
+  const response = ResponseValues<ApiReturnProps>();
+  const json: ChatFixedMessageDeleteProps = await req.json();
+  const result = await fixedDelete(json);
+  return response.json(result);
+};

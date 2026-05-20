@@ -3,11 +3,19 @@ export const emailAuth = ({
   time,
   authCode,
   date,
+  siteName,
+  siteUrl,
+  logoUrl,
+  contactEmail,
 }: {
   title: string;
   time: string;
   authCode: string;
   date: string;
+  siteName: string;
+  siteUrl?: string | null;
+  logoUrl?: string | null;
+  contactEmail?: string | null;
 }) => `
 <!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml">
@@ -65,15 +73,17 @@ export const emailAuth = ({
               <tr>
                 <td class="sm-p-6" style="border-radius: undefined; background-color: #fffffe; padding: 24px 36px; border: 1px solid #e2e8f0">
                   <h1 style="font-size: 30px; font-weight: 600; color: #0f172a">
-                    <a href="https://ttnara.com" style="position: relative; margin-right: 8px; color: #fffffe">
-                      <img src="https://ttnara.com/favicon-96x96.png" alt="테더나라" style="max-width: 100%; vertical-align: middle; height: 40px; width: 40px" width="40" height="40">
-                    </a>
-                    테더나라
+                    ${
+                      logoUrl
+                        ? `<a href="${siteUrl ?? "#"}" style="position: relative; margin-right: 8px; color: #fffffe"><img src="${logoUrl}" alt="${siteName}" style="max-width: 100%; vertical-align: middle; height: 40px; width: 40px" width="40" height="40"></a>`
+                        : ""
+                    }
+                    ${siteName}
                   </h1>
                   <div role="separator" style="line-height: 24px">&zwj;</div>
                   <p style="font-size: 16px; color: #0f172a">
                     안녕하세요,<br>
-                    테더나라 이메일 인증 요청을 확인하였습니다.<br>
+                    ${siteName} 이메일 인증 요청을 확인하였습니다.<br>
                     아래 인증번호를 사용하여 이메일 인증 절차를 계속 진행해 주세요.
                   </p>
                   <p style="font-size: 16px; color: #0f172a">
@@ -89,10 +99,11 @@ export const emailAuth = ({
                   </p>
                   <div role="separator" style="height: 1px; line-height: 1px; background-color: #cbd5e1; margin-top: 24px; margin-bottom: 24px">&zwj;</div>
                   <p class="mso-break-all" style="margin: 0; font-size: 12px; line-height: 20px; color: #475569">
-                    본 이메일은 발신전용 주소입니다.<br>
-                    문의사항은 <a href="mailto:contact@ttnara.com" style="color: #1e293b">contact@ttnara.com
-                    </a>
-                    로 연락주시기 바랍니다.
+                    본 이메일은 발신전용 주소입니다.${
+                      contactEmail
+                        ? `<br>문의사항은 <a href="mailto:${contactEmail}" style="color: #1e293b">${contactEmail}</a>로 연락주시기 바랍니다.`
+                        : ""
+                    }
                   </p>
                 </td>
               </tr>
@@ -101,7 +112,7 @@ export const emailAuth = ({
               <tr>
                 <td class="sm-px-6" style="padding: 24px 36px">
                   <p style="margin: 0; font-size: 12px; color: #64748b">
-                    &copy; 2025 테더나라. ALL RIGHTS RESERVED.
+                    &copy; ${new Date().getFullYear()} ${siteName}. ALL RIGHTS RESERVED.
                   </p>
                 </td>
               </tr>

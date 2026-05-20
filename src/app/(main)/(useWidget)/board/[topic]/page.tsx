@@ -11,6 +11,7 @@ import type { TopicSettings } from "@/app/api/topic/read";
 import type { ThreadsReadProps } from "@/app/api/threads/read";
 import { HydrationBoundary } from "@tanstack/react-query";
 import type { Session } from "next-auth";
+import { buildPageTitle } from "@/helpers/server/brandSettings";
 
 const getProps = async (props: {
   params: Params;
@@ -62,7 +63,7 @@ export async function generateMetadata(props: {
   });
 
   return {
-    title: `${settings?.name ?? ""} - 테더나라`,
+    title: await buildPageTitle(settings?.name ?? ""),
   };
 }
 

@@ -1,27 +1,34 @@
 import { NextResponse } from "next/server";
 import { handleConnect } from "@/helpers/server/prisma";
 import { MetadataRoute } from "next";
+import { isTetherEnabled } from "@/helpers/server/tetherGuard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600; // 1 hour
 
-// Import static URLs from the sitemap.ts file
-const staticUrls = [
-  {
-    url: process.env.CLIENT_URL || "https://ttnara.com",
-    lastModified: new Date().toISOString(),
-    changeFrequency: "daily",
-    priority: 1.0,
-  },
-  {
-    url: `${process.env.CLIENT_URL || "https://ttnara.com"}/board/tether`,
-    lastModified: new Date().toISOString(),
-    changeFrequency: "daily",
-    priority: 0.8,
-  },
-];
+const buildStaticUrls = async () => {
+  const base = process.env.CLIENT_URL || "https://ttnara.com";
+  const urls = [
+    {
+      url: base,
+      lastModified: new Date().toISOString(),
+      changeFrequency: "daily",
+      priority: 1.0,
+    },
+  ];
+  if (await isTetherEnabled()) {
+    urls.push({
+      url: `${base}/board/tether`,
+      lastModified: new Date().toISOString(),
+      changeFrequency: "daily",
+      priority: 0.8,
+    });
+  }
+  return urls;
+};
 
 export async function GET() {
+  const staticUrls = await buildStaticUrls();
   console.log("[Sitemap XML] Starting data fetch");
   try {
     const baseUrl =

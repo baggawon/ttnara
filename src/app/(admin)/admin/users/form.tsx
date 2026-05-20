@@ -8,16 +8,16 @@ import { map } from "@/helpers/basic";
 import { FormProvider } from "react-hook-form";
 
 import { useAdminUsersListHook } from "./hook";
+import { UserMobileList } from "./_components/UserMobileList";
 
 function getKycStatus(kyc_id: string | null | undefined, lang?: string) {
   if (kyc_id === null || kyc_id === undefined) {
     return lang === "ko" ? "미등록" : "Unregistered";
   }
 
-  // At this point kyc_id is definitely a string
   const numericValue = Number(kyc_id);
   if (isNaN(numericValue)) {
-    return lang === "ko" ? "미등록" : "Unregistered"; // handle invalid string values
+    return lang === "ko" ? "미등록" : "Unregistered";
   }
 
   if (numericValue === 0) {
@@ -28,27 +28,33 @@ function getKycStatus(kyc_id: string | null | undefined, lang?: string) {
     return lang === "ko" ? "인증완료" : "Verified";
   }
 
-  return lang === "ko" ? "미등록" : "Unregistered"; // fallback for negative numbers
+  return lang === "ko" ? "미등록" : "Unregistered";
 }
 
 export default function AdminUsersListForm() {
   const { columns, methods, levelData, usersData, updatePagination } =
     useAdminUsersListHook();
+
   return (
     <FormProvider {...methods}>
-      <h2>사용자</h2>
-      <div className="w-full flex gap-2">
-        <Input
-          name="search"
-          className="!w-fit"
-          inputClassName="!w-[240px]"
-          placeholder="사용자/닉네임 검색"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              updatePagination();
-            }
-          }}
-        />
+      <h2 className="text-2xl font-bold tracking-tight">사용자</h2>
+
+      {/* Filters: stack on mobile, row on tablet+. The wrap + min-widths
+          let each control flow to a new line instead of crushing. */}
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="w-full sm:w-auto sm:flex-1 sm:min-w-[200px] sm:max-w-[260px]">
+          <Input
+            name="search"
+            className="w-full"
+            inputClassName="w-full"
+            placeholder="사용자/닉네임 검색"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                updatePagination();
+              }
+            }}
+          />
+        </div>
         <SelectInput
           name="auth_level"
           items={[
@@ -90,7 +96,19 @@ export default function AdminUsersListForm() {
           검색
         </Button>
       </div>
-      <div className="w-full">
+
+      {/* Mobile / tablet: card list. Hidden on lg+. */}
+      <UserMobileList
+        users={usersData?.users}
+        pagination={usersData?.pagination}
+        onPageChange={(index) => {
+          methods.setValue("page", String(index));
+          updatePagination();
+        }}
+      />
+
+      {/* Desktop: full DataTable. Hidden below lg. */}
+      <div className="w-full hidden lg:block">
         <DataTableSSR
           data={
             usersData?.users

@@ -132,7 +132,7 @@ export const useAdminUsersListHook = () => {
       accessorKey: "current_rank_level",
       headerClassName: "!max-w-[40px]",
       cellClassName: "!max-w-[40px]",
-      headerTitle: "랭크",
+      headerTitle: "등급",
     },
     {
       accessorKey: "has_warranty",

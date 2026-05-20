@@ -17,6 +17,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run test` - Run Jest tests in watch mode
 - `npm run coverage` - Run Jest with coverage report
 - `npm run lint` - Run Next.js linting
+- `npm run format` - Run Prettier formatter on all src files
+- `npx jest path/to/test.test.ts` - Run a single test file
 
 ### Database
 
@@ -43,7 +45,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `(admin)/admin/` - Admin panel with user, content, and system management
 - `(app)/app/` - User application features (messages, settings)
 - `(main)/` - Public-facing pages with authentication
-- `api/` - Next.js API routes organized by feature
+- `api/` - Next.js API routes organized by feature; admin API routes are under `api/admin_di2u3k2j/` (obfuscated segment)
 
 #### Component Architecture (`src/components/`)
 
@@ -56,9 +58,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 #### Core Helpers (`src/helpers/`)
 
 - `server/` - Server-side utilities (Prisma, S3, email, caching)
+  - All DB queries go through `handleConnect()` in `server/prisma.ts` — never use `prismaClient` directly
+  - API routes should return `ApiReturnProps` (`{ result: boolean, message?, data? }`) from `types.ts`
 - `customHook/` - React hooks for common functionality
-- `types.ts` - TypeScript definitions and enums
-- Various utility modules (crypto, validation, date handling)
+- `types.ts` - TypeScript definitions and enums (enum labels are in Korean)
+- `config.ts` - App-wide constants (pagination, upload limits, admin usernames)
 
 ### Database Schema
 

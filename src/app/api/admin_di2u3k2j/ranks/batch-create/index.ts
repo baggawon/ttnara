@@ -36,7 +36,21 @@ export const POST = async (json: RankBatchCreateProps) => {
           })),
         });
 
-        // 3. Return the created ranks in correct order
+        // 3. Unassign all badge images (range no longer matches new rank set)
+        await tx.rank_badge_image.updateMany({
+          where: {
+            OR: [
+              { assigned_min_rank: { not: null } },
+              { assigned_max_rank: { not: null } },
+            ],
+          },
+          data: {
+            assigned_min_rank: null,
+            assigned_max_rank: null,
+          },
+        });
+
+        // 4. Return the created ranks in correct order
         return await tx.trade_rank.findMany({
           orderBy: {
             rank_level: "asc",

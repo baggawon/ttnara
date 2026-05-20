@@ -7,6 +7,8 @@ import { TetherEditor } from "@/app/(main)/(useWidget)/board/tether/edit/[tether
 import type { Metadata } from "next";
 import type { TetherListResponse } from "@/app/api/tethers/read";
 import { HydrationBoundary } from "@tanstack/react-query";
+import { requireTetherEnabled } from "@/helpers/server/tetherGuard";
+import { buildPageTitle } from "@/helpers/server/brandSettings";
 
 const getProps = async (props: { params: Params }) => {
   const params = await props.params;
@@ -30,13 +32,17 @@ export async function generateMetadata(props: {
   );
 
   return {
-    title: `${product.tethers?.[0]?.title ? "거래편집" : "거래추가"} - P2P 거래 - 테더나라`,
+    title: await buildPageTitle(
+      `${product.tethers?.[0]?.title ? "거래편집" : "거래추가"} - P2P 거래`
+    ),
   };
 }
 
 type Params = Promise<{ tether: string }>;
 
 export default async function Page(props: { params: Params }) {
+  await requireTetherEnabled();
+
   const { pagination, tether_id } = await getProps(props);
 
   const queries = await getDehydratedQueries([

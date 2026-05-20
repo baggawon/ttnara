@@ -11,3 +11,54 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: abcd1234
       POSTGRES_DB: postgres
+
+  chat_server:
+    container_name: chat_server
+    build:
+      context: .
+      dockerfile: chat_server/Dockerfile
+      args:
+        PROJECT_DIR: chat_server
+        PROJECT_NAME: chat_server
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - 8088:8088
+    environment:
+      # Inside the compose network, reach the db service by hostname.
+      # The Platypus schema is required for sea-orm queries to find the
+      # chat_* tables.
+      DATABASE_URL: postgres://postgres:abcd1234@db:5432/postgres?schema=Platypus
+      CHAT_BIND_ADDR: 0.0.0.0:8088
+      # The two secrets below MUST match what the Next.js app uses.
+      # Pull them from the host environment (or .config_env) so they aren't
+      # baked into the image.
+      CHAT_JWT_SECRET: ${CHAT_JWT_SECRET}
+      CHAT_INTERNAL_SECRET: ${CHAT_INTERNAL_SECRET}
+      RUST_LOG: chat_server=info,tower_http=info
+
+  minio:
+    container_name: minio
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - ./data/minio:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done;
+      mc mb -p local/ttnara-dev-uploads;
+      mc anonymous set download local/ttnara-dev-uploads;
+      "

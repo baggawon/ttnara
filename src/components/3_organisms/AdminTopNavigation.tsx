@@ -1,4 +1,7 @@
+"use client";
+
 import * as React from "react";
+import { useState } from "react";
 import Link from "next/link";
 
 import {
@@ -9,71 +12,72 @@ import {
   MenubarSeparator,
   MenubarTrigger,
 } from "@/components/ui/menubar";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import clsx from "clsx";
 import { AdminAppRoute, AppRoute } from "@/helpers/types";
 import { map } from "@/helpers/basic";
 import Logo from "@/components/1_atoms/Logo";
 import { ModeToggle } from "./ModeToggle";
-import { User } from "lucide-react";
+import { ChevronDown, Menu, User } from "lucide-react";
 import { UnstyledLogoutButton } from "@/components/1_atoms/UnstyledLogoutButton";
-import { ChevronDown } from "lucide-react";
 
-const navigationMenus = [
+interface NavChild {
+  title: string;
+  href: string;
+  disable?: boolean;
+}
+
+interface NavMenu {
+  title: string;
+  href?: string;
+  disable?: boolean;
+  children?: NavChild[];
+}
+
+const navigationMenus: NavMenu[] = [
   { title: "대시보드", href: AdminAppRoute.Dashboard },
   {
     title: "시스템 관리",
     children: [
-      {
-        title: "설정",
-        href: AdminAppRoute.General,
-      },
-      {
-        title: "사용자",
-        href: AdminAppRoute.Users,
-      },
-      {
-        title: "랭크",
-        href: AdminAppRoute.Ranks,
-      },
-      {
-        title: "협력사",
-        href: AdminAppRoute.Partners,
-        disable: false,
-      },
-      {
-        title: "팝업",
-        href: AdminAppRoute.Popup,
-        disable: false,
-      },
+      { title: "설정", href: AdminAppRoute.General },
+      { title: "사용자", href: AdminAppRoute.Users },
+      { title: "등급", href: AdminAppRoute.Ranks },
+      { title: "협력사 배너", href: AdminAppRoute.Partners, disable: false },
+      { title: "공식보증업체", href: AdminAppRoute.Guarantee, disable: false },
+      { title: "팝업", href: AdminAppRoute.Popup, disable: false },
+      { title: "푸시 알림", href: AdminAppRoute.PushNotification },
+      { title: "거래 시스템 제어", href: AdminAppRoute.SystemControl },
+      { title: "메뉴 관리", href: AdminAppRoute.Navigation },
+      { title: "고객센터", href: AdminAppRoute.Support },
     ],
   },
   {
     title: "게시판",
     children: [
-      {
-        title: "개별 관리",
-        href: AdminAppRoute.Boards,
-      },
-      {
-        title: "기본 설정",
-        href: AdminAppRoute.GeneralBoard,
-      },
-      {
-        title: "거래 게시판",
-        href: AdminAppRoute.TetherBoard,
-      },
+      { title: "개별 관리", href: AdminAppRoute.Boards },
+      { title: "기본 설정", href: AdminAppRoute.GeneralBoard },
+      { title: "거래 게시판", href: AdminAppRoute.TetherBoard },
     ],
   },
+  { title: "채팅", href: AdminAppRoute.Chat },
   {
     title: "로그",
     disable: true,
     children: [
       { title: "보안", href: AdminAppRoute.Secret, disable: true },
-      {
-        title: "접속 기록",
-        href: AdminAppRoute.ConnectHistory,
-        disable: true,
-      },
+      { title: "접속 기록", href: AdminAppRoute.ConnectHistory, disable: true },
       {
         title: "관리자 기록",
         href: AdminAppRoute.ActionHistory,
@@ -83,12 +87,40 @@ const navigationMenus = [
   },
   { title: "개발팀 안내사항", href: AdminAppRoute.DevBoard, disable: true },
 ];
-export function AdminTopNavigation() {
-  return (
-    <div className="flex items-center gap-4 py-2 px-6 w-full mb-4">
-      <Logo href={AdminAppRoute.Dashboard} className="cursor-pointer" />
 
-      <Menubar className="border-none shadow-none">
+export function AdminTopNavigation() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <div className="flex items-center gap-2 sm:gap-4 py-2 px-3 sm:px-6 w-full mb-4">
+      {/* Mobile hamburger — replaces the horizontal menubar below `lg`. */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetTrigger asChild>
+          <button
+            type="button"
+            aria-label="메뉴 열기"
+            className="lg:hidden p-2 -ml-1 text-muted-foreground hover:text-foreground"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle>관리자 메뉴</SheetTitle>
+          </SheetHeader>
+          <nav className="p-2">
+            <MobileNav onNavigate={() => setMobileOpen(false)} />
+          </nav>
+        </SheetContent>
+      </Sheet>
+
+      <Logo
+        href={AdminAppRoute.Dashboard}
+        className="cursor-pointer shrink-0"
+      />
+
+      {/* Desktop horizontal menubar — hidden below `lg`. */}
+      <Menubar className="border-none shadow-none hidden lg:flex">
         {map(navigationMenus, ({ title, href, disable, children }) => {
           if (href && !children) {
             return (
@@ -97,12 +129,16 @@ export function AdminTopNavigation() {
                   className={clsx(
                     "noto-sans-kr",
                     disable === true
-                      ? "opacit y-50 cursor-not-allowed pointer-events-none"
+                      ? "opacity-50 cursor-not-allowed pointer-events-none"
                       : "opacity-100 cursor-pointer"
                   )}
                   asChild
                 >
-                  <Link href={href}>{title}</Link>
+                  {disable === true ? (
+                    <span>{title}</span>
+                  ) : (
+                    <Link href={href}>{title}</Link>
+                  )}
                 </MenubarTrigger>
               </MenubarMenu>
             );
@@ -135,7 +171,11 @@ export function AdminTopNavigation() {
                       )}
                       asChild
                     >
-                      <Link href={child.href}>{child.title}</Link>
+                      {child.disable === true ? (
+                        <span>{child.title}</span>
+                      ) : (
+                        <Link href={child.href}>{child.title}</Link>
+                      )}
                     </MenubarItem>
                   ))}
                 </MenubarContent>
@@ -147,7 +187,7 @@ export function AdminTopNavigation() {
         })}
       </Menubar>
 
-      <div className="ml-auto flex gap-2 items-center">
+      <div className="ml-auto flex gap-1 sm:gap-2 items-center shrink-0">
         <Menubar className="p-0 border-input">
           <MenubarMenu>
             <MenubarTrigger className="p-2 cursor-pointer">
@@ -155,7 +195,7 @@ export function AdminTopNavigation() {
               <span className="sr-only">옵션</span>
             </MenubarTrigger>
             <MenubarContent>
-              <MenubarItem asChild>
+              <MenubarItem>
                 <Link href={AppRoute.Main} className="cursor-pointer">
                   유저 페이지
                 </Link>
@@ -170,5 +210,85 @@ export function AdminTopNavigation() {
         <ModeToggle />
       </div>
     </div>
+  );
+}
+
+/**
+ * Vertical, collapsible variant of `navigationMenus` rendered inside the
+ * mobile drawer. Disabled entries are dimmed and unclickable; grouped
+ * entries collapse via Accordion.
+ */
+function MobileNav({ onNavigate }: { onNavigate: () => void }) {
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {navigationMenus.map((menu) => {
+        if (menu.children) {
+          // Whole-group disable: greys the trigger but still allows expanding
+          // so admins can see what's coming. Individual children may also be
+          // disabled.
+          return (
+            <li key={menu.title}>
+              <Accordion type="single" collapsible>
+                <AccordionItem value={menu.title} className="border-none">
+                  <AccordionTrigger
+                    className={clsx(
+                      "px-3 py-2 text-sm font-medium hover:no-underline rounded-md",
+                      menu.disable === true
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:bg-accent"
+                    )}
+                  >
+                    {menu.title}
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-1">
+                    <ul className="flex flex-col">
+                      {menu.children.map((child) => (
+                        <li key={child.title}>
+                          {child.disable ? (
+                            <span className="block px-6 py-2 text-sm text-muted-foreground opacity-50 cursor-not-allowed">
+                              {child.title}
+                            </span>
+                          ) : (
+                            <Link
+                              href={child.href}
+                              onClick={onNavigate}
+                              className="block px-6 py-2 text-sm rounded-md hover:bg-accent"
+                            >
+                              {child.title}
+                            </Link>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </li>
+          );
+        }
+
+        if (menu.href) {
+          return (
+            <li key={menu.title}>
+              {menu.disable ? (
+                <span className="block px-3 py-2 text-sm font-medium text-muted-foreground opacity-50 cursor-not-allowed">
+                  {menu.title}
+                </span>
+              ) : (
+                <Link
+                  href={menu.href}
+                  onClick={onNavigate}
+                  className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent"
+                >
+                  {menu.title}
+                </Link>
+              )}
+            </li>
+          );
+        }
+
+        return null;
+      })}
+    </ul>
   );
 }

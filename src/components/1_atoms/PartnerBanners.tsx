@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { AppRoute, QueryKey } from "@/helpers/types";
+import { QueryKey } from "@/helpers/types";
 import { partnersGet } from "@/helpers/get";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import Image from "next/image";
@@ -15,11 +15,9 @@ interface PartnerItem {
 }
 
 export const PartnerBanners = ({
-  position,
-  displayMode,
+  variant = "inline",
 }: {
-  position: "left" | "right" | "all";
-  displayMode: "mobile" | "pc" | "all";
+  variant?: "sidebar" | "inline";
 }) => {
   const { data: partners } = useGetQuery<PartnerItem[], undefined>(
     {
@@ -31,59 +29,31 @@ export const PartnerBanners = ({
   return (
     <div
       className={clsx(
-        displayMode === "mobile" && "md:hidden",
-        displayMode === "pc" && "max-md:hidden",
-        "flex flex-col gap-4"
+        variant === "sidebar" && "flex flex-col gap-4",
+        variant === "inline" &&
+          "grid gap-4 grid-cols-[repeat(auto-fit,minmax(280px,1fr))]"
       )}
     >
-      {["all", "left"].includes(position) && (
-        <>
-          {partners?.map((p) => (
-            <Link key={`left-${p.id}`} href={p.url} target="_blank">
-              <Image
-                src={`https://${p.public_banner_image_url}`}
-                alt={p.name}
-                width={308}
-                height={100}
-                className="rounded-lg border shadow w-full max-md:hidden aspect-[308/100]"
-                unoptimized
-              />
-              <Image
-                src={`https://${p.public_banner_image_url}`}
-                alt={p.name}
-                width={308}
-                height={100}
-                className="rounded-lg border shadow w-full md:hidden aspect-[308/100]"
-                unoptimized
-              />
-            </Link>
-          ))}
-        </>
-      )}
-      {["all", "right"].includes(position) && (
-        <>
-          <Link href={`${AppRoute.Threads}/guide`}>
-            <Image
-              src="/assets/users_guide.gif"
-              alt="이용안내"
-              width={308}
-              height={100}
-              className="rounded-lg border shadow w-full"
-              unoptimized
-            />
-          </Link>
-          <Link href="https://t.me/ttnara114" target="_blank">
-            <Image
-              src="/assets/customer_service.gif"
-              alt="고객센터"
-              width={308}
-              height={100}
-              className="rounded-lg border shadow w-full"
-              unoptimized
-            />
-          </Link>
-        </>
-      )}
+      {partners?.map((p) => (
+        <Link
+          key={p.id}
+          href={p.url}
+          target="_blank"
+          className={clsx(
+            "block w-full",
+            variant === "sidebar" && "max-w-[240px] mx-auto"
+          )}
+        >
+          <Image
+            src={p.public_banner_image_url}
+            alt={p.name}
+            width={240}
+            height={78}
+            className="rounded-lg border shadow w-full aspect-[240/78]"
+            unoptimized
+          />
+        </Link>
+      ))}
     </div>
   );
 };

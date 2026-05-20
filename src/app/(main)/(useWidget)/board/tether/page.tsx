@@ -1,19 +1,21 @@
 import { authOptions } from "@/app/api/auth/[...nextauth]";
 import type { TethersReadProps } from "@/app/api/tethers/read";
-import { TetherList } from "@/components/4_templates/TetherList";
+import { TetherCardList } from "@/components/4_templates/TetherCardList";
 import { getDehydratedQueries } from "@/helpers/query";
 import { serverGet } from "@/helpers/server/get";
 import {
   ApiRoute,
   QueryKey,
   type Currency,
-  type TetherOrderby,
+  TetherOrderby,
   TetherRange,
-  type TetherStatus,
+  TetherStatus,
 } from "@/helpers/types";
 import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { HydrationBoundary } from "@tanstack/react-query";
+import { requireTetherEnabled } from "@/helpers/server/tetherGuard";
+import { buildPageTitle } from "@/helpers/server/brandSettings";
 
 const getProps = async (props: { searchParams: SearchParams }) => {
   const searchParams = await props.searchParams;
@@ -28,14 +30,16 @@ const getProps = async (props: { searchParams: SearchParams }) => {
   const currency = searchParams.currency
     ? (searchParams.currency as Currency)
     : undefined;
-  const orderby = searchParams.orderby
-    ? (searchParams.orderby as TetherOrderby)
-    : undefined;
+  const orderby =
+    (searchParams.orderby as TetherOrderby) || TetherOrderby.PriceCheap;
   const status = searchParams.status
     ? (searchParams.status as TetherStatus)
     : undefined;
   const range = searchParams.range
     ? (searchParams.range as TetherRange)
+    : undefined;
+  const region = searchParams.region
+    ? (searchParams.region as string)
     : undefined;
   const search = searchParams.search
     ? (searchParams.search as string)
@@ -47,14 +51,16 @@ const getProps = async (props: { searchParams: SearchParams }) => {
   const pagination: TethersReadProps = {
     page: 1,
     pageSize: 20,
-    range: TetherRange.In24Hours,
+    range: TetherRange.Total,
+    orderby,
+    status: TetherStatus.Open,
     ...(page && { page }),
     ...(pageSize && { pageSize }),
     ...(currency && { currency }),
     ...(category_name && { category_name }),
-    ...(orderby && { orderby }),
     ...(status && { status }),
     ...(range && { range }),
+    ...(region && { region }),
     ...(search && { search }),
     ...(column && { column }),
   };
@@ -68,18 +74,21 @@ const getProps = async (props: { searchParams: SearchParams }) => {
     orderby,
     status,
     range,
+    region,
     search,
     column,
   };
 };
 
-export const metadata: Metadata = {
-  title: "P2P 거래 - 테더나라",
-};
+export const generateMetadata = async (): Promise<Metadata> => ({
+  title: await buildPageTitle("P2P 거래"),
+});
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function Page(props: { searchParams: SearchParams }) {
+  await requireTetherEnabled();
+
   const {
     pagination,
     page,
@@ -89,6 +98,7 @@ export default async function Page(props: { searchParams: SearchParams }) {
     orderby,
     status,
     range,
+    region,
     search,
     column,
   } = await getProps(props);
@@ -106,7 +116,7 @@ export default async function Page(props: { searchParams: SearchParams }) {
 
   return (
     <HydrationBoundary state={{ queries, mutations: [] }}>
-      <TetherList
+      <TetherCardList
         page={page}
         pageSize={pageSize}
         category_name={category_name}
@@ -114,6 +124,7 @@ export default async function Page(props: { searchParams: SearchParams }) {
         orderby={orderby}
         status={status}
         range={range}
+        region={region}
         search={search}
         column={column}
       />

@@ -9,10 +9,8 @@ import utc from "dayjs/plugin/utc";
 dayjs.extend(utc);
 import requestIp from "request-ip";
 import { checkUserStatus } from "@/helpers/server/serverFunctions";
-import type { general_setting } from "@prisma/client";
 import GoogleProvider from "next-auth/providers/google";
 import { createId } from "@paralleldrive/cuid2";
-import { parseSiteSettings } from "@/middleware";
 
 const userSelect = {
   password: true,
@@ -45,20 +43,6 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials, req): Promise<any> => {
-        const siteSettings = req.headers?.cookie;
-
-        if (siteSettings) {
-          const siteSettingsValue = parseSiteSettings(siteSettings);
-          if (siteSettingsValue) {
-            const generalSettings = JSON.parse(siteSettingsValue) as
-              | general_setting
-              | undefined;
-            if (generalSettings?.allow_login === false) {
-              return null;
-            }
-          }
-        }
-
         if (credentials) {
           const userData = await handleConnect((prisma) =>
             prisma.user.findUnique({
@@ -103,20 +87,6 @@ export const authOptions: NextAuthOptions = {
         token: { label: "Token", type: "text" },
       },
       async authorize(credentials, req): Promise<any> {
-        const siteSettings = req.headers?.cookie;
-
-        if (siteSettings) {
-          const siteSettingsValue = parseSiteSettings(siteSettings);
-          if (siteSettingsValue) {
-            const generalSettings = JSON.parse(siteSettingsValue) as
-              | general_setting
-              | undefined;
-            if (generalSettings?.allow_login === false) {
-              return null;
-            }
-          }
-        }
-
         if (!credentials?.token) return null;
 
         try {
