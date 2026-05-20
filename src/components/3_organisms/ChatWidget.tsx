@@ -8,6 +8,7 @@ import { useChatSession } from "@/helpers/customHook/useChatSession";
 import { ChatMessageItem } from "@/components/2_molecules/ChatMessage";
 import { ChatSystemMessageItem } from "@/components/2_molecules/ChatSystemMessage";
 import { ChatNoticeCarousel } from "@/components/2_molecules/ChatNoticeCarousel";
+import { ChatBanner } from "@/components/2_molecules/ChatBanner";
 import { ChatInput } from "@/components/2_molecules/ChatInput";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -320,12 +321,11 @@ const ChatWidgetImpl = () => {
           <>
             {/* Fixed Message */}
             {currentFixed && (
-              <div className="flex items-start gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950 border-b text-xs text-amber-700 dark:text-amber-300">
-                <Pin className="w-3 h-3 shrink-0 mt-0.5 rotate-45" />
-                <span className="flex-1 min-w-0 [overflow-wrap:anywhere]">
-                  {currentFixed}
-                </span>
-              </div>
+              <ChatBanner
+                accent="fixed"
+                icon={<Pin className="w-3 h-3 rotate-45" />}
+                content={currentFixed}
+              />
             )}
 
             {/* Messages Area */}

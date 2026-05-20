@@ -1,13 +1,15 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useChatStore } from "@/helpers/chatStore";
-import { Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { ChatBanner } from "@/components/2_molecules/ChatBanner";
 
 const ChatNoticeCarouselImpl = () => {
   // Subscribe only to notices, not the whole store.
   const notices = useChatStore((s) => s.notices);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   const activeNotices = useMemo(
     () =>
@@ -17,38 +19,63 @@ const ChatNoticeCarouselImpl = () => {
     [notices]
   );
 
+  const count = activeNotices.length;
+
+  const goTo = useCallback(
+    (delta: number) => {
+      setActiveIndex((prev) => (prev + delta + count) % count);
+    },
+    [count]
+  );
+
   useEffect(() => {
-    if (activeNotices.length <= 1) return;
-    const interval = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % activeNotices.length);
-    }, 5000);
+    // Pause auto-rotation while a notice is expanded so it doesn't rotate
+    // away mid-read. Depending on activeIndex also restarts the 5s timer
+    // after a manual prev/next so it doesn't jump again immediately.
+    if (count <= 1 || paused) return;
+    const interval = setInterval(() => goTo(1), 5000);
     return () => clearInterval(interval);
-  }, [activeNotices.length]);
+  }, [count, paused, activeIndex, goTo]);
 
-  if (activeNotices.length === 0) return null;
+  if (count === 0) return null;
 
-  const current = activeNotices[activeIndex % activeNotices.length];
+  const safeIndex = activeIndex % count;
+  const current = activeNotices[safeIndex];
   if (!current) return null;
 
   return (
-    <div className="flex items-start gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950 border-b text-xs text-blue-700 dark:text-blue-300 overflow-hidden">
-      <Info className="w-3 h-3 shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0">
-        {current.title && (
-          <div className="font-semibold truncate">{current.title}</div>
-        )}
-        {current.content && (
-          <div className="text-[11px] text-blue-600 dark:text-blue-400 line-clamp-2 [overflow-wrap:anywhere]">
-            {current.content}
-          </div>
-        )}
-      </div>
-      {activeNotices.length > 1 && (
-        <span className="shrink-0 text-[10px] text-blue-400 mt-0.5">
-          {(activeIndex % activeNotices.length) + 1}/{activeNotices.length}
-        </span>
-      )}
-    </div>
+    <ChatBanner
+      accent="notice"
+      icon={<Info className="w-3 h-3" />}
+      title={current.title}
+      content={current.content}
+      onExpandedChange={setPaused}
+      controls={
+        count > 1 ? (
+          <span className="flex items-center gap-0.5 text-[10px] text-blue-400">
+            <button
+              type="button"
+              aria-label="이전 공지"
+              onClick={() => goTo(-1)}
+              className="p-0.5 rounded hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900 dark:hover:text-blue-200"
+            >
+              <ChevronLeft className="w-3 h-3" />
+            </button>
+            <span className="tabular-nums">
+              {safeIndex + 1}/{count}
+            </span>
+            <button
+              type="button"
+              aria-label="다음 공지"
+              onClick={() => goTo(1)}
+              className="p-0.5 rounded hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900 dark:hover:text-blue-200"
+            >
+              <ChevronRight className="w-3 h-3" />
+            </button>
+          </span>
+        ) : undefined
+      }
+    />
   );
 };
 
