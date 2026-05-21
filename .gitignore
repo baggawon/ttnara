@@ -62,3 +62,5 @@ public/__ENV.js
 settings.local.json
 
 /deploy-test
+
+/.stfolder
