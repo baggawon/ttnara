@@ -19,6 +19,7 @@ import { getBoardPosterDisplayname } from "@/helpers/common";
 import type { Session } from "next-auth";
 
 const DISPLAY_COUNT = 4;
+const ROW_HEIGHT_CLASS = "h-[52px]";
 
 const formatDate = (date: Date | string) => {
   const d = dayjs(date);
@@ -50,7 +51,7 @@ const ThreadRow = ({
   return (
     <Link
       href={`/board/${topicUrl}/${thread.id}`}
-      className="flex-1 flex items-center gap-2 px-1 hover:bg-muted/40 transition-colors rounded max-h-[calc(100%/4]"
+      className={`${ROW_HEIGHT_CLASS} flex items-center gap-2 px-1 hover:bg-muted/40 transition-colors rounded`}
     >
       <div className="min-w-0 flex-1 overflow-hidden">
         <div className="flex items-center gap-1 min-w-0">
@@ -85,10 +86,14 @@ const ThreadRow = ({
   );
 };
 
-const EmptyRow = () => {
+const EmptyRow = ({ showLabel = false }: { showLabel?: boolean }) => {
   return (
-    <div className="flex-1 flex items-center justify-center px-1">
-      <span className="text-xs text-muted-foreground">게시글 없음</span>
+    <div
+      className={`${ROW_HEIGHT_CLASS} flex items-center justify-center px-1`}
+    >
+      {showLabel && (
+        <span className="text-xs text-muted-foreground">게시글 없음</span>
+      )}
     </div>
   );
 };
@@ -100,17 +105,12 @@ const TopicPreview = ({
   topic: BoardPreviewTopic;
   viewer: Session["user"] | null | undefined;
 }) => {
-  if (topic.threads.length === 0) {
-    return (
-      <div className="flex flex-col divide-y flex-1">
-        <EmptyRow />
-      </div>
-    );
-  }
+  const threads = topic.threads.slice(0, DISPLAY_COUNT);
+  const emptyCount = DISPLAY_COUNT - threads.length;
 
   return (
     <div className="flex flex-col divide-y flex-1">
-      {topic.threads.slice(0, DISPLAY_COUNT).map((thread) => (
+      {threads.map((thread) => (
         <ThreadRow
           key={thread.id}
           thread={thread}
@@ -119,7 +119,12 @@ const TopicPreview = ({
           viewer={viewer}
         />
       ))}
-      {topic.threads.length < DISPLAY_COUNT && <EmptyRow />}
+      {Array.from({ length: emptyCount }).map((_, index) => (
+        <EmptyRow
+          key={`empty-${index}`}
+          showLabel={threads.length === 0 && index === 0}
+        />
+      ))}
     </div>
   );
 };
