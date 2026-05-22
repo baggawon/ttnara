@@ -4,6 +4,7 @@ import {
   paginationManager,
 } from "@/helpers/server/serverFunctions";
 import { handleConnect } from "@/helpers/server/prisma";
+import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
 
 export interface ChatHistoryReadProps {
   topic_id?: number;
@@ -118,7 +119,9 @@ export const GET = async (queryParams: any) => {
         uid: m.uid,
         displayname: m.displayname,
         rank_level: m.rank_level,
-        rank_image: m.rank_image,
+        rank_image: m.rank_image
+          ? signStoredCloudFrontUrl(m.rank_image)
+          : m.rank_image,
         content: m.content,
         is_hidden: m.is_hidden,
         hidden_by_id: m.hidden_by_id,

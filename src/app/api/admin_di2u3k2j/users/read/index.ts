@@ -8,6 +8,7 @@ import {
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import type { PaginationInfo } from "@/helpers/types";
+import { signProfileImages } from "@/app/api/admin_di2u3k2j/user/read";
 
 export interface UserForAdmin extends user {
   profile: profile | null;
@@ -105,8 +106,14 @@ async function getUsersWithPagination(
 
   manager.setTotalCount(totalCount);
 
+  // Sign each profile's stored (unsigned) avatar / rank badge URLs.
+  const signedUsers = users.map((u) => ({
+    ...u,
+    profile: signProfileImages(u.profile),
+  }));
+
   return {
-    users,
+    users: signedUsers,
     pagination: manager.getPagination(),
   };
 }

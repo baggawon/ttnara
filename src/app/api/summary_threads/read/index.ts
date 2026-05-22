@@ -1,6 +1,7 @@
 import {
   tetherInclude,
   tetherPublicSelect,
+  signTetherImages,
   type TetherPublicWithProfile,
 } from "@/app/api/tethers/read";
 import { handleConnect } from "@/helpers/server/prisma";
@@ -29,6 +30,10 @@ export const GET = async () => {
       })
     );
     if (!summaryResult) throw ToastData.unknown;
+
+    // Sign rank badges and condition-HTML images, as tethers/read does — the
+    // shared tetherInclude pulls these unsigned CloudFront URLs.
+    summaryResult.forEach((t) => signTetherImages(t));
 
     return { result: true, data: { summaries: summaryResult } };
   } catch (error) {

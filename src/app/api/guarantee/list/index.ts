@@ -1,6 +1,9 @@
 import type { guarantee_company } from "@prisma/client";
 import { handleConnect } from "@/helpers/server/prisma";
-import { getSignedCloudFrontUrl } from "@/helpers/server/s3";
+import {
+  getSignedCloudFrontUrl,
+  signCloudFrontUrlsInHtml,
+} from "@/helpers/server/s3";
 
 export interface PublicGuaranteeItem
   extends Omit<guarantee_company, "image_url" | "hero_image_url"> {
@@ -35,6 +38,10 @@ export const GET = async () => {
       public_image_url: item.public_image_url
         ? getSignedCloudFrontUrl(item.public_image_url)
         : "",
+      // Sign any CloudFront images embedded in the rich-text description.
+      description: item.description
+        ? signCloudFrontUrlsInHtml(item.description)
+        : item.description,
     }));
 
     const public_hero_image_url = setting?.public_hero_image_url

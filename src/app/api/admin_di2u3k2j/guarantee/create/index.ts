@@ -4,7 +4,7 @@ import {
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
-import { uploadFileToS3 } from "@/helpers/server/s3";
+import { uploadFileToS3, stripCloudFrontSignatures } from "@/helpers/server/s3";
 import {
   GuaranteeCurrency,
   GuaranteePosition,
@@ -52,7 +52,11 @@ export const POST = async (formData: FormData) => {
       parseInt(formData.get("display_order") as string) || 1;
     const is_active = formData.get("is_active") === "true";
     const imageFile = formData.get("image") as File | null;
-    const description = (formData.get("description") as string) ?? "";
+    // Strip CloudFront signatures — description is signed on read, so editor
+    // round-trips must not persist an expiring signature.
+    const description = stripCloudFrontSignatures(
+      (formData.get("description") as string) ?? ""
+    );
     const descriptionFormatRaw = (
       formData.get("description_format") as string | null
     )?.trim();

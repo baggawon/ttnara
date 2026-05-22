@@ -1,5 +1,6 @@
 import type { support_link_card } from "@prisma/client";
 import { handleConnect } from "@/helpers/server/prisma";
+import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
 import {
   paginationManager,
   RequestValidator,
@@ -67,8 +68,17 @@ async function getLinkCardsWithPagination(
 
   manager.setTotalCount(totalCount);
 
+  // Sign the stored (unsigned) icon URL so the admin list/edit views can
+  // preview it.
+  const signedCards = cards.map((card) => ({
+    ...card,
+    cloudfront_url: card.cloudfront_url
+      ? signStoredCloudFrontUrl(card.cloudfront_url)
+      : card.cloudfront_url,
+  }));
+
   return {
-    cards,
+    cards: signedCards,
     pagination: manager.getPagination(),
   };
 }

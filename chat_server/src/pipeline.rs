@@ -190,7 +190,12 @@ async fn persist_and_broadcast(
     )
     .await
     {
-        Ok(msg) => {
+        Ok(mut msg) => {
+            // `rank_image` is persisted unsigned; sign it for delivery so the
+            // client can load the badge from CloudFront.
+            if let Some(signer) = state.signer.as_ref() {
+                msg.rank_image = signer.sign_opt(msg.rank_image.take());
+            }
             let recipients = state.registry.user_count(topic_id);
             info!(
                 uid = %claims.sub,

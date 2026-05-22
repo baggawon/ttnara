@@ -62,6 +62,9 @@ export const POST = async (_req: NextRequest): Promise<NextResponse> => {
       sub: user.id,
       displayname: user.profile.displayname,
       rank_level: user.profile.current_rank_level ?? 1,
+      // Stored unsigned on purpose: the chat server persists this into
+      // chat_message.rank_image and CloudFront-signs it fresh on every
+      // broadcast / history send (a signature would expire if persisted).
       rank_image: user.profile.current_rank_image ?? null,
       auth_level: user.profile.auth_level,
     });

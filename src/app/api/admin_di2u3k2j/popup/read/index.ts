@@ -1,6 +1,10 @@
 import type { popup } from "@prisma/client";
 import { handleConnect } from "@/helpers/server/prisma";
 import {
+  signCloudFrontUrlsInHtml,
+  signStoredCloudFrontUrl,
+} from "@/helpers/server/s3";
+import {
   paginationManager,
   RequestValidator,
   requestValidator,
@@ -67,8 +71,18 @@ async function getPopupsWithPagination(
 
   manager.setTotalCount(totalCount);
 
+  // Sign the stored (unsigned) CloudFront URLs so the admin edit form can
+  // preview the image and any images embedded in the HTML content.
+  const signedPopups = popups.map((p) => ({
+    ...p,
+    image_cloud_front_url: p.image_cloud_front_url
+      ? signStoredCloudFrontUrl(p.image_cloud_front_url)
+      : p.image_cloud_front_url,
+    content: p.content ? signCloudFrontUrlsInHtml(p.content) : p.content,
+  }));
+
   return {
-    popups,
+    popups: signedPopups,
     pagination: manager.getPagination(),
   };
 }

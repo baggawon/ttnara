@@ -5,11 +5,24 @@ import {
   requestValidator,
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
+import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
 
 export interface UserForAdmin extends user {
   profile: profile | null;
   kyc: kyc[];
 }
+
+// Sign the stored (unsigned) avatar and rank badge URLs so they render.
+export const signProfileImages = (p: profile | null): profile | null => {
+  if (!p) return p;
+  return {
+    ...p,
+    image: p.image ? signStoredCloudFrontUrl(p.image) : p.image,
+    current_rank_image: p.current_rank_image
+      ? signStoredCloudFrontUrl(p.current_rank_image)
+      : p.current_rank_image,
+  };
+};
 
 async function getUser(queryParams: any): Promise<UserForAdmin> {
   const user_id = queryParams.user_id;
@@ -44,7 +57,7 @@ export async function GET(queryParams: any) {
     const response = await getUser(queryParams);
     return {
       result: true,
-      data: response,
+      data: { ...response, profile: signProfileImages(response.profile) },
     };
     //   } catch (error: any) {
   } catch (error) {

@@ -1,6 +1,7 @@
 mod admin;
 mod auth;
 mod cache;
+mod cloudfront;
 mod db;
 mod filters;
 mod helpers;
@@ -13,6 +14,7 @@ mod ws;
 
 use crate::auth::JwtVerifier;
 use crate::cache::ConfigCache;
+use crate::cloudfront::CloudFrontSigner;
 use crate::registry::Registry;
 use crate::spam::SpamTracker;
 use crate::state::AppState;
@@ -22,6 +24,7 @@ use dotenv::dotenv;
 use sea_orm::{Database, DatabaseConnection};
 use std::env;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tokio::signal;
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
@@ -45,12 +48,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     cache.refresh(&db).await; // initial warm-up
     tokio::spawn(cache::run_refresher(db.clone(), cache.clone()));
 
+    // Absent CloudFront env vars (local/MinIO dev) → no signer; rank-image
+    // URLs pass through unsigned.
+    let signer = CloudFrontSigner::from_env().map(Arc::new);
+    if signer.is_none() {
+        info!("cloudfront signer disabled (CLOUDFRONT_* env vars not set)");
+    }
+
     let state = AppState {
         db,
         jwt: JwtVerifier::new(&jwt_secret),
         registry: Registry::new(),
         spam: SpamTracker::new(),
         cache,
+        signer,
     };
 
     let app = Router::new()

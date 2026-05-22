@@ -13,6 +13,7 @@ import { removeColumnsFromObject } from "@/helpers/basic";
 import type { SimpleProfile } from "@/app/api/threads/read";
 import { AlarmTypes, TetherStatus } from "@/helpers/types";
 import { attachMediaToContent } from "@/helpers/server/mediaAttach";
+import { stripCloudFrontSignatures } from "@/helpers/server/s3";
 
 export interface TetherUpdateProps extends tether {
   user: SimpleProfile | null;
@@ -62,6 +63,12 @@ export const POST = async (json: TetherUpdateProps) => {
       : [];
 
     normalizeContact(json);
+
+    // Strip CloudFront signatures — condition is signed on read, so editor
+    // round-trips must not persist an expiring signature.
+    if (json.condition) {
+      json.condition = stripCloudFrontSignatures(json.condition);
+    }
 
     if (json.id === 0) {
       const generalSetting = appCache.getByKey(CacheKey.GeneralSettings) as

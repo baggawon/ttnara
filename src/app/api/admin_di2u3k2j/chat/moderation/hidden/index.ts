@@ -4,6 +4,7 @@ import {
   paginationManager,
 } from "@/helpers/server/serverFunctions";
 import { handleConnect } from "@/helpers/server/prisma";
+import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
 
 export interface ChatHiddenMessagesProps {
   page?: number;
@@ -31,9 +32,16 @@ export const GET = async (queryParams: any) => {
     )) ?? [0, []];
 
     manager.setTotalCount(count);
+    // Sign the stored (unsigned) rank badge URL so it renders in the admin UI.
+    const messages = rows.map((m) => ({
+      ...m,
+      rank_image: m.rank_image
+        ? signStoredCloudFrontUrl(m.rank_image)
+        : m.rank_image,
+    }));
     return {
       result: true,
-      data: { messages: rows, pagination: manager.getPagination() },
+      data: { messages, pagination: manager.getPagination() },
     };
   } catch (error) {
     console.log("error", error);

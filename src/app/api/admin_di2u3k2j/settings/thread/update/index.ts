@@ -6,6 +6,7 @@ import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import type { thread_setting } from "@prisma/client";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
+import { stripCloudFrontSignatures } from "@/helpers/server/s3";
 // import { removeColumnsFromObject } from "@/helpers/basic";
 
 export interface threadGeneralSettingsUpdateProps extends thread_setting {}
@@ -16,6 +17,13 @@ export const POST = async (json: threadGeneralSettingsUpdateProps) => {
 
     await requestValidator([RequestValidator.Admin], json);
     const { id, ...data } = json;
+    // The thumbnail URL is signed on read; strip the signature so an editor
+    // round-trip never persists an expiring CloudFront signature.
+    if (data.default_thumbnail_url) {
+      data.default_thumbnail_url = stripCloudFrontSignatures(
+        data.default_thumbnail_url
+      );
+    }
     const updateResult = await handleConnect((prisma) =>
       prisma.thread_setting.update({
         where: {

@@ -67,7 +67,9 @@ const DefaultThumbnailUploader = () => {
         toast({ id: ToastData.unknown, type: "error" });
         return;
       }
-      setValue("default_thumbnail_url", json.data.awsCloudFrontUrl, {
+      // Use the signed URL so the preview loads; the update endpoint strips
+      // the signature before persisting.
+      setValue("default_thumbnail_url", json.data.url, {
         shouldDirty: true,
       });
     } catch {

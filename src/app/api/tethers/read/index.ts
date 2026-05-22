@@ -13,7 +13,10 @@ import type { ManipulateType } from "dayjs";
 import { forEach, now } from "@/helpers/basic";
 import { handleConnect } from "@/helpers/server/prisma";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
-import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
+import {
+  signCloudFrontUrlsInHtml,
+  signStoredCloudFrontUrl,
+} from "@/helpers/server/s3";
 import {
   getUser,
   paginationManager,
@@ -257,12 +260,17 @@ const signRankImageOnProfile = (profile: any) => {
   }
 };
 
-const signTetherRankImages = (tether: any) => {
+// Signs every CloudFront URL a tether exposes to the client: the rank badge
+// on each profile, plus any images embedded in the `condition` rich-text HTML.
+export const signTetherImages = (tether: any) => {
   signRankImageOnProfile(tether?.user?.profile);
   if (Array.isArray(tether?.tether_proposals)) {
     for (const p of tether.tether_proposals) {
       signRankImageOnProfile(p?.user?.profile);
     }
+  }
+  if (typeof tether?.condition === "string" && tether.condition) {
+    tether.condition = signCloudFrontUrlsInHtml(tether.condition);
   }
   return tether;
 };
@@ -364,7 +372,7 @@ async function getTethersWithPagination(
     }
 
     stripHiddenContact(tether as any);
-    signTetherRankImages(tether);
+    signTetherImages(tether);
 
     return {
       tethers: [tether!],
@@ -533,7 +541,7 @@ async function getTethersWithPagination(
 
   forEach(tethers as any[], (t) => {
     stripHiddenContact(t);
-    signTetherRankImages(t);
+    signTetherImages(t);
   });
 
   return {

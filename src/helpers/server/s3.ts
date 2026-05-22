@@ -58,8 +58,14 @@ export const getSignedCloudFrontUrl = (
   filename: string,
   expiresIn = 86400
 ): string => {
+  // A previously-signed URL can flow back in here — e.g. a stored value that
+  // already carries a signature, or HTML re-saved from an editor. Drop any
+  // query string so only the bare key is signed and signing stays idempotent
+  // (signing an already-signed URL must not produce a broken double-signed one).
+  const cleanFilename = filename.split("?")[0];
+
   if (getStorageMode() === "minio") {
-    return buildMinioPublicUrl(filename);
+    return buildMinioPublicUrl(cleanFilename);
   }
 
   const privateKey = (process.env.CLOUDFRONT_PRIVATE_KEY ?? "").replace(
@@ -69,7 +75,7 @@ export const getSignedCloudFrontUrl = (
   const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
   const domain = process.env.CLOUDFRONT_DOMAIN ?? "";
   const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
-  const url = `${baseUrl}/${filename}`;
+  const url = `${baseUrl}/${cleanFilename}`;
   const dateLessThan = new Date(Date.now() + expiresIn * 1000).toISOString();
 
   return getSignedUrl({ url, keyPairId, privateKey, dateLessThan });

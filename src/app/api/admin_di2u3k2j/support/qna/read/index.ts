@@ -1,5 +1,6 @@
 import type { support_qna, support_qna_category } from "@prisma/client";
 import { handleConnect } from "@/helpers/server/prisma";
+import { signCloudFrontUrlsInHtml } from "@/helpers/server/s3";
 import {
   paginationManager,
   RequestValidator,
@@ -27,6 +28,13 @@ export interface SupportQnaReadProps {
   id?: number;
 }
 
+// Sign any CloudFront images embedded in the answer HTML so the editor /
+// preview can load them.
+const signQna = (qna: SupportQnaWithCategory): SupportQnaWithCategory => ({
+  ...qna,
+  answer: qna.answer ? signCloudFrontUrlsInHtml(qna.answer) : qna.answer,
+});
+
 async function getQnasWithPagination(
   queryParams: any
 ): Promise<SupportQnaListResponse> {
@@ -46,7 +54,7 @@ async function getQnasWithPagination(
     );
     if (!qna) throw ToastData.unknown;
     return {
-      qnas: [qna],
+      qnas: [signQna(qna)],
       pagination: manager.getPagination(),
     };
   }
@@ -99,7 +107,7 @@ async function getQnasWithPagination(
   manager.setTotalCount(totalCount);
 
   return {
-    qnas,
+    qnas: qnas.map(signQna),
     pagination: manager.getPagination(),
   };
 }

@@ -188,7 +188,16 @@ async fn send_session_init(state: &AppState, conn: &Connection, topic_id: i32) {
 
     // messages_init
     match crate::db::latest_messages(&state.db, topic_id, max_items).await {
-        Ok(messages) => conn.send(&ServerFrame::MessagesInit { topic_id, messages }),
+        Ok(mut messages) => {
+            // `rank_image` is stored unsigned; sign each before delivery so the
+            // client can load the badge from CloudFront.
+            if let Some(signer) = state.signer.as_ref() {
+                for m in messages.iter_mut() {
+                    m.rank_image = signer.sign_opt(m.rank_image.take());
+                }
+            }
+            conn.send(&ServerFrame::MessagesInit { topic_id, messages })
+        }
         Err(e) => warn!(error = ?e, topic_id, "latest_messages failed"),
     }
 
