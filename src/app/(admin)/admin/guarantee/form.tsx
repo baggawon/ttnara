@@ -39,13 +39,14 @@ import {
   GuaranteeCurrency,
   GuaranteePosition,
   GuaranteePositionLabel,
-  GuaranteeRegion,
   QueryKey,
 } from "@/helpers/types";
 import Image from "next/image";
 import { ToastData } from "@/helpers/toastData";
+import useGetQuery from "@/helpers/customHook/useGetQuery";
+import { adminGuaranteeRegionsGet } from "@/helpers/get";
+import type { GuaranteeRegionListResponse } from "@/app/api/admin_di2u3k2j/guarantee_region/read";
 
-const regionValues = Object.values(GuaranteeRegion);
 const currencyValues = Object.values(GuaranteeCurrency);
 const positionValues = Object.values(GuaranteePosition);
 
@@ -58,7 +59,7 @@ const guaranteeFormSchema = z
       .min(1, "연락처(Telegram 링크)를 입력해주세요.")
       .url("올바른 URL을 입력해주세요."),
     regions: z
-      .array(z.enum(regionValues as [string, ...string[]]))
+      .array(z.string().min(1).max(100))
       .min(1, "지역을 최소 하나 이상 추가해주세요."),
     no_website: z.boolean(),
     url: z.string().optional(),
@@ -119,6 +120,14 @@ function GuaranteeSheetForm({
     (item as any)?.public_image_url || null
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: regionsData } = useGetQuery<
+    GuaranteeRegionListResponse,
+    undefined
+  >({ queryKey: [QueryKey.guaranteeRegions] }, adminGuaranteeRegionsGet);
+  const activeRegionNames = (regionsData?.guaranteeRegions ?? [])
+    .filter((r) => r.is_active)
+    .map((r) => r.name);
 
   const methods = useForm<GuaranteeFormData>({
     resolver: zodResolver(guaranteeFormSchema),
@@ -378,7 +387,7 @@ function GuaranteeSheetForm({
                     <SelectValue placeholder="지역 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    {regionValues
+                    {activeRegionNames
                       .filter((r) => !(watch("regions") ?? []).includes(r))
                       .map((r) => (
                         <SelectItem key={r} value={r}>
@@ -650,6 +659,12 @@ export default function AdminGuaranteeListForm() {
     deleteMutation,
   } = useAdminGuaranteeListHook();
 
+  const { data: regionsData } = useGetQuery<
+    GuaranteeRegionListResponse,
+    undefined
+  >({ queryKey: [QueryKey.guaranteeRegions] }, adminGuaranteeRegionsGet);
+  const filterRegions = regionsData?.guaranteeRegions ?? [];
+
   return (
     <>
       <Card>
@@ -681,9 +696,10 @@ export default function AdminGuaranteeListForm() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">전체</SelectItem>
-                  {regionValues.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
+                  {filterRegions.map((r) => (
+                    <SelectItem key={r.id} value={r.name}>
+                      {r.name}
+                      {!r.is_active && " (삭제됨)"}
                     </SelectItem>
                   ))}
                 </SelectContent>

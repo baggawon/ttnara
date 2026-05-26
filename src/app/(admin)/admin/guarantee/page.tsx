@@ -1,5 +1,4 @@
-import AdminGuaranteeListForm from "./form";
-import AdminGuaranteeBannerCard from "./banner";
+import GuaranteeTabs from "./GuaranteeTabs";
 
 export default function AdminGuarantee() {
   return (
@@ -7,8 +6,7 @@ export default function AdminGuarantee() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">공식보증업체 관리</h1>
       </div>
-      <AdminGuaranteeBannerCard />
-      <AdminGuaranteeListForm />
+      <GuaranteeTabs />
     </section>
   );
 }

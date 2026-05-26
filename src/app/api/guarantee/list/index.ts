@@ -10,9 +10,15 @@ export interface PublicGuaranteeItem
   public_image_url: string;
 }
 
+export interface PublicGuaranteeRegion {
+  name: string;
+  display_order: number;
+}
+
 export interface PublicGuaranteeResponse {
   public_hero_image_url: string | null;
   items: PublicGuaranteeItem[];
+  regions: PublicGuaranteeRegion[];
 }
 
 export const GET = async () => {
@@ -24,14 +30,22 @@ export const GET = async () => {
           orderBy: [{ display_order: "asc" }, { created_at: "desc" }],
         }),
         prisma.guarantee_page_setting.findUnique({ where: { id: 1 } }),
+        prisma.guarantee_region.findMany({
+          where: { is_active: true },
+          orderBy: [{ display_order: "asc" }, { id: "asc" }],
+          select: { name: true, display_order: true },
+        }),
       ])
     );
 
     if (!result) {
-      return { result: true, data: { public_hero_image_url: null, items: [] } };
+      return {
+        result: true,
+        data: { public_hero_image_url: null, items: [], regions: [] },
+      };
     }
 
-    const [rows, setting] = result;
+    const [rows, setting, regions] = result;
 
     const items = rows.map((item) => ({
       ...item,
@@ -50,7 +64,11 @@ export const GET = async () => {
 
     return {
       result: true,
-      data: { public_hero_image_url, items } as PublicGuaranteeResponse,
+      data: {
+        public_hero_image_url,
+        items,
+        regions,
+      } as PublicGuaranteeResponse,
     };
   } catch (error) {
     return { result: false, message: String(error) };

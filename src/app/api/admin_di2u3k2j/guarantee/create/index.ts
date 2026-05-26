@@ -5,15 +5,20 @@ import {
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import { uploadFileToS3, stripCloudFrontSignatures } from "@/helpers/server/s3";
-import {
-  GuaranteeCurrency,
-  GuaranteePosition,
-  GuaranteeRegion,
-} from "@/helpers/types";
+import { GuaranteeCurrency, GuaranteePosition } from "@/helpers/types";
 
-const REGION_VALUES = Object.values(GuaranteeRegion) as string[];
 const POSITION_VALUES = Object.values(GuaranteePosition) as string[];
 const CURRENCY_VALUES = Object.values(GuaranteeCurrency) as string[];
+
+const getActiveRegionNames = async (): Promise<Set<string>> => {
+  const rows = await handleConnect((prisma) =>
+    prisma.guarantee_region.findMany({
+      where: { is_active: true },
+      select: { name: true },
+    })
+  );
+  return new Set((rows ?? []).map((r) => r.name));
+};
 
 const IMAGE_MAX_BYTES = 20 * 1024 * 1024;
 
@@ -39,9 +44,10 @@ export const POST = async (formData: FormData) => {
     const no_website = formData.get("no_website") === "true";
     const url = (formData.get("url") as string)?.trim() || "";
     const deposit = (formData.get("deposit") as string)?.trim();
+    const activeRegions = await getActiveRegionNames();
     const regions = parseStringArray(
       formData.get("regions") as string | null
-    ).filter((r) => REGION_VALUES.includes(r));
+    ).filter((r) => activeRegions.has(r));
     const positions = parseStringArray(
       formData.get("positions") as string | null
     ).filter((p) => POSITION_VALUES.includes(p));

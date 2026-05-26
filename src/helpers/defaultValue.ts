@@ -5,6 +5,7 @@ import type {
   level_setting,
   thread_setting,
   tether_category,
+  guarantee_region,
   tether_setting,
   tether_proposal,
   tether_rate,
@@ -311,6 +312,21 @@ export const tetherCategoryDefault = (
     name: "",
     parent_id: null,
     is_active: true,
+    ...data,
+  };
+};
+
+export const guaranteeRegionDefault = (
+  data?: Partial<guarantee_region>
+): guarantee_region => {
+  const now = new Date();
+  return {
+    id: 0,
+    name: "",
+    display_order: 1,
+    is_active: true,
+    created_at: now,
+    updated_at: now,
     ...data,
   };
 };

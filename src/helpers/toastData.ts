@@ -118,6 +118,14 @@ export enum ToastData {
   tetherCategoryDuplicateParent = "tetherCategoryDuplicateParent",
   tetherCategoryDuplicateChild = "tetherCategoryDuplicateChild",
   tetherCategoryRestoreConflict = "tetherCategoryRestoreConflict",
+  guaranteeRegionCreate = "guaranteeRegionCreate",
+  guaranteeRegionUpdate = "guaranteeRegionUpdate",
+  guaranteeRegionDelete = "guaranteeRegionDelete",
+  guaranteeRegionRestore = "guaranteeRegionRestore",
+  guaranteeRegionNameRequired = "guaranteeRegionNameRequired",
+  guaranteeRegionDuplicate = "guaranteeRegionDuplicate",
+  guaranteeRegionDuplicateDeleted = "guaranteeRegionDuplicateDeleted",
+  guaranteeRegionRestoreConflict = "guaranteeRegionRestoreConflict",
   pushSend = "pushSend",
   pushSendFailed = "pushSendFailed",
   pushTemplateCreate = "pushTemplateCreate",
@@ -962,6 +970,54 @@ export const toastData: { [key: string]: any } = {
     },
   },
   tetherCategoryRestoreConflict: {
+    error: {
+      title: "복구할 수 없습니다.",
+      description: "같은 이름의 지역이 이미 사용 중입니다.",
+    },
+  },
+  guaranteeRegionCreate: {
+    success: {
+      title: "지역이 추가되었습니다.",
+      description: "",
+    },
+  },
+  guaranteeRegionUpdate: {
+    success: {
+      title: "지역이 수정되었습니다.",
+      description: "",
+    },
+  },
+  guaranteeRegionDelete: {
+    success: {
+      title: "지역이 삭제되었습니다.",
+      description: "기존 공식보증업체에 저장된 지역명은 남아있습니다.",
+    },
+  },
+  guaranteeRegionRestore: {
+    success: {
+      title: "지역이 복구되었습니다.",
+      description: "",
+    },
+  },
+  guaranteeRegionNameRequired: {
+    error: {
+      title: "지역 이름을 입력해주세요.",
+      description: "",
+    },
+  },
+  guaranteeRegionDuplicate: {
+    error: {
+      title: "같은 이름의 지역이 이미 존재합니다.",
+      description: "",
+    },
+  },
+  guaranteeRegionDuplicateDeleted: {
+    error: {
+      title: "같은 이름의 삭제된 지역이 있습니다.",
+      description: "삭제된 지역 목록에서 복구하여 사용해주세요.",
+    },
+  },
+  guaranteeRegionRestoreConflict: {
     error: {
       title: "복구할 수 없습니다.",
       description: "같은 이름의 지역이 이미 사용 중입니다.",

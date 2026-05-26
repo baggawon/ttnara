@@ -152,6 +152,10 @@ export enum ApiRoute {
   adminGuaranteeDelete = "/api/admin_di2u3k2j/guarantee/delete",
   adminGuaranteeBannerRead = "/api/admin_di2u3k2j/guarantee/banner/read",
   adminGuaranteeBannerUpdate = "/api/admin_di2u3k2j/guarantee/banner/update",
+  adminGuaranteeRegionsRead = "/api/admin_di2u3k2j/guarantee_region/read",
+  adminGuaranteeRegionsUpdate = "/api/admin_di2u3k2j/guarantee_region/update",
+  adminGuaranteeRegionsDelete = "/api/admin_di2u3k2j/guarantee_region/delete",
+  adminGuaranteeRegionsRestore = "/api/admin_di2u3k2j/guarantee_region/restore",
   adminPopupRead = "/api/admin_di2u3k2j/popup/read",
   adminPopupCreate = "/api/admin_di2u3k2j/popup/create",
   adminPopupUpdate = "/api/admin_di2u3k2j/popup/update",
@@ -260,6 +264,7 @@ export enum QueryKey {
   partners = "partners",
   guaranteeCompanies = "guaranteeCompanies",
   guaranteeBanner = "guaranteeBanner",
+  guaranteeRegions = "guaranteeRegions",
   popups = "popups",
   leaderboard = "leaderboard",
   leaderboardUser = "leaderboardUser",
@@ -477,26 +482,6 @@ export enum BroadcastChannels {
 export enum BroadcastEvents {
   SignIn = "signIn",
   SignOut = "signOut",
-}
-
-export enum GuaranteeRegion {
-  서울특별시 = "서울특별시",
-  부산광역시 = "부산광역시",
-  대구광역시 = "대구광역시",
-  인천광역시 = "인천광역시",
-  광주광역시 = "광주광역시",
-  대전광역시 = "대전광역시",
-  울산광역시 = "울산광역시",
-  세종특별자치시 = "세종특별자치시",
-  경기도 = "경기도",
-  강원특별자치도 = "강원특별자치도",
-  충청북도 = "충청북도",
-  충청남도 = "충청남도",
-  전북특별자치도 = "전북특별자치도",
-  전라남도 = "전라남도",
-  경상북도 = "경상북도",
-  경상남도 = "경상남도",
-  제주특별자치도 = "제주특별자치도",
 }
 
 export enum GuaranteePosition {

@@ -467,6 +467,18 @@ export const adminSupportQnaGet = async (
   return null;
 };
 
+export const adminGuaranteeRegionsGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminGuaranteeRegionsRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
 export const adminGuaranteeBannerGet = async (
   router: AppRouterInstance,
   queryClient: QueryClient,

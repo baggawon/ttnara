@@ -637,6 +637,27 @@ export const validateTetherCategoryName = (value?: string) => {
   }
 };
 
+export const validateGuaranteeRegionName = (value?: string) => {
+  if (!value || value.trim() === "") {
+    return "지역 이름을 입력해주세요.";
+  }
+  if (value.length > 100) {
+    return "지역 이름은 100자 이하로 입력해주세요.";
+  }
+};
+
+export const validateGuaranteeRegionDisplayOrder = (
+  value?: number | string
+) => {
+  const num = typeof value === "string" ? parseInt(value, 10) : value;
+  if (num === undefined || Number.isNaN(num)) {
+    return "순서를 입력해주세요.";
+  }
+  if (num < 1) {
+    return "1 이상이어야 합니다.";
+  }
+};
+
 export const validateTradeType = (value?: string) => {
   if (!value || value === "") {
     return "거래를 선택해주세요.";

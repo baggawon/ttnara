@@ -199,7 +199,7 @@ export const BoardPreviewSection = () => {
   return (
     <div className="md:col-span-2 4xl:col-span-1 flex flex-col md:flex-row 4xl:flex-col gap-4">
       {topics.map((topic) => (
-        <div key={topic.id} className="flex-1 min-h-[300px]">
+        <div key={topic.id} className="flex-1 min-w-0 min-h-[300px]">
           <BoardPreviewWidget
             topic={topic}
             onRefresh={handleRefresh}

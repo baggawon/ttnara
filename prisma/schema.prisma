@@ -789,6 +789,15 @@ model guarantee_page_setting {
   updated_at            DateTime @updatedAt
 }
 
+model guarantee_region {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique @db.VarChar(100)
+  display_order Int      @default(1)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+}
+
 model popup {
   id                    Int      @id @default(autoincrement())
   title                 String   @db.VarChar(200)

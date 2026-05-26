@@ -9,12 +9,7 @@ import {
 } from "@/components/ui/popover";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import { publicGuaranteeGet } from "@/helpers/get";
-import {
-  AppRoute,
-  GuaranteePositionLabel,
-  GuaranteeRegion,
-  QueryKey,
-} from "@/helpers/types";
+import { AppRoute, GuaranteePositionLabel, QueryKey } from "@/helpers/types";
 import type { GuaranteePosition } from "@/helpers/types";
 import type { PublicGuaranteeResponse } from "@/app/api/guarantee/list";
 import Image from "next/image";
@@ -24,7 +19,6 @@ import { ExternalLink, Send } from "lucide-react";
 import { GuaranteeHeroBanner } from "./GuaranteeHeroBanner";
 
 const ALL = "전체";
-const regionValues = Object.values(GuaranteeRegion);
 
 export default function GuaranteeListPage() {
   const { data, status } = useGetQuery<PublicGuaranteeResponse, undefined>(
@@ -33,6 +27,11 @@ export default function GuaranteeListPage() {
   );
 
   const [selectedRegion, setSelectedRegion] = useState<string>(ALL);
+
+  const regionNames = useMemo(
+    () => (data?.regions ?? []).map((r) => r.name),
+    [data?.regions]
+  );
 
   const filteredItems = useMemo(() => {
     const items = data?.items ?? [];
@@ -49,7 +48,7 @@ export default function GuaranteeListPage() {
       </h1>
 
       <div className="flex flex-wrap justify-center gap-2 mb-6 border-b pb-4">
-        {[ALL, ...regionValues].map((r) => (
+        {[ALL, ...regionNames].map((r) => (
           <button
             key={r}
             type="button"
