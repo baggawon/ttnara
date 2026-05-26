@@ -31,7 +31,6 @@ export const useAdminUserEditHook = (user_id: string) => {
     adminUserGet,
     { user_id }
   );
-  console.log("Debug userData:", JSON.stringify(userData, null, 2));
   const { data: levelData } = useGetQuery<level_setting, LevelReadProps>(
     {
       queryKey: [QueryKey.levelSettings],
@@ -106,6 +105,10 @@ export const useAdminUserEditHook = (user_id: string) => {
         }
       }
 
+      // Coerce blank email to null so we don't overwrite null → "" and
+      // trip the @unique constraint when multiple legacy users have no email.
+      const normalizedEmail = props.profile.email?.trim() || null;
+
       const editUserData: userUpdateProps = {
         id: props.id,
         is_active: props.is_active,
@@ -117,7 +120,7 @@ export const useAdminUserEditHook = (user_id: string) => {
           displayname: props.profile.displayname,
           is_app_admin: props.profile.is_app_admin,
           point: point,
-          email: props.profile.email,
+          email: normalizedEmail,
           has_warranty: props.profile.has_warranty,
           warranty_deposit_amount: props.profile.warranty_deposit_amount,
         },

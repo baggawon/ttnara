@@ -115,7 +115,7 @@ export default function AdminUsersListForm() {
               ? map(usersData.users, (user) => ({
                   username: user.username,
                   displayname: user.profile?.displayname,
-                  email: user.profile?.email,
+                  email: user.profile?.email || "-",
                   created_at: user.created_at,
                   current_rank_level: user.profile?.current_rank_level,
                   auth_level: user.profile?.auth_level,

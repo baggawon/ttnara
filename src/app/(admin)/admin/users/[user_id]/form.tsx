@@ -41,7 +41,7 @@ export default function AdminUserViewForm({ user_id }: { user_id: string }) {
           <div>
             <h2 className="text-2xl font-bold">{userData?.username}</h2>
             <p className="text-muted-foreground">
-              {userData ? userData.profile?.email : "-"}
+              {userData?.profile?.email || "-"}
             </p>
           </div>
           <div className="flex gap-2">

@@ -99,7 +99,13 @@ export default function AdminUserEditForm({ user_id }: { user_id: string }) {
                           validateNickName(value, userSettingData)
                         }
                       />
-                      <FormInput name="profile.email" label="이메일" />
+                      <FormInput
+                        name="profile.email"
+                        label="이메일"
+                        validate={(value) =>
+                          value ? validateValidEmail(value, "") : undefined
+                        }
+                      />
                     </div>
                   </div>
 
