@@ -86,7 +86,7 @@ export const POST = async (json: OtpProps) => {
         );
 
         if (profile) {
-          throw ToastData.alreadyExistId;
+          throw ToastData.alreadyExistEmail;
         }
 
         const validateData = await handleConnect((prisma) =>

@@ -35,6 +35,8 @@ const SignupView = () => {
     <FormProvider {...methods}>
       <Form onSubmit={trySignup}>
         <CardContent className="flex flex-col gap-4">
+          <DevLogToggle />
+          <EmailValidator validate_type={ApiOtpType.EmailSignup} />
           <FormInput
             name="username"
             validate={validateUserName}
@@ -69,8 +71,6 @@ const SignupView = () => {
             autoComplete="displayname"
             {...setTestId(SignupFormIds.Nickname)}
           />
-          <DevLogToggle />
-          <EmailValidator validate_type={ApiOtpType.EmailSignup} />
           {/* <WithUseWatch name={["request_id", "status", "message"]}>
             {({ status, message }: SignupInitialValues) => (
               <>

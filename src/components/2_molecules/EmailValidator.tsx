@@ -96,8 +96,8 @@ const EmailValidator = ({ validate_type }: { validate_type: ApiOtpType }) => {
 
     if (!isSuccess && hasMessage) {
       toast({ id: hasMessage, type: "error" });
-      setValue("status", ValidateStatus.fail);
-      setValue("message", hasMessage as ToastData);
+      setValue("status", "");
+      setValue("message", undefined);
     } else if (isSuccess && hasData) {
       countdownControllRef.current?.setTimeLeft(1800);
       setValue("request_id", hasData);

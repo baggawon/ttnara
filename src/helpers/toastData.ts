@@ -12,6 +12,8 @@ export enum ToastData {
   notAllowSignup = "notAllowSignup",
   alreadyExistId = "alreadyExistId",
   alreadyExistDisplayname = "alreadyExistDisplayname",
+  alreadyExistEmail = "alreadyExistEmail",
+  alreadyExistIdAndDisplayname = "alreadyExistIdAndDisplayname",
   alreadySend = "alreadySend",
   timeOut = "timeOut",
   otpError = "otpError",
@@ -233,6 +235,18 @@ export const toastData: { [key: string]: any } = {
   alreadyExistDisplayname: {
     error: {
       title: "이미 존재하는 닉네임입니다.",
+      description: "",
+    },
+  },
+  alreadyExistEmail: {
+    error: {
+      title: "이미 가입된 이메일입니다.",
+      description: "",
+    },
+  },
+  alreadyExistIdAndDisplayname: {
+    error: {
+      title: "이미 가입된 아이디와 닉네임입니다.",
       description: "",
     },
   },

@@ -75,7 +75,7 @@ model profile {
   phone_number            String   @default("")
   birthday                String   @default("")
   phone_is_validated      Boolean  @default(false)
-  email                   String   @default("")
+  email                   String?  @unique
   email_is_validated      Boolean  @default(false)
   displayname             String   @unique @db.VarChar(50)
   point                   Int      @default(0)

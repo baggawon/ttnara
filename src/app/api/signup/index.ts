@@ -61,22 +61,26 @@ export const POST = async (json: SignupProps) => {
 
       if (!isValidEmail) throw ToastData.unknown;
 
-      const isUser = await isExistUserId(username);
-      const isExistDisplayname = await handleConnect((prisma) =>
-        prisma.profile.findFirst({
-          where: {
-            displayname,
-          },
-        })
-      );
+      const [isUser, isExistDisplayname, isExistEmail] = await Promise.all([
+        isExistUserId(username),
+        handleConnect((prisma) =>
+          prisma.profile.findFirst({ where: { displayname } })
+        ),
+        handleConnect((prisma) =>
+          prisma.profile.findFirst({ where: { email } })
+        ),
+      ]);
 
       if (isUser) {
         const error = checkUserStatus(isUser);
         if (error) throw error;
-        throw ToastData.alreadyExistId;
       }
 
+      if (isUser && isExistDisplayname)
+        throw ToastData.alreadyExistIdAndDisplayname;
+      if (isUser) throw ToastData.alreadyExistId;
       if (isExistDisplayname) throw ToastData.alreadyExistDisplayname;
+      if (isExistEmail) throw ToastData.alreadyExistEmail;
 
       const hash = await bcrypt.hash(password, 10);
 
