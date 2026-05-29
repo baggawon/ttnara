@@ -75,6 +75,19 @@ export const POST = async (json: RankBadgeAssignProps) => {
             },
             data: { badge_image: null },
           });
+
+          // Keep the denormalized profile snapshot in sync: clear users who
+          // still point at this badge but now fall outside the assigned range.
+          await tx.profile.updateMany({
+            where: {
+              current_rank_image: badge.aws_cloud_front_url,
+              OR: [
+                { current_rank_level: { lt: rangeStart } },
+                { current_rank_level: { gt: rangeEnd } },
+              ],
+            },
+            data: { current_rank_image: null },
+          });
         }
 
         // 2. Apply badge_image to all ranks in the new range
@@ -83,6 +96,13 @@ export const POST = async (json: RankBadgeAssignProps) => {
             rank_level: { gte: rangeStart, lte: rangeEnd },
           },
           data: { badge_image: badge.aws_cloud_front_url },
+        });
+
+        // Propagate to the denormalized profile snapshot so existing users at
+        // these ranks pick up the new badge without waiting for a re-evaluation.
+        await tx.profile.updateMany({
+          where: { current_rank_level: { gte: rangeStart, lte: rangeEnd } },
+          data: { current_rank_image: badge.aws_cloud_front_url },
         });
 
         // 3. Update assignment record on the badge

@@ -53,6 +53,12 @@ export const POST = async (json: RankBadgeUnassignProps) => {
           data: { badge_image: null },
         });
 
+        // Keep the denormalized profile snapshot in sync with the rank config.
+        await tx.profile.updateMany({
+          where: { current_rank_image: badge.aws_cloud_front_url },
+          data: { current_rank_image: null },
+        });
+
         await tx.rank_badge_image.update({
           where: { id: badge.id },
           data: {

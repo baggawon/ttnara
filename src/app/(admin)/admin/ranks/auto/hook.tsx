@@ -2,7 +2,7 @@
 
 import { useToast } from "@/components/ui/use-toast";
 import { postJson, refreshCache } from "@/helpers/common";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ToastData } from "@/helpers/toastData";
 import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
 import { useRouter } from "next/navigation";
@@ -51,12 +51,10 @@ export const useAdminRanksAutoCreateHook = () => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
-  const submit = async (props: AutoCreateProps) => {
-    try {
-      setLoading();
-
+  const submitMutation = useMutation({
+    mutationFn: async (props: AutoCreateProps) => {
       // Calculate all ranks first
       const allRanks = [];
       for (let i = 1; i <= props.maxRank; i++) {
@@ -88,15 +86,19 @@ export const useAdminRanksAutoCreateHook = () => {
 
       refreshCache(queryClient, QueryKey.ranks);
       goBack();
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Error during rank creation:", error);
       toast({
         id: ToastData.rankBatchCreate,
         type: "error",
       });
-    } finally {
-      disableLoading();
-    }
+    },
+  });
+
+  const submit = (props: AutoCreateProps) => {
+    if (submitMutation.isPending) return;
+    submitMutation.mutate(props);
   };
 
   const calculatePreviewRanks = (

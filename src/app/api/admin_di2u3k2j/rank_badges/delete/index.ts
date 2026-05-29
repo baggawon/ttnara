@@ -28,6 +28,13 @@ export const POST = async (json: RankBadgeDeleteProps) => {
           data: { badge_image: null },
         });
 
+        // Clear the denormalized profile snapshot too; otherwise users keep
+        // pointing at the just-deleted S3 object and render a broken image.
+        await tx.profile.updateMany({
+          where: { current_rank_image: row.aws_cloud_front_url },
+          data: { current_rank_image: null },
+        });
+
         await tx.rank_badge_image.delete({ where: { id } });
         return row;
       });

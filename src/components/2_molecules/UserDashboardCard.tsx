@@ -13,7 +13,9 @@ export const UserDashboardCard = ({ className }: { className?: string }) => {
     {
       queryKey: [QueryKey.userSettings],
     },
-    adminUserSettingGet
+    adminUserSettingGet,
+    undefined,
+    { silent: true }
   );
 
   return (

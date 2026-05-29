@@ -9,6 +9,13 @@ import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
+// Pass { silent: true } to keep the global loading overlay out of this query's
+// status transitions. Used while we migrate away from the counter-overlay
+// pattern toward local pending state / Suspense.
+export interface UseGetQueryOptions {
+  silent?: boolean;
+}
+
 const useGetQuery = <T, B>(
   queryIncludeOption: UseQueryOptions<T, any, T, any>,
   queryFunction: (
@@ -16,7 +23,8 @@ const useGetQuery = <T, B>(
     queryClient: QueryClient,
     queryData?: B
   ) => Promise<T>,
-  queryData?: B
+  queryData?: B,
+  options?: UseGetQueryOptions
 ): { data: T | null; status: string } => {
   const router = useRouter();
   const { setLoading, disableLoading, queryClient } = useLoadingHandler();
@@ -47,9 +55,11 @@ const useGetQuery = <T, B>(
     dependency: [queryResponse?.error, queryResponse?.status],
   });
 
+  const silent = options?.silent === true;
   const prevStatus = useRef("");
   useEffectFunctionHook({
     Function: () => {
+      if (silent) return;
       if (
         queryResponse?.status &&
         (queryIncludeOption?.enabled === true ||

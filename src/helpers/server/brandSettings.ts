@@ -11,6 +11,8 @@ export interface BrandSettings {
   logoImageUrl: string | null;
   faviconUrl: string | null;
   appleIconUrl: string | null;
+  heroImageUrl: string | null;
+  heroActionUrl: string | null;
 }
 
 // Neutral fallback used only when the DB row is missing (fresh deploy with no
@@ -23,6 +25,8 @@ const DEFAULT_BRAND: BrandSettings = {
   logoImageUrl: null,
   faviconUrl: null,
   appleIconUrl: null,
+  heroImageUrl: null,
+  heroActionUrl: null,
 };
 
 const parseKeywords = (raw: string | null | undefined): string[] => {
@@ -50,6 +54,8 @@ export const getBrandSettings = cache(async (): Promise<BrandSettings> => {
           logo_image_url: true,
           favicon_url: true,
           apple_icon_url: true,
+          hero_image_url: true,
+          hero_action_url: true,
         },
       })
     );
@@ -71,6 +77,10 @@ export const getBrandSettings = cache(async (): Promise<BrandSettings> => {
       appleIconUrl: row.apple_icon_url
         ? signStoredCloudFrontUrl(row.apple_icon_url)
         : faviconUrl,
+      heroImageUrl: row.hero_image_url
+        ? signStoredCloudFrontUrl(row.hero_image_url)
+        : null,
+      heroActionUrl: row.hero_action_url?.trim() || null,
     };
   } catch {
     return DEFAULT_BRAND;

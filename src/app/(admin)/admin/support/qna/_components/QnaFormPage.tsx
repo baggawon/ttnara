@@ -20,7 +20,7 @@ import SimpleMarkdownEditor from "@/components/2_molecules/Input/SimpleMarkdownE
 import { useToast } from "@/components/ui/use-toast";
 
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { postJson, refreshCache } from "@/helpers/common";
 import {
   adminSupportQnaCategoriesGet,
@@ -63,7 +63,7 @@ interface QnaFormPageProps {
 export default function QnaFormPage({ qnaId }: QnaFormPageProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEdit = qnaId !== null && qnaId > 0;
@@ -77,7 +77,8 @@ export default function QnaFormPage({ qnaId }: QnaFormPageProps) {
   >(
     { queryKey: [QueryKey.adminSupportQnaCategories] },
     adminSupportQnaCategoriesGet,
-    { page: 1, pageSize: 200, is_active: true }
+    { page: 1, pageSize: 200, is_active: true },
+    { silent: true }
   );
 
   const { data: qnaData } = useGetQuery<
@@ -91,7 +92,8 @@ export default function QnaFormPage({ qnaId }: QnaFormPageProps) {
     adminSupportQnaGet,
     isEdit
       ? ({ id: qnaId as number } as unknown as SupportQnaReadProps)
-      : ({ page: 1, pageSize: 1 } as SupportQnaReadProps)
+      : ({ page: 1, pageSize: 1 } as SupportQnaReadProps),
+    { silent: true }
   );
 
   const methods = useForm<QnaFormValues>({ defaultValues: DEFAULT_VALUES });
@@ -146,7 +148,6 @@ export default function QnaFormPage({ qnaId }: QnaFormPageProps) {
       return;
     }
 
-    setLoading();
     setIsSubmitting(true);
     try {
       const payload = {
@@ -177,7 +178,6 @@ export default function QnaFormPage({ qnaId }: QnaFormPageProps) {
     } catch (error) {
       toast({ id: ToastData.unknown, type: "error" });
     } finally {
-      disableLoading();
       setIsSubmitting(false);
     }
   };

@@ -9,7 +9,15 @@ import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
 
-export const RightWidgets = () => {
+interface RightWidgetsProps {
+  showPriceCalc?: boolean;
+  showPriceTicker?: boolean;
+}
+
+export const RightWidgets = ({
+  showPriceCalc = true,
+  showPriceTicker = true,
+}: RightWidgetsProps = {}) => {
   const calculatorRef = useRef<CalculatorWidgetRef | null>(null);
   const pathname = usePathname();
 
@@ -28,8 +36,8 @@ export const RightWidgets = () => {
   });
   return (
     <section className="min-w-[240px] max-w-[240px] h-fit hidden flex-col xl:flex gap-3 sticky top-4 mt-4">
-      <CalculatorWidget calculatorRef={calculatorRef} />
-      <PriceWidget calculatorRef={calculatorRef} />
+      {showPriceCalc && <CalculatorWidget calculatorRef={calculatorRef} />}
+      {showPriceTicker && <PriceWidget calculatorRef={calculatorRef} />}
       <PartnerBanners variant="sidebar" />
     </section>
   );

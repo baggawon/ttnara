@@ -9,8 +9,8 @@ import { forEach } from "@/helpers/basic";
 import { decimalToNumber, postJson } from "@/helpers/common";
 import { useUserGuard } from "@/helpers/customHook/useGuard";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { tetherDefault } from "@/helpers/defaultValue";
+import { useMutation } from "@tanstack/react-query";
 import {
   attachedMediaGet,
   tethersGet,
@@ -44,7 +44,9 @@ export const useTetherEditHook = (tether_id?: number) => {
     {
       queryKey: [QueryKey.account],
     },
-    userGet
+    userGet,
+    undefined,
+    { silent: true }
   );
 
   const { data: tethersData } = useGetQuery<TetherListResponse, any>(
@@ -53,7 +55,8 @@ export const useTetherEditHook = (tether_id?: number) => {
       staleTime: Infinity,
     },
     tethersGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const { data: tetherSettings } = useGetQuery<TetherPublicSettings, undefined>(
@@ -61,7 +64,9 @@ export const useTetherEditHook = (tether_id?: number) => {
       queryKey: [QueryKey.tetherSettings],
       staleTime: Infinity,
     },
-    tetherSettingsGet
+    tetherSettingsGet,
+    undefined,
+    { silent: true }
   );
 
   const { data: attachedMedia } = useGetQuery<
@@ -78,7 +83,8 @@ export const useTetherEditHook = (tether_id?: number) => {
       enabled: !!tether_id && tether_id > 0,
     },
     attachedMediaGet,
-    { attached_to_type: "tether", attached_to_id: tether_id ?? 0 }
+    { attached_to_type: "tether", attached_to_id: tether_id ?? 0 },
+    { silent: true }
   );
 
   const router = useRouter();
@@ -116,59 +122,55 @@ export const useTetherEditHook = (tether_id?: number) => {
   };
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
-
-  const editSave = async (props: InnerTetherWithProfile) => {
-    setLoading();
-
-    if (props.price_type === TetherPriceTypes.Fixed) {
-      props.margin = null;
-    } else if (props.price_type === TetherPriceTypes.Margin) {
-      props.price = null;
-    } else if (props.price_type === TetherPriceTypes.Negotiation) {
-      props.price = null;
-      props.margin = null;
-    }
-
-    forEach(["price", "margin", "custom_address"], (key) => {
-      if ((props as any)[key] === "" || (props as any)[key] === undefined) {
-        (props as any)[key] = null;
+  const editSaveMutation = useMutation({
+    mutationFn: async (props: InnerTetherWithProfile) => {
+      if (props.price_type === TetherPriceTypes.Fixed) {
+        props.margin = null;
+      } else if (props.price_type === TetherPriceTypes.Margin) {
+        props.price = null;
+      } else if (props.price_type === TetherPriceTypes.Negotiation) {
+        props.price = null;
+        props.margin = null;
       }
-    });
 
-    forEach(["price", "margin", "min_qty", "max_qty"], (key) => {
-      if ((props as any)[key] !== null) {
-        if (typeof (props as any)[key]?.toNumber === "function") {
-          (props as any)[key] = (props as any)[key].toNumber();
-        } else {
-          (props as any)[key] = Number(
-            String((props as any)[key]).replaceAll(",", "")
-          );
-        }
-      }
-    });
-
-    if (props.hide_contact) {
-      props.contact_method = null;
-      props.contact_id = null;
-      props.preferred_time = null;
-    } else {
-      forEach(["contact_method", "contact_id", "preferred_time"], (key) => {
+      forEach(["price", "margin", "custom_address"], (key) => {
         if ((props as any)[key] === "" || (props as any)[key] === undefined) {
           (props as any)[key] = null;
         }
       });
-    }
 
-    if (props.user) {
-      props.user = null;
-    }
-    if (props.tether_proposals?.length > 0) {
-      props.tether_proposals = [];
-    }
-    delete (props as any).region_selections;
+      forEach(["price", "margin", "min_qty", "max_qty"], (key) => {
+        if ((props as any)[key] !== null) {
+          if (typeof (props as any)[key]?.toNumber === "function") {
+            (props as any)[key] = (props as any)[key].toNumber();
+          } else {
+            (props as any)[key] = Number(
+              String((props as any)[key]).replaceAll(",", "")
+            );
+          }
+        }
+      });
 
-    try {
+      if (props.hide_contact) {
+        props.contact_method = null;
+        props.contact_id = null;
+        props.preferred_time = null;
+      } else {
+        forEach(["contact_method", "contact_id", "preferred_time"], (key) => {
+          if ((props as any)[key] === "" || (props as any)[key] === undefined) {
+            (props as any)[key] = null;
+          }
+        });
+      }
+
+      if (props.user) {
+        props.user = null;
+      }
+      if (props.tether_proposals?.length > 0) {
+        props.tether_proposals = [];
+      }
+      delete (props as any).region_selections;
+
       const { isSuccess, hasMessage } = await postJson<TetherUpdateProps>(
         ApiRoute.tethersUpdate,
         props as unknown as TetherUpdateProps
@@ -181,13 +183,15 @@ export const useTetherEditHook = (tether_id?: number) => {
         methods.reset(tetherDefault() as any);
         goBackList();
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const editSave = (props: InnerTetherWithProfile) => {
+    if (editSaveMutation.isPending) return;
+    editSaveMutation.mutate(props);
   };
 
   return {
@@ -198,5 +202,6 @@ export const useTetherEditHook = (tether_id?: number) => {
     goBackList,
     editSave,
     userData,
+    isSubmitting: editSaveMutation.isPending,
   };
 };

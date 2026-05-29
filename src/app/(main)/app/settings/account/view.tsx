@@ -29,7 +29,7 @@ import EmailValidator from "@/components/2_molecules/EmailValidator";
 import { ApiOtpType } from "@/helpers/types";
 import { isCuid } from "@paralleldrive/cuid2";
 import FormDialog from "@/components/1_atoms/FormDialog";
-import { UserCircle2, KeyRound, Mail } from "lucide-react";
+import { UserCircle2, KeyRound, Mail, Loader2 } from "lucide-react";
 
 export enum SettingsFormIds {
   password = "password",
@@ -39,8 +39,14 @@ export enum SettingsFormIds {
 }
 
 const SettingsView = () => {
-  const { methods, trySave, userSettingData, dialogControllRef, createRef } =
-    SettingsHook();
+  const {
+    methods,
+    trySave,
+    userSettingData,
+    dialogControllRef,
+    createRef,
+    isSubmitting,
+  } = SettingsHook();
   return (
     <FormProvider {...methods}>
       <Form onSubmit={trySave}>
@@ -170,8 +176,13 @@ const SettingsView = () => {
             <Button
               className="w-full sm:w-auto sm:min-w-32"
               type="submit"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
               {...setTestId(SettingsFormIds.submit)}
             >
+              {isSubmitting && (
+                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+              )}
               저장
             </Button>
           </div>

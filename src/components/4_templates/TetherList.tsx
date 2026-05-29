@@ -85,7 +85,9 @@ export const TetherList = ({
     {
       queryKey: [QueryKey.session],
     },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   const canWrite = session?.user !== null && session?.user !== undefined;
@@ -236,7 +238,8 @@ export const TetherList = ({
       refetchInterval: tetherDataInterval * 1000,
     },
     tethersGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const methods = useForm<TethersReadProps>({

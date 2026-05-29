@@ -2,7 +2,6 @@
 
 import { useToast } from "@/components/ui/use-toast";
 import { ApiRoute, AppRoute, TetherStatus } from "@/helpers/types";
-import useLoadingHandler from "@/helpers/customHook//useLoadingHandler";
 import type { TetherPublicWithProfile } from "@/app/api/tethers/read";
 import { get } from "@/helpers/common";
 import { useRouter } from "next/navigation";
@@ -15,8 +14,6 @@ export const useTetherGoDetail = (session: Session | null | undefined) => {
   const router = useRouter();
 
   const { toast } = useToast();
-
-  useLoadingHandler();
 
   const goDetail = async (tether: TetherPublicWithProfile) => {
     if (!canWrite) {

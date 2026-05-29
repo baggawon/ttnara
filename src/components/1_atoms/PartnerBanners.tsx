@@ -23,7 +23,9 @@ export const PartnerBanners = ({
     {
       queryKey: [QueryKey.partners],
     },
-    partnersGet
+    partnersGet,
+    undefined,
+    { silent: true }
   );
 
   return (

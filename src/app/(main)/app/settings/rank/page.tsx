@@ -24,7 +24,9 @@ import { RankBadge } from "@/components/1_atoms/rank/RankBadge";
 export default function Page() {
   const { data } = useGetQuery<RankSummaryResponse | null, undefined>(
     { queryKey: [QueryKey.rankSummary] },
-    rankSummaryGet
+    rankSummaryGet,
+    undefined,
+    { silent: true }
   );
 
   const ranks = data?.ranks ?? [];

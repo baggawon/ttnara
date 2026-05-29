@@ -26,7 +26,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useRef, useEffect } from "react";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { postFormData, refreshCache } from "@/helpers/common";
 import { ToastData } from "@/helpers/toastData";
@@ -86,7 +86,7 @@ function PopupSheetForm({
   isEdit = false,
 }: PopupSheetFormProps) {
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const imageFileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(
@@ -242,7 +242,6 @@ function PopupSheetForm({
       formData.append("remove_image", "true");
     }
 
-    setLoading();
     setIsSubmitting(true);
     try {
       let result: { isSuccess: boolean; hasMessage?: string } = {
@@ -273,7 +272,6 @@ function PopupSheetForm({
         type: "error",
       });
     } finally {
-      disableLoading();
       setIsSubmitting(false);
     }
   };

@@ -17,7 +17,9 @@ export const useTetherEnabled = (): boolean => {
       queryKey: [QueryKey.tetherSettings],
       staleTime: Infinity,
     },
-    tetherSettingsGet
+    tetherSettingsGet,
+    undefined,
+    { silent: true }
   );
   return data ? data.use_tether_board : true;
 };

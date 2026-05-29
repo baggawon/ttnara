@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SwitchInput } from "@/components/2_molecules/Input/SwitchInput";
 import Form from "@/components/1_atoms/Form";
+import ResetPasswordCard from "@/app/(admin)/admin/users/[user_id]/edit/ResetPasswordCard";
 import {
   validateAuthLevel,
   validateNickName,
@@ -48,6 +49,7 @@ export default function AdminUserEditForm({ user_id }: { user_id: string }) {
     goBackList,
     submit,
     cancelEdit,
+    isSubmitting,
   } = useAdminUserEditHook(user_id);
 
   const kycStatus = getKycStatus(userData?.profile?.kyc_id);
@@ -79,7 +81,12 @@ export default function AdminUserEditForm({ user_id }: { user_id: string }) {
                 >
                   취소
                 </Button>
-                <Button type="submit" size="sm">
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isSubmitting}
+                  aria-busy={isSubmitting}
+                >
                   저장
                 </Button>
               </div>
@@ -309,6 +316,9 @@ export default function AdminUserEditForm({ user_id }: { user_id: string }) {
           </Form>
         )}
       </FormProvider>
+      {userData && (
+        <ResetPasswordCard userId={user_id} username={userData.username} />
+      )}
     </section>
   );
 }

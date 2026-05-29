@@ -22,11 +22,17 @@ type Params = Promise<{ topic: string; category: string }>;
 export default function BoardTopics(props: { params: Params }) {
   const params = use(props.params);
 
-  const { methods, topicsData, categoriesData, goBackList, editSave } =
-    useAdminTopicCategoriesEditHook(
-      Number(params.topic),
-      Number(params.category)
-    );
+  const {
+    methods,
+    topicsData,
+    categoriesData,
+    goBackList,
+    editSave,
+    isSubmitting,
+  } = useAdminTopicCategoriesEditHook(
+    Number(params.topic),
+    Number(params.category)
+  );
 
   return (
     <FormProvider {...methods}>
@@ -66,7 +72,13 @@ export default function BoardTopics(props: { params: Params }) {
             <Button type="button" onClick={goBackList} variant="outline">
               목록으로
             </Button>
-            <Button type="submit">저장</Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            >
+              저장
+            </Button>
           </div>
         </section>
       </Form>

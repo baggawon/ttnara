@@ -21,7 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { postFormData, refreshCache } from "@/helpers/common";
 import { ToastData } from "@/helpers/toastData";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -61,7 +61,7 @@ export default function LinkCardsSheet({
   isEdit = false,
 }: LinkCardSheetFormProps) {
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const iconInputRef = useRef<HTMLInputElement>(null);
   const [selectedIconFile, setSelectedIconFile] = useState<File | null>(null);
   const [iconPreviewUrl, setIconPreviewUrl] = useState<string | null>(
@@ -153,7 +153,6 @@ export default function LinkCardsSheet({
     if (selectedIconFile) formData.append("iconImage", selectedIconFile);
     if (removeIcon) formData.append("removeIcon", "true");
 
-    setLoading();
     setIsSubmitting(true);
     try {
       const result = isEdit
@@ -174,7 +173,6 @@ export default function LinkCardsSheet({
     } catch (error) {
       toast({ id: ToastData.unknown, type: "error" });
     } finally {
-      disableLoading();
       setIsSubmitting(false);
     }
   };

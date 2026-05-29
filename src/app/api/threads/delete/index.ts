@@ -33,6 +33,16 @@ export const POST = async (json: threadDeleteProps) => {
     const topicSettings = topics[json.topic_url];
     const topic_id = topics[json.topic_url].id;
 
+    // Card-format home topics are managed exclusively from the admin-side
+    // dedicated CRUD pages; reject deletes via the conventional flow.
+    if (topicSettings?.fullview_on_homepage) {
+      return {
+        result: false,
+        message:
+          "메인 홈 카드형 게시판은 관리자 페이지에서만 삭제할 수 있습니다.",
+      };
+    }
+
     try {
       const access = await BoardAccessService.fromSession({
         session,

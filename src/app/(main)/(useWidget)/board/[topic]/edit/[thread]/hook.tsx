@@ -7,7 +7,6 @@ import { forEach } from "@/helpers/basic";
 import { postFormData, refreshCache } from "@/helpers/common";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { threadDefault } from "@/helpers/defaultValue";
 import { attachedMediaGet, threadGet, topicSettingsGet } from "@/helpers/get";
 import type { MediaUploadResult } from "@/app/api/uploads/media";
@@ -17,6 +16,7 @@ import { stripCloudFrontSignaturesClient } from "@/helpers/uploadUtil";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { useSession } from "next-auth/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 // import useBoardAccessControl from "@/helpers/customHook/useBoardAccessContol";
 
 export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
@@ -30,7 +30,8 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
       staleTime: Infinity,
     },
     topicSettingsGet, // New API endpoint needed
-    { topic_url }
+    { topic_url },
+    { silent: true }
   );
 
   // Get specific thread if editing
@@ -44,7 +45,8 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
       enabled: thread_id > 0,
     },
     threadGet,
-    { topic_url, thread_id }
+    { topic_url, thread_id },
+    { silent: true }
   );
 
   const { data: attachedMedia } = useGetQuery<
@@ -59,7 +61,8 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
       enabled: thread_id > 0,
     },
     attachedMediaGet,
-    { attached_to_type: "thread", attached_to_id: thread_id }
+    { attached_to_type: "thread", attached_to_id: thread_id },
+    { silent: true }
   );
 
   // const accessControl = useBoardAccessControl({ topicSettings, currentThread });
@@ -113,58 +116,53 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
   };
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
-  const submit = async (props: ThreadWithProfile) => {
-    // Only check for currentThread if we're editing an existing thread
-    if (props.id !== 0 && !currentThread) {
-      return;
-    }
+  const submitMutation = useMutation({
+    mutationFn: async (props: ThreadWithProfile) => {
+      // Only check for currentThread if we're editing an existing thread
+      if (props.id !== 0 && !currentThread) {
+        return;
+      }
 
-    // Ensure we have topicSettings before proceeding
-    if (!topicSettings?.id) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
+      // Ensure we have topicSettings before proceeding
+      if (!topicSettings?.id) {
+        toast({ id: ToastData.unknown, type: "error" });
+        return;
+      }
+
+      // Ensure topic_id is set correctly
+      if (props.id === 0) {
+        props.topic_id = topicSettings.id;
+      }
+
+      forEach(["category_id"], (key) => {
+        if (
+          (props as any)[key] === "" ||
+          (props as any)[key] === undefined ||
+          (props as any)[key] === -1
+        ) {
+          (props as any)[key] = null;
+        } else if ((props as any)[key] !== null) {
+          (props as any)[key] = Number((props as any)[key]);
+        }
       });
-      return;
-    }
 
-    // Ensure topic_id is set correctly
-    if (props.id === 0) {
-      props.topic_id = topicSettings.id;
-    }
+      forEach(
+        ["topic_id", "topic_order", "views", "upvotes", "downvotes"],
+        (key) => {
+          (props as any)[key] = Number((props as any)[key]);
+        }
+      );
 
-    setLoading();
-
-    forEach(["category_id"], (key) => {
-      if (
-        (props as any)[key] === "" ||
-        (props as any)[key] === undefined ||
-        (props as any)[key] === -1
-      ) {
-        (props as any)[key] = null;
-      } else if ((props as any)[key] !== null) {
-        (props as any)[key] = Number((props as any)[key]);
+      if (props.author) {
+        props.author = null;
       }
-    });
 
-    forEach(
-      ["topic_id", "topic_order", "views", "upvotes", "downvotes"],
-      (key) => {
-        (props as any)[key] = Number((props as any)[key]);
-      }
-    );
+      const formData = new FormData();
+      formData.append("json", JSON.stringify(props));
+      formData.append("topic_url", topic_url);
 
-    if (props.author) {
-      props.author = null;
-    }
-
-    const formData = new FormData();
-    formData.append("json", JSON.stringify(props));
-    formData.append("topic_url", topic_url);
-
-    try {
       const { isSuccess, hasMessage } = await postFormData(
         ApiRoute.threadsUpdate,
         formData
@@ -180,13 +178,15 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
         refreshCache(queryClient, QueryKey.threads);
         goBackList();
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const submit = (props: ThreadWithProfile) => {
+    if (submitMutation.isPending) return;
+    submitMutation.mutate(props);
   };
 
   return {
@@ -195,5 +195,6 @@ export const useThreadsEditHook = (topic_url: string, thread_id: number) => {
     attachedMedia,
     goBackList,
     submit,
+    isSubmitting: submitMutation.isPending,
   };
 };

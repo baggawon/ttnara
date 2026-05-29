@@ -8,8 +8,8 @@ import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import { postJson } from "@/helpers/common";
 import type { messageUpdateProps } from "@/app/api/message/update";
 import { updateTargetMessageCache } from "@/helpers/optimistic";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import useMessageDelete from "@/helpers/customHook/useMessageDelete";
+import { useQueryClient } from "@tanstack/react-query";
 
 const MessageInboxDetailHook = (messageId: string) => {
   const router = useRouter();
@@ -19,7 +19,8 @@ const MessageInboxDetailHook = (messageId: string) => {
       queryKey: [QueryKey.message],
     },
     messageGet,
-    { history: true, inbox: true }
+    { history: true, inbox: true },
+    { silent: true }
   );
 
   const messageIndex = messagesData?.inbox?.findIndex(
@@ -53,7 +54,7 @@ const MessageInboxDetailHook = (messageId: string) => {
     }
   };
 
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   useEffectFunctionHook({
     Function: () => {

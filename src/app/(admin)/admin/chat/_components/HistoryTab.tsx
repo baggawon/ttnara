@@ -16,7 +16,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { RotateCw } from "lucide-react";
 
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminChatHistoryGet, adminChatTopicsGet } from "@/helpers/get";
 import { postJson, refreshCache } from "@/helpers/common";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -76,11 +76,13 @@ const ACTION_LABEL: Record<string, { label: string; tone: "warn" | "danger" }> =
 
 export default function HistoryTab() {
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   const { data: topics } = useGetQuery<TopicOption[] | null, undefined>(
     { queryKey: [QueryKey.adminChatTopics] },
-    adminChatTopicsGet
+    adminChatTopicsGet,
+    undefined,
+    { silent: true }
   );
 
   const [topicId, setTopicId] = useState<string>("all");
@@ -99,7 +101,8 @@ export default function HistoryTab() {
   const { data } = useGetQuery<PaginatedHistory | null, typeof queryParams>(
     { queryKey: [{ [QueryKey.chatHistory]: queryParams }] },
     adminChatHistoryGet,
-    queryParams
+    queryParams,
+    { silent: true }
   );
 
   const rows = data?.messages ?? [];

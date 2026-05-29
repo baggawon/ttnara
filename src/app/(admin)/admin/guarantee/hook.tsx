@@ -13,7 +13,6 @@ import Image from "next/image";
 
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { adminGuaranteeGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
@@ -27,7 +26,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { forEach, getBoolean } from "@/helpers/basic";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 
 dayjs.extend(utc);
@@ -80,12 +79,13 @@ export const useAdminGuaranteeListHook = () => {
       queryKey: [{ [QueryKey.guaranteeCompanies]: pagination }],
     },
     adminGuaranteeGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const isLoading = status === "pending" || listData === null;
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const deleteMutation = useMutation({
     mutationFn: deleteItems,
     onSuccess: () => {

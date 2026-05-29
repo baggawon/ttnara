@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminChatBannedWordsGet } from "@/helpers/get";
 import { postJson, refreshCache } from "@/helpers/common";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -21,10 +21,12 @@ interface BannedWord {
 
 export default function BannedWordsTab() {
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const { data } = useGetQuery<BannedWord[] | null, undefined>(
     { queryKey: [QueryKey.chatBannedWords] },
-    adminChatBannedWordsGet
+    adminChatBannedWordsGet,
+    undefined,
+    { silent: true }
   );
   const words = data ?? [];
 

@@ -158,7 +158,9 @@ const useBoardAccessControl = ({
       retry: false,
       throwOnError: false,
     },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   // Only attempt to get user data if we have a session
@@ -170,7 +172,9 @@ const useBoardAccessControl = ({
       retry: false,
       throwOnError: false,
     },
-    userGet
+    userGet,
+    undefined,
+    { silent: true }
   );
 
   // Update permissions whenever session, userData, or topic changes

@@ -7,7 +7,7 @@ import type { thread_setting } from "@prisma/client";
 import type { GeneralReadProps } from "@/app/api/admin_di2u3k2j/settings/general/read";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ToastData } from "@/helpers/toastData";
 import { ApiRoute, QueryKey } from "@/helpers/types";
 import { useForm } from "react-hook-form";
@@ -22,7 +22,9 @@ export const useAdminThreadGeneralEditHook = () => {
     {
       queryKey: [QueryKey.threadSettings],
     },
-    adminThreadGeneralSettingsGet
+    adminThreadGeneralSettingsGet,
+    undefined,
+    { silent: true }
   );
 
   const methods = useForm<thread_setting>({
@@ -42,43 +44,42 @@ export const useAdminThreadGeneralEditHook = () => {
   });
 
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
-  const submit = async (props: thread_setting) => {
-    setLoading();
-    cleanFormData(props, {
-      keysToNullify: ["default_topic_id"],
-      keysToNumber: [
-        "post_delete_days",
-        "post_search_limit",
-        "post_interval_seconds",
-        "max_thread_title_length",
-        "max_thread_content_length",
-        "max_thread_comment_length",
-        "min_thread_title_length",
-        "min_thread_content_length",
-        "min_thread_comment_length",
-        "level_read",
-        "level_create",
-        "level_comment",
-        "level_download",
-        "level_moderator",
-        "max_file_size_mb",
-        "max_upload_items",
-        "thread_page_size",
-        "thread_page_nav_size",
-        "points_per_post_create",
-        "points_per_post_read",
-        "points_per_comment_create",
-        "points_per_file_download",
-        "points_per_upvote",
-        "points_per_downvote",
-        "thread_disable_edit",
-        "thread_disable_delete",
-      ],
-    });
+  const submitMutation = useMutation({
+    mutationFn: async (props: thread_setting) => {
+      cleanFormData(props, {
+        keysToNullify: ["default_topic_id"],
+        keysToNumber: [
+          "post_delete_days",
+          "post_search_limit",
+          "post_interval_seconds",
+          "max_thread_title_length",
+          "max_thread_content_length",
+          "max_thread_comment_length",
+          "min_thread_title_length",
+          "min_thread_content_length",
+          "min_thread_comment_length",
+          "level_read",
+          "level_create",
+          "level_comment",
+          "level_download",
+          "level_moderator",
+          "max_file_size_mb",
+          "max_upload_items",
+          "thread_page_size",
+          "thread_page_nav_size",
+          "points_per_post_create",
+          "points_per_post_read",
+          "points_per_comment_create",
+          "points_per_file_download",
+          "points_per_upvote",
+          "points_per_downvote",
+          "thread_disable_edit",
+          "thread_disable_delete",
+        ],
+      });
 
-    try {
       const { isSuccess, hasMessage } =
         await postJson<threadGeneralSettingsUpdateProps>(
           ApiRoute.adminThreadSettingsGeneralUpdate,
@@ -92,18 +93,21 @@ export const useAdminThreadGeneralEditHook = () => {
         methods.reset(props);
         refreshCache(queryClient, QueryKey.threadSettings);
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const submit = (props: thread_setting) => {
+    if (submitMutation.isPending) return;
+    submitMutation.mutate(props);
   };
 
   return {
     methods,
     threadSettingsData,
     submit,
+    isSubmitting: submitMutation.isPending,
   };
 };

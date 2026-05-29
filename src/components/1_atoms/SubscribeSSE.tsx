@@ -3,8 +3,8 @@
 import { useRef } from "react";
 
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import useGetQuery from "../../helpers/customHook/useGetQuery";
+import { useQueryClient } from "@tanstack/react-query";
 import { QueryKey } from "@/helpers/types";
 import type { Session } from "next-auth";
 import { sessionGet } from "@/helpers/get";
@@ -12,14 +12,16 @@ import type { UserUpdateEvent } from "@/lib/eventEmitter";
 import { refreshCache } from "@/helpers/common";
 
 const SubscribeSSE = () => {
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const { data: session } = useGetQuery<Session | null | undefined, undefined>(
     {
       queryKey: [QueryKey.session],
     },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   useEffectFunctionHook({

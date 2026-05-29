@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminRanksGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
@@ -41,7 +41,8 @@ export const useAdminRanksHook = () => {
       queryKey: [{ [QueryKey.ranks]: pagination }],
     },
     adminRanksGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const updatePagination = () => {
@@ -170,11 +171,13 @@ export const useAdminRanksHook = () => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
+  const [isWorking, setIsWorking] = useState(false);
 
   const deleteRank = async (index: number) => {
     if (!ranksData) return;
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } = await postJson<RanksDeleteProps>(
         ApiRoute.adminRanksDelete,
@@ -190,7 +193,7 @@ export const useAdminRanksHook = () => {
         type: "error",
       });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const newCreateRank = () => {
@@ -245,7 +248,7 @@ interface RanksBatchEditRequest {
 
 export const useAdminRanksBatchEditHook = (onSuccess?: () => void) => {
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm<RanksBatchEditForm>({
@@ -268,7 +271,6 @@ export const useAdminRanksBatchEditHook = (onSuccess?: () => void) => {
     }
 
     setIsLoading(true);
-    setLoading();
 
     try {
       const request: RanksBatchEditRequest = {
@@ -304,7 +306,6 @@ export const useAdminRanksBatchEditHook = (onSuccess?: () => void) => {
       });
     } finally {
       setIsLoading(false);
-      disableLoading();
     }
   };
 

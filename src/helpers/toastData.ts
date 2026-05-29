@@ -169,11 +169,27 @@ export enum ToastData {
   supportQnaDelete = "supportQnaDelete",
   supportQnaDeleteFailed = "supportQnaDeleteFailed",
   insufficientPoints = "insufficientPoints",
+  emailTemplateUpdate = "emailTemplateUpdate",
+  emailTemplateUpdateFailed = "emailTemplateUpdateFailed",
+  emailSenderSave = "emailSenderSave",
+  emailSenderSaveFailed = "emailSenderSaveFailed",
 }
 
 export const toastData: { [key: string]: any } = {
   requestValidate: {
     success: { title: "인증메일이 발송되었습니다.", description: "" },
+  },
+  emailTemplateUpdate: {
+    success: { title: "이메일 양식이 저장되었습니다.", description: "" },
+  },
+  emailTemplateUpdateFailed: {
+    error: { title: "이메일 양식 저장에 실패했습니다.", description: "" },
+  },
+  emailSenderSave: {
+    success: { title: "발신 이메일이 저장되었습니다.", description: "" },
+  },
+  emailSenderSaveFailed: {
+    error: { title: "발신 이메일 저장에 실패했습니다.", description: "" },
   },
   validValidate: {
     success: { title: "인증이 완료되었습니다.", description: "" },

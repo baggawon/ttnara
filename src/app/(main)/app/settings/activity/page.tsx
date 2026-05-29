@@ -82,7 +82,8 @@ export default function Page() {
   >(
     { queryKey: [{ [QueryKey.boardActivity]: query }] },
     boardActivityGet,
-    query
+    query,
+    { silent: true }
   );
 
   const items = data?.items ?? [];

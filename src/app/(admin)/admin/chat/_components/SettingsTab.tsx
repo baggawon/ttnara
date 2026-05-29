@@ -47,7 +47,9 @@ export default function SettingsTab() {
   const { toast } = useToast();
   const { data } = useGetQuery<ChatSetting | null, undefined>(
     { queryKey: [QueryKey.chatSettings] },
-    adminChatSettingsGet
+    adminChatSettingsGet,
+    undefined,
+    { silent: true }
   );
 
   const [form, setForm] = useState<ChatSetting | null>(null);

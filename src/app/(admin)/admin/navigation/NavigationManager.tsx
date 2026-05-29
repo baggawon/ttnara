@@ -32,7 +32,7 @@ import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/components/lib/utils";
 
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminNavListGet } from "@/helpers/get";
 import { postJson } from "@/helpers/common";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -84,13 +84,16 @@ const emptyForm = (
 
 export const NavigationManager = () => {
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
+  const [isWorking, setIsWorking] = useState(false);
 
   const { data } = useGetQuery<NavMenuListResponse, undefined>(
     {
       queryKey: [QueryKey.adminNavMenu],
     },
-    adminNavListGet
+    adminNavListGet,
+    undefined,
+    { silent: true }
   );
 
   const refetch = () => {
@@ -125,7 +128,8 @@ export const NavigationManager = () => {
       toast({ id: ToastData.unknown, type: "error" });
       return;
     }
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
     try {
       if (form.id == null) {
         const siblings = (
@@ -178,11 +182,12 @@ export const NavigationManager = () => {
     } catch (error) {
       toast({ id: ToastData.unknown, type: "error" });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const handleDelete = async (id: number) => {
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
     try {
       const body: NavMenuDeleteProps = { id };
       const { isSuccess, hasMessage } = await postJson(
@@ -196,7 +201,7 @@ export const NavigationManager = () => {
     } catch (error) {
       toast({ id: ToastData.unknown, type: "error" });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const handleReorder = async (
@@ -211,7 +216,8 @@ export const NavigationManager = () => {
     const ordered = [...siblings];
     const [moved] = ordered.splice(fromIndex, 1);
     ordered.splice(toIndex, 0, moved);
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
     try {
       const body: NavMenuReorderProps = {
         surface,
@@ -229,7 +235,7 @@ export const NavigationManager = () => {
     } catch (error) {
       toast({ id: ToastData.unknown, type: "error" });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const renderTopParent = (parent: nav_menu_item, indexInRow: number) => {
@@ -596,11 +602,16 @@ export const NavigationManager = () => {
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" type="button">
+              <Button variant="outline" type="button" disabled={isWorking}>
                 취소
               </Button>
             </DialogClose>
-            <Button type="button" onClick={handleSubmit}>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isWorking}
+              aria-busy={isWorking}
+            >
               저장
             </Button>
           </DialogFooter>

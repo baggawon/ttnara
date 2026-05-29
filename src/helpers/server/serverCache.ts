@@ -311,14 +311,14 @@ class AppCache {
           this.cache.set("partners", partners ?? []);
           break;
         case "popups":
-          const now = new Date();
+          // Cache every active popup regardless of its start/end window. The
+          // visible window is time-dependent, so it is evaluated per request in
+          // the list route — baking it in here would freeze the window at the
+          // moment of the last refresh (scheduled popups would never appear and
+          // expired ones would linger until the next CRUD or restart).
           const popups = await handleConnect((prisma) =>
             prisma.popup.findMany({
-              where: {
-                is_active: true,
-                start_date: { lte: now },
-                end_date: { gte: now },
-              },
+              where: { is_active: true },
               orderBy: [{ display_order: "asc" }, { created_at: "desc" }],
             })
           );

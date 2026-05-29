@@ -67,6 +67,8 @@ export const POST = async (json: CommentUpdateProps) => {
       };
     }
 
+    let createdComment: comment | null = null;
+
     if (json.id === 0) {
       const ts = (appCache.getByKey(CacheKey.Topics) as any)?.[topic_url];
       const commentAmount = ts?.points_per_comment_create ?? 0;
@@ -93,6 +95,7 @@ export const POST = async (json: CommentUpdateProps) => {
       );
 
       if (!createResult) throw ToastData.unknown;
+      createdComment = createResult;
 
       // Apply points; if the atomic guard fails (race), roll back the comment.
       if (commentAmount !== 0) {
@@ -166,6 +169,7 @@ export const POST = async (json: CommentUpdateProps) => {
       result: true,
       message:
         json.id === 0 ? ToastData.commentCreate : ToastData.commentUpdate,
+      data: createdComment ?? undefined,
     };
   } catch (error) {
     console.log("error", error);

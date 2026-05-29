@@ -23,7 +23,8 @@ const MessageHistoryHook = () => {
       }),
     },
     messageGet,
-    { history: true, inbox: true }
+    { history: true, inbox: true },
+    { silent: true }
   );
 
   const columns: CustomColumDef<Message>[] = [

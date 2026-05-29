@@ -10,28 +10,44 @@ dayjs.extend(timezone);
 import { now } from "@/helpers/basic";
 import { makeRandomText } from "@/helpers/common";
 import { sendEmail } from "@/helpers/server/ses";
-import { emailAuth } from "@/helpers/emailFormat";
+import {
+  loadEmailTemplateForSend,
+  renderEmailTemplate,
+} from "@/helpers/server/emailRender";
 import { getBrandSettings } from "@/helpers/server/brandSettings";
 
+// Maps each OTP flow to the editable email_template case it sends.
+const OTP_TEMPLATE_KEY: Partial<Record<ApiOtpType, string>> = {
+  [ApiOtpType.EmailSignup]: "email_signup",
+  [ApiOtpType.EmailForgotPassword]: "email_forgot_password",
+  [ApiOtpType.EmailSettings]: "email_settings",
+};
+
 // Shared brand-aware OTP email payload. Centralized so all three call sites
-// stay in lockstep when brand fields or template params change.
-const buildOtpEmail = async (validate_data: string) => {
+// stay in lockstep when brand fields or template params change. The subject,
+// body and footer come from the admin-editable email_template row; the sender
+// (and the {{contactEmail}} shown in the body) is the case's selected address.
+const buildOtpEmail = async (
+  validate_data: string,
+  validate_type: ApiOtpType
+) => {
   const brand = await getBrandSettings();
   const siteName = brand.siteName || "";
-  const subject = `[${siteName}] 인증메일입니다.`;
-  return {
-    subject,
-    body: emailAuth({
-      title: subject,
-      time: "30",
-      authCode: validate_data,
-      date: now().format("YYYY-MM-DD HH:mm:ss"),
-      siteName,
-      siteUrl: process.env.NEXTAUTH_URL ?? null,
-      logoUrl: brand.faviconUrl ?? brand.logoImageUrl,
-      contactEmail: process.env.OTP_CONTACT_EMAIL ?? null,
-    }),
-  };
+  const key = OTP_TEMPLATE_KEY[validate_type] ?? "email_signup";
+  const template = await loadEmailTemplateForSend(key);
+
+  const { subject, html } = renderEmailTemplate(template, {
+    siteName,
+    authCode: validate_data,
+    date: now().format("YYYY-MM-DD HH:mm:ss"),
+    validityMinutes: "30",
+    contactEmail: template.contactEmail || "",
+    siteUrl: process.env.NEXTAUTH_URL ?? "",
+    year: now().format("YYYY"),
+    logoUrl: brand.faviconUrl ?? brand.logoImageUrl,
+  });
+
+  return { subject, body: html, fromEmail: template.senderEmail || undefined };
 };
 
 export interface OtpProps {
@@ -49,7 +65,8 @@ const sendEmailOrDevLog = async (
   body: string,
   validate_data: string,
   validate_type: ApiOtpType,
-  dev_log_only?: boolean
+  dev_log_only?: boolean,
+  fromEmail?: string
 ): Promise<{ MessageId: string | undefined }> => {
   if (dev_log_only && process.env.NODE_ENV !== "production") {
     console.log("\n========================================================");
@@ -59,7 +76,7 @@ const sendEmailOrDevLog = async (
     console.log("========================================================\n");
     return { MessageId: `dev-log-${Date.now()}` };
   }
-  return sendEmail(email, subject, body);
+  return sendEmail(email, subject, body, fromEmail);
 };
 
 export const POST = async (json: OtpProps) => {
@@ -111,7 +128,10 @@ export const POST = async (json: OtpProps) => {
           }
         }
         const validate_data = makeRandomText({ length: 6 });
-        const { subject, body } = await buildOtpEmail(validate_data);
+        const { subject, body, fromEmail } = await buildOtpEmail(
+          validate_data,
+          validate_type
+        );
 
         const result = await sendEmailOrDevLog(
           email,
@@ -119,7 +139,8 @@ export const POST = async (json: OtpProps) => {
           body,
           validate_data,
           validate_type,
-          dev_log_only
+          dev_log_only,
+          fromEmail
         );
 
         if (!result.MessageId) throw ToastData.unknown;
@@ -293,7 +314,10 @@ export const POST = async (json: OtpProps) => {
           }
         }
         const validate_data = makeRandomText({ length: 6 });
-        const { subject, body } = await buildOtpEmail(validate_data);
+        const { subject, body, fromEmail } = await buildOtpEmail(
+          validate_data,
+          validate_type
+        );
 
         const result = await sendEmailOrDevLog(
           email,
@@ -301,7 +325,8 @@ export const POST = async (json: OtpProps) => {
           body,
           validate_data,
           validate_type,
-          dev_log_only
+          dev_log_only,
+          fromEmail
         );
         if (!result.MessageId) throw ToastData.unknown;
         console.info(
@@ -353,7 +378,10 @@ export const POST = async (json: OtpProps) => {
         }
       }
       const validate_data = makeRandomText({ length: 6 });
-      const { subject, body } = await buildOtpEmail(validate_data);
+      const { subject, body, fromEmail } = await buildOtpEmail(
+        validate_data,
+        validate_type
+      );
 
       const result = await sendEmailOrDevLog(
         email,
@@ -361,7 +389,8 @@ export const POST = async (json: OtpProps) => {
         body,
         validate_data,
         validate_type,
-        dev_log_only
+        dev_log_only,
+        fromEmail
       );
       if (!result.MessageId) throw ToastData.unknown;
       console.info(`valid sms send success user: ${email}, ${validate_type}`);

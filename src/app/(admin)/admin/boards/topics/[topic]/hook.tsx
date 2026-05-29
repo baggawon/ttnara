@@ -13,7 +13,7 @@ import type { thread_setting } from "@prisma/client";
 import type { GeneralReadProps } from "@/app/api/admin_di2u3k2j/settings/general/read";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { topicDefault } from "@/helpers/defaultValue";
 import { adminTopicsGet } from "@/helpers/get";
 import { ToastData } from "@/helpers/toastData";
@@ -34,7 +34,8 @@ export const useAdminTopicsEditHook = (topic_id: number) => {
       queryKey: [{ [QueryKey.topics]: topic_id }],
     },
     adminTopicsGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const { data: threadSettingsData } = useGetQuery<
@@ -44,7 +45,9 @@ export const useAdminTopicsEditHook = (topic_id: number) => {
     {
       queryKey: [QueryKey.threadSettings],
     },
-    adminThreadGeneralSettingsGet
+    adminThreadGeneralSettingsGet,
+    undefined,
+    { silent: true }
   );
 
   const router = useRouter();
@@ -218,41 +221,40 @@ export const useAdminTopicsEditHook = (topic_id: number) => {
     router.push(AdminAppRoute.Boards);
   };
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
-  const submit = async (props: TopicWithPoint) => {
-    setLoading();
-    cleanFormData(props, {
-      keysToNumber: [
-        "id",
-        "display_order",
-        "max_thread_title_length",
-        "max_thread_content_length",
-        "max_thread_comment_length",
-        "min_thread_title_length",
-        "min_thread_content_length",
-        "min_thread_comment_length",
-        "level_read",
-        "level_create",
-        "level_comment",
-        "level_download",
-        "level_moderator",
-        "max_file_size_mb",
-        "max_upload_items",
-        "thread_page_size",
-        "thread_page_nav_size",
-        "points_per_post_create",
-        "points_per_post_read",
-        "points_per_comment_create",
-        "points_per_file_download",
-        "points_per_upvote",
-        "points_per_downvote",
-        "thread_disable_edit",
-        "thread_disable_delete",
-      ],
-    });
+  const submitMutation = useMutation({
+    mutationFn: async (props: TopicWithPoint) => {
+      cleanFormData(props, {
+        keysToNumber: [
+          "id",
+          "display_order",
+          "max_thread_title_length",
+          "max_thread_content_length",
+          "max_thread_comment_length",
+          "min_thread_title_length",
+          "min_thread_content_length",
+          "min_thread_comment_length",
+          "level_read",
+          "level_create",
+          "level_comment",
+          "level_download",
+          "level_moderator",
+          "max_file_size_mb",
+          "max_upload_items",
+          "thread_page_size",
+          "thread_page_nav_size",
+          "points_per_post_create",
+          "points_per_post_read",
+          "points_per_comment_create",
+          "points_per_file_download",
+          "points_per_upvote",
+          "points_per_downvote",
+          "thread_disable_edit",
+          "thread_disable_delete",
+        ],
+      });
 
-    try {
       const { isSuccess, hasMessage } = await postJson<topicsUpdateProps>(
         ApiRoute.adminTopicsUpdate,
         props
@@ -266,13 +268,15 @@ export const useAdminTopicsEditHook = (topic_id: number) => {
         refreshCache(queryClient, QueryKey.topics);
         goBackList();
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const submit = (props: TopicWithPoint) => {
+    if (submitMutation.isPending) return;
+    submitMutation.mutate(props);
   };
 
   return {
@@ -281,5 +285,6 @@ export const useAdminTopicsEditHook = (topic_id: number) => {
     threadSettingsData,
     goBackList,
     submit,
+    isSubmitting: submitMutation.isPending,
   };
 };

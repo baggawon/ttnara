@@ -26,8 +26,8 @@ import {
   tetherProposalDefault,
   tetherRateDefault,
 } from "@/helpers/defaultValue";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { useToast } from "@/components/ui/use-toast";
+import { useMutation } from "@tanstack/react-query";
 import { ToastData } from "@/helpers/toastData";
 import type { TetherProposalUpdateProps } from "@/app/api/tethers/proposal/update";
 import { type RefObject, useRef } from "react";
@@ -42,7 +42,9 @@ export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
     {
       queryKey: [QueryKey.session],
     },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   const pagination = {
@@ -54,7 +56,8 @@ export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
       queryKey: [{ [QueryKey.tethers]: pagination }],
     },
     tethersGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const currentTether = tethersData?.tethers?.[0] as
@@ -146,28 +149,28 @@ export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const dialogControllRef = useRef<FormDialogMethods>(undefined);
 
-  const tryTrade = async (props: ProposalMethods) => {
-    setLoading();
-
-    forEach(["telegram_id", "kakao_id"], (key) => {
-      if ((props as any)[key] === "" || (props as any)[key] === undefined) {
-        (props as any)[key] = null;
-      }
-    });
-
-    forEach(["qty", "price"], (key) => {
-      if ((props as any)[key] !== null) {
-        if (typeof (props as any)[key].toNumber === "function") {
-          (props as any)[key] = (props as any)[key].toNumber();
-        } else {
-          (props as any)[key] = Number((props as any)[key].replaceAll(",", ""));
+  const tryTradeMutation = useMutation({
+    mutationFn: async (props: ProposalMethods) => {
+      forEach(["telegram_id", "kakao_id"], (key) => {
+        if ((props as any)[key] === "" || (props as any)[key] === undefined) {
+          (props as any)[key] = null;
         }
-      }
-    });
+      });
 
-    try {
+      forEach(["qty", "price"], (key) => {
+        if ((props as any)[key] !== null) {
+          if (typeof (props as any)[key].toNumber === "function") {
+            (props as any)[key] = (props as any)[key].toNumber();
+          } else {
+            (props as any)[key] = Number(
+              (props as any)[key].replaceAll(",", "")
+            );
+          }
+        }
+      });
+
       const { isSuccess, hasMessage } =
         await postJson<TetherProposalUpdateProps>(
           ApiRoute.tethersProposalUpdate,
@@ -181,22 +184,24 @@ export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
         methods.reset(tetherProposalDefault());
         router.refresh();
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const tryTrade = (props: ProposalMethods) => {
+    if (tryTradeMutation.isPending) return;
+    tryTradeMutation.mutate(props);
   };
 
-  const submitRate = async (
-    props: tether_rate,
-    cancelRef: RefObject<HTMLButtonElement | null>,
-    methods: UseFormReturn<any, any, undefined>
-  ) => {
-    setLoading();
-    try {
+  const submitRateMutation = useMutation({
+    mutationFn: async (vars: {
+      props: tether_rate;
+      cancelRef: RefObject<HTMLButtonElement | null>;
+      methods: UseFormReturn<any, any, undefined>;
+    }) => {
+      const { props, cancelRef, methods: rateMethods } = vars;
       const { isSuccess, hasMessage } =
         await postJson<TetherProposalRateUpdateProps>(
           ApiRoute.tethersProposalRateUpdate,
@@ -207,19 +212,25 @@ export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
       }
 
       if (isSuccess) {
-        methods.reset(
+        rateMethods.reset(
           tetherRateDefault({ tether_proposal_id: props.tether_proposal_id })
         );
         router.push(AppRoute.Tether);
         cancelRef.current?.click();
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const submitRate = (
+    props: tether_rate,
+    cancelRef: RefObject<HTMLButtonElement | null>,
+    rateMethods: UseFormReturn<any, any, undefined>
+  ) => {
+    if (submitRateMutation.isPending) return;
+    submitRateMutation.mutate({ props, cancelRef, methods: rateMethods });
   };
 
   // Both parties submit a rating via the same endpoint; the backend finalizes
@@ -227,9 +238,8 @@ export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
   const proposalConfirm = submitRate;
   const ownerConfirm = submitRate;
 
-  const proposalCancel = async () => {
-    if (!currentTether) return;
-
+  const buildCancelProps = (): TradeProposalWithProfile | null => {
+    if (!currentTether) return null;
     const props: TradeProposalWithProfile = {
       ...(currentTether.tether_proposals[0] as TradeProposalWithProfile),
       status: TetherStatus.Cancel,
@@ -248,104 +258,77 @@ export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
     if (props.user) {
       props.user = null;
     }
-
-    setLoading();
-    try {
-      const { isSuccess, hasMessage } =
-        await postJson<TetherProposalUpdateProps>(
-          ApiRoute.tethersProposalUpdate,
-          props
-        );
-      if (hasMessage) {
-        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
-      }
-
-      if (isSuccess) {
-        methods.reset(tetherProposalDefault({ tether_id }));
-        router.refresh();
-      }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    return props;
   };
 
-  const dialogControllRef = useRef<FormDialogMethods>(undefined);
-
-  const ownerCancel = async () => {
-    if (!currentTether) return;
-
-    const props: TradeProposalWithProfile = {
-      ...(currentTether.tether_proposals[0] as TradeProposalWithProfile),
-      status: TetherStatus.Cancel,
-    };
-
-    forEach(["price", "qty"], (key) => {
-      if ((props as any)[key] !== null) {
-        if (typeof (props as any)[key].toNumber === "function") {
-          (props as any)[key] = (props as any)[key].toNumber();
-        } else {
-          (props as any)[key] = Number((props as any)[key].replaceAll(",", ""));
-        }
-      }
-    });
-
-    if (props.user) {
-      props.user = null;
+  const cancelProposalRequest = async (props: TradeProposalWithProfile) => {
+    const { isSuccess, hasMessage } = await postJson<TetherProposalUpdateProps>(
+      ApiRoute.tethersProposalUpdate,
+      props
+    );
+    if (hasMessage) {
+      toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
     }
-
-    setLoading();
-    try {
-      const { isSuccess, hasMessage } =
-        await postJson<TetherProposalUpdateProps>(
-          ApiRoute.tethersProposalUpdate,
-          props
-        );
-      if (hasMessage) {
-        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
-      }
-
-      if (isSuccess) {
-        methods.reset(tetherProposalDefault({ tether_id }));
-        router.refresh();
-      }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
+    if (isSuccess) {
+      methods.reset(tetherProposalDefault({ tether_id }));
+      router.refresh();
     }
-    disableLoading();
   };
 
-  const tryDelete = async () => {
-    if (!currentTether) return;
+  const proposalCancelMutation = useMutation({
+    mutationFn: async () => {
+      const props = buildCancelProps();
+      if (!props) return;
+      await cancelProposalRequest(props);
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
 
-    setLoading();
-    try {
+  const proposalCancel = () => {
+    if (proposalCancelMutation.isPending) return;
+    proposalCancelMutation.mutate();
+  };
+
+  const ownerCancelMutation = useMutation({
+    mutationFn: async () => {
+      const props = buildCancelProps();
+      if (!props) return;
+      await cancelProposalRequest(props);
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const ownerCancel = () => {
+    if (ownerCancelMutation.isPending) return;
+    ownerCancelMutation.mutate();
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentTether) return;
       const { isSuccess, hasMessage } = await postJson<tethersDeleteProps>(
         ApiRoute.tethersDelete,
-        {
-          deleteTetherId: currentTether.id,
-        }
+        { deleteTetherId: currentTether.id }
       );
       if (hasMessage) {
         toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
       }
-
       if (isSuccess) {
         router.push(AppRoute.Tether);
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const tryDelete = () => {
+    if (deleteMutation.isPending) return;
+    deleteMutation.mutate();
   };
 
   const getAddress = () => {
@@ -378,5 +361,10 @@ export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
     dialogControllRef,
     getAddress,
     sessionUid: session?.user?.id ?? null,
+    isTrading: tryTradeMutation.isPending,
+    isRating: submitRateMutation.isPending,
+    isProposalCancelling: proposalCancelMutation.isPending,
+    isOwnerCancelling: ownerCancelMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 };

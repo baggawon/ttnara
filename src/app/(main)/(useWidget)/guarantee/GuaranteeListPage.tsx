@@ -23,7 +23,9 @@ const ALL = "전체";
 export default function GuaranteeListPage() {
   const { data, status } = useGetQuery<PublicGuaranteeResponse, undefined>(
     { queryKey: [QueryKey.guaranteeCompanies, "public"] },
-    publicGuaranteeGet
+    publicGuaranteeGet,
+    undefined,
+    { silent: true }
   );
 
   const [selectedRegion, setSelectedRegion] = useState<string>(ALL);

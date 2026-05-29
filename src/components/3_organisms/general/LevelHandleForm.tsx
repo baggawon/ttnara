@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { postJson, refreshCache } from "@/helpers/common";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { levelDefault } from "@/helpers/defaultValue";
 import { adminLevelGet } from "@/helpers/get";
 import { ToastData } from "@/helpers/toastData";
@@ -25,7 +25,9 @@ export const LevelHandleForm = ({ className }: { className?: string }) => {
     {
       queryKey: [QueryKey.levelSettings],
     },
-    adminLevelGet
+    adminLevelGet,
+    undefined,
+    { silent: true }
   );
 
   const methods = useForm({
@@ -35,7 +37,7 @@ export const LevelHandleForm = ({ className }: { className?: string }) => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   useEffectFunctionHook({
     Function: () => {
@@ -43,10 +45,9 @@ export const LevelHandleForm = ({ className }: { className?: string }) => {
     },
     dependency: [levelData],
   });
-  const trySave = async (props: level_setting) => {
-    setLoading();
-    props.max_system_level = Number(props.max_system_level);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (props: level_setting) => {
+      props.max_system_level = Number(props.max_system_level);
       const { isSuccess, hasMessage } = await postJson<levelUpdateProps>(
         ApiRoute.adminLevelUpdate,
         props
@@ -57,14 +58,17 @@ export const LevelHandleForm = ({ className }: { className?: string }) => {
       if (isSuccess) {
         refreshCache(queryClient, QueryKey.levelSettings);
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const trySave = (props: level_setting) => {
+    if (saveMutation.isPending) return;
+    saveMutation.mutate(props);
   };
+  const isSubmitting = saveMutation.isPending;
 
   return (
     <FormProvider {...methods}>
@@ -85,7 +89,12 @@ export const LevelHandleForm = ({ className }: { className?: string }) => {
             최소 1, 최대 10
           </CardDescription>
         </FormInput>
-        <Button type="submit" className="w-fit col-span-1 sm:col-span-3">
+        <Button
+          type="submit"
+          className="w-fit col-span-1 sm:col-span-3"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+        >
           저장
         </Button>
       </Form>

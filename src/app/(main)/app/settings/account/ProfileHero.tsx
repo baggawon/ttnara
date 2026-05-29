@@ -15,7 +15,9 @@ const ProfileHero = () => {
   const tetherEnabled = useTetherEnabled();
   const { data: userData } = useGetQuery<UserAndSettings, undefined>(
     { queryKey: [QueryKey.account] },
-    userGet
+    userGet,
+    undefined,
+    { silent: true }
   );
 
   const profile = userData?.profile;

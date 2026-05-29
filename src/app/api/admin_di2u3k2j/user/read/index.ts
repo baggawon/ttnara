@@ -7,7 +7,7 @@ import {
 import { ToastData } from "@/helpers/toastData";
 import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
 
-export interface UserForAdmin extends user {
+export interface UserForAdmin extends Omit<user, "password"> {
   profile: profile | null;
   kyc: kyc[];
 }
@@ -31,6 +31,9 @@ async function getUser(queryParams: any): Promise<UserForAdmin> {
       prisma.user.findUnique({
         where: {
           id: user_id,
+        },
+        omit: {
+          password: true,
         },
         include: {
           profile: true,

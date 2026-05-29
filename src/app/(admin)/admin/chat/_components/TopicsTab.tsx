@@ -15,7 +15,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminChatTopicsGet, adminChatTopicStatsGet } from "@/helpers/get";
 import { postJson, refreshCache } from "@/helpers/common";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -49,14 +49,18 @@ interface RowDraft {
 
 export default function TopicsTab() {
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const { data } = useGetQuery<ChatTopic[] | null, undefined>(
     { queryKey: [QueryKey.adminChatTopics] },
-    adminChatTopicsGet
+    adminChatTopicsGet,
+    undefined,
+    { silent: true }
   );
   const { data: statsData } = useGetQuery<TopicStat[] | null, undefined>(
     { queryKey: [QueryKey.chatTopicStats] },
-    adminChatTopicStatsGet
+    adminChatTopicStatsGet,
+    undefined,
+    { silent: true }
   );
   const topics = data ?? [];
   const statsByTopic = new Map((statsData ?? []).map((s) => [s.topic_id, s]));

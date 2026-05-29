@@ -3,7 +3,6 @@
 import { FormProvider, useForm } from "react-hook-form";
 import { postJson, refreshCache } from "@/helpers/common";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import {
   ApiRoute,
   QueryKey,
@@ -11,6 +10,7 @@ import {
   UserSettings,
 } from "@/helpers/types";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
+import { useQueryClient } from "@tanstack/react-query";
 import { userGet } from "@/helpers/get";
 import type { SettingsUpdateProps } from "@/app/api/settings/update";
 import { Switch } from "@/components/ui/switch";
@@ -131,7 +131,9 @@ const SettingsNotificationView = () => {
     {
       queryKey: [QueryKey.account],
     },
-    userGet
+    userGet,
+    undefined,
+    { silent: true }
   );
 
   useEffectFunctionHook({
@@ -148,7 +150,7 @@ const SettingsNotificationView = () => {
     dependency: [userData],
   });
 
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const tetherEnabled = useTetherEnabled();
   const push = usePushNotification();
 

@@ -17,6 +17,7 @@ import WithUseWatch from "@/components/2_molecules/WithUseWatch";
 import SignupHook from "@/app/(main)/signup/hook";
 import EmailValidator from "@/components/2_molecules/EmailValidator";
 import DevLogToggle from "@/components/2_molecules/DevLogToggle";
+import { Loader2 } from "lucide-react";
 
 export const enum SignupFormIds {
   Userid = "username",
@@ -30,7 +31,8 @@ export const enum SignupFormIds {
 }
 
 const SignupView = () => {
-  const { methods, trySignup, router, userSettingData } = SignupHook();
+  const { methods, trySignup, router, userSettingData, isSubmitting } =
+    SignupHook();
   return (
     <FormProvider {...methods}>
       <Form onSubmit={trySignup}>
@@ -134,7 +136,15 @@ const SignupView = () => {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <div className="flex justify-center">
-            <Button type="submit" {...setTestId(SignupFormIds.Submit)}>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              {...setTestId(SignupFormIds.Submit)}
+            >
+              {isSubmitting && (
+                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+              )}
               가입
             </Button>
           </div>

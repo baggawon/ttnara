@@ -10,9 +10,15 @@ import { getServerSession } from "next-auth";
 import { HydrationBoundary } from "@tanstack/react-query";
 import { PartnerBanners } from "@/components/1_atoms/PartnerBanners";
 import { isTetherEnabled } from "@/helpers/server/tetherGuard";
+import { isSeoVisible } from "@/helpers/server/homeVisibility";
+import { SpecialBoardSection } from "@/components/3_organisms/SpecialBoardSection";
+import { getBrandSettings } from "@/helpers/server/brandSettings";
+import { HomeHeroBanner } from "./HomeHeroBanner";
 
 export default async function Page() {
+  const brand = await getBrandSettings();
   const tetherEnabled = await isTetherEnabled();
+  const seoVisible = await isSeoVisible();
   const boardPreviewData = await serverGet(ApiRoute.boardPreviewRead);
   const hasBoardPreview = Boolean(boardPreviewData?.topics?.length);
   const baseQueries = [
@@ -49,6 +55,11 @@ export default async function Page() {
 
   return (
     <section className="flex-1 flex flex-col gap-4">
+      <HomeHeroBanner
+        imageUrl={brand.heroImageUrl}
+        actionUrl={brand.heroActionUrl}
+      />
+      <SpecialBoardSection />
       <HydrationBoundary state={{ queries, mutations: [] }}>
         <div className={`grid ${gridColsClass} gap-4`}>
           {tetherEnabled && (
@@ -67,7 +78,7 @@ export default async function Page() {
       <div className="xl:hidden">
         <PartnerBanners variant="inline" />
       </div>
-      <Seo />
+      {seoVisible && <Seo />}
     </section>
   );
 }

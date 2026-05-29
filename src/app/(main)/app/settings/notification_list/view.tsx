@@ -50,7 +50,8 @@ const SettingsNotificationListView = ({
       queryKey: [{ [QueryKey.alarms]: pagination }],
     },
     alarmGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const methods = useForm<AlarmReadProps>({

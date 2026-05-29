@@ -16,7 +16,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import {
   adminSupportQnaCategoriesGet,
   adminSupportQnaGet,
@@ -33,7 +32,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { forEach, getBoolean } from "@/helpers/basic";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 
 dayjs.extend(utc);
@@ -81,7 +80,8 @@ export const useAdminSupportQnaHook = () => {
   >(
     { queryKey: [QueryKey.adminSupportQnaCategories] },
     adminSupportQnaCategoriesGet,
-    { page: 1, pageSize: 200, is_active: true }
+    { page: 1, pageSize: 200, is_active: true },
+    { silent: true }
   );
 
   const { data: qnaData, status } = useGetQuery<
@@ -90,12 +90,13 @@ export const useAdminSupportQnaHook = () => {
   >(
     { queryKey: [{ [QueryKey.adminSupportQna]: pagination }] },
     adminSupportQnaGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const isLoading = status === "pending" || qnaData === null;
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
     mutationFn: deleteQnas,

@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { RotateCw } from "lucide-react";
 
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminChatBannedUsersGet } from "@/helpers/get";
 import { postJson, refreshCache } from "@/helpers/common";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -23,10 +23,12 @@ interface BannedUser {
 
 export default function BannedTab() {
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const { data } = useGetQuery<BannedUser[] | null, undefined>(
     { queryKey: [QueryKey.chatBannedUsers] },
-    adminChatBannedUsersGet
+    adminChatBannedUsersGet,
+    undefined,
+    { silent: true }
   );
   const rows = data ?? [];
 

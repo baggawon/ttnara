@@ -10,7 +10,7 @@ import { ToastData } from "@/helpers/toastData";
 import type { PaginationInfo } from "@/helpers/types";
 import { signProfileImages } from "@/app/api/admin_di2u3k2j/user/read";
 
-export interface UserForAdmin extends user {
+export interface UserForAdmin extends Omit<user, "password"> {
   profile: profile | null;
   kyc: kyc[];
 }
@@ -92,6 +92,9 @@ async function getUsersWithPagination(
         orderBy: { created_at },
         skip: (page - 1) * pageSize,
         take: pageSize,
+        omit: {
+          password: true,
+        },
         include: {
           profile: true,
           kyc: true,

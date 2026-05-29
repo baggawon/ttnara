@@ -135,11 +135,8 @@ function PopupItem({ popup, onClose }: PopupItemProps) {
 
   return (
     <>
-      {/* 오버레이 */}
-      <div
-        className="fixed inset-0 bg-black/50 z-[9998]"
-        onClick={() => handleClose(false)}
-      />
+      {/* 오버레이 — 닫기 버튼으로만 닫히도록 클릭 핸들러를 두지 않는다 */}
+      <div className="fixed inset-0 bg-black/50 z-[9998]" />
 
       {/* 팝업 */}
       <div
@@ -220,7 +217,8 @@ export function PopupDisplay() {
       refetchOnReconnect: false,
     },
     popupListGet,
-    {}
+    {},
+    { silent: true }
   );
 
   useEffect(() => {

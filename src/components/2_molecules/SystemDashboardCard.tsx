@@ -13,7 +13,9 @@ export const SystemDashboardCard = ({ className }: { className?: string }) => {
     {
       queryKey: [QueryKey.generalSettings],
     },
-    adminGeneralGet
+    adminGeneralGet,
+    undefined,
+    { silent: true }
   );
 
   return (

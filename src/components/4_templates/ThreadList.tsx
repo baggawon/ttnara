@@ -10,7 +10,6 @@ import SelectInput from "@/components/2_molecules/Input/Select";
 import type { CustomColumDef } from "@/components/2_molecules/Table/DataTable";
 import { DataTableSSR } from "@/components/2_molecules/Table/DataTableSSR";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -22,7 +21,7 @@ import useGetQuery from "@/helpers/customHook/useGetQuery";
 import { sessionGet, threadsGet, topicSettingsGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { AppRoute, QueryKey } from "@/helpers/types";
-import { ImageOff, SearchIcon } from "lucide-react";
+import { ImageOff, SearchIcon, PencilLine } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import {
@@ -61,7 +60,9 @@ export const ThreadList = ({
     {
       queryKey: [QueryKey.session],
     },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   const { data: topicSettings } = useGetQuery<
@@ -73,7 +74,8 @@ export const ThreadList = ({
       staleTime: Infinity,
     },
     topicSettingsGet,
-    { topic_url }
+    { topic_url },
+    { silent: true }
   );
 
   const authLevel = session?.user?.auth_level ?? 0;
@@ -114,7 +116,8 @@ export const ThreadList = ({
       ],
     },
     threadsGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const columns: CustomColumDef<ThreadWithProfile>[] = setDefaultColumn([
@@ -340,129 +343,108 @@ export const ThreadList = ({
     : [];
 
   return (
-    <div className="w-full flex flex-col gap-4">
-      <Card className="overflow-hidden border-none shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b py-3 sm:py-6">
-          <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="sm:w-6 sm:h-6"
-            >
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-            </svg>
-            <h1>{threadsData?.name}</h1>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3 sm:p-6 flex flex-col gap-4 sm:gap-6">
-          <FormProvider {...methods}>
-            {threadsData && (
-              <ToggleGroupInput
-                name="category_name"
-                variant="outline"
-                className={clsx(
-                  "gap-2 whitespace-nowrap justify-start",
-                  "[&>button]:rounded-none [&>button:first-child]:rounded-l-md [&>button:last-child]:rounded-r-md [&>button:last-child]:border-r"
-                )}
-                orientation="horizontal"
-                onValueChange={selectCategory}
-              >
-                <ToggleGroupItem value="전체" aria-label="전체" key="total">
-                  전체
-                </ToggleGroupItem>
-                {map(threadsData.categories, (category) => (
-                  <ToggleGroupItem
-                    key={`${category.id}*&*${category.topic_id}*&*${category.name}`}
-                    value={category.name}
-                    aria-label={category.name}
-                  >
-                    {category.name}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroupInput>
+    <div className="w-full flex flex-col gap-5">
+      <FormProvider {...methods}>
+        <div className="flex items-end justify-between gap-3 border-b border-border/60 pb-3">
+          <div className="flex flex-col gap-0.5">
+            <h1 className="text-lg sm:text-xl font-semibold tracking-tight">
+              {threadsData?.name}
+            </h1>
+            {typeof threadsData?.pagination?.totalItems === "number" && (
+              <p className="text-xs text-muted-foreground">
+                총 {threadsData.pagination.totalItems.toLocaleString()}개의
+                게시글
+              </p>
             )}
-            <DataTableSSR
-              columns={columns}
-              data={sortedThreads}
-              placeholder="게시글이 없습니다."
-              setPageIndexAction={(index) => {
-                methods.setValue("page", index);
-                updatePagination(true);
-              }}
-              pagination={threadsData?.pagination}
-              onRowClassName={() =>
-                "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
-              }
-              onRowClick={onRowClick}
-              topicPageNavSize={topicPageNavSize}
-            />
+          </div>
+          {canWrite && (
+            <Button
+              type="button"
+              onClick={goWrite}
+              disabled={writeBlocked}
+              title={writeTitle}
+              size="sm"
+              className="shrink-0 gap-1.5"
+            >
+              <PencilLine className="h-4 w-4" />
+              글쓰기
+            </Button>
+          )}
+        </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-              <div className="flex items-center gap-3 w-full">
-                <SelectInput
-                  name="column"
-                  items={searchItems}
-                  buttonClassName="!w-[150px] shrink-0"
-                  buttonWrapClassName="shrink-0"
-                />
-                <div className="relative flex-1">
-                  <Input
-                    name="search"
-                    className="w-full"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        updatePagination();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-1/2 right-2 -translate-y-1/2 h-8 w-8 p-0"
-                    onClick={() => updatePagination()}
-                  >
-                    <SearchIcon className="h-4 w-4" />
-                    <span className="sr-only">검색</span>
-                  </Button>
-                </div>
-              </div>
-              {canWrite && (
-                <Button
-                  type="button"
-                  onClick={goWrite}
-                  disabled={writeBlocked}
-                  title={writeTitle}
-                  className="px-4 bg-primary hover:bg-primary/90 w-full sm:w-auto shrink-0"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                  </svg>
-                  글쓰기
-                </Button>
-              )}
-            </div>
-          </FormProvider>
-        </CardContent>
-      </Card>
+        {threadsData && threadsData.categories.length > 0 && (
+          <ToggleGroupInput
+            name="category_name"
+            variant="outline"
+            className={clsx(
+              "gap-1.5 whitespace-nowrap justify-start flex-wrap",
+              "[&>button]:rounded-full [&>button]:border [&>button]:border-border [&>button]:px-3 [&>button]:h-8 [&>button]:text-xs [&>button]:font-medium",
+              "[&>button[data-state=on]]:bg-primary [&>button[data-state=on]]:text-primary-foreground [&>button[data-state=on]]:border-primary"
+            )}
+            orientation="horizontal"
+            onValueChange={selectCategory}
+          >
+            <ToggleGroupItem value="전체" aria-label="전체" key="total">
+              전체
+            </ToggleGroupItem>
+            {map(threadsData.categories, (category) => (
+              <ToggleGroupItem
+                key={`${category.id}*&*${category.topic_id}*&*${category.name}`}
+                value={category.name}
+                aria-label={category.name}
+              >
+                {category.name}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroupInput>
+        )}
+
+        <DataTableSSR
+          columns={columns}
+          data={sortedThreads}
+          placeholder="게시글이 없습니다."
+          setPageIndexAction={(index) => {
+            methods.setValue("page", index);
+            updatePagination(true);
+          }}
+          pagination={threadsData?.pagination}
+          onRowClassName={() =>
+            "cursor-pointer hover:bg-muted/40 transition-colors"
+          }
+          onRowClick={onRowClick}
+          topicPageNavSize={topicPageNavSize}
+        />
+
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
+          <SelectInput
+            name="column"
+            items={searchItems}
+            buttonClassName="!w-[110px] !h-9 shrink-0"
+            buttonWrapClassName="shrink-0"
+          />
+          <div className="relative flex-1 w-full">
+            <Input
+              name="search"
+              className="w-full h-9 pr-9"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  updatePagination();
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute top-1/2 right-1 -translate-y-1/2 h-7 w-7 p-0"
+              onClick={() => updatePagination()}
+            >
+              <SearchIcon className="h-4 w-4" />
+              <span className="sr-only">검색</span>
+            </Button>
+          </div>
+        </div>
+      </FormProvider>
     </div>
   );
 };

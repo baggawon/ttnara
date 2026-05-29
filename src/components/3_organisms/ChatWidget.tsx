@@ -38,7 +38,9 @@ import {
 const ChatWidgetImpl = () => {
   const { data: session } = useGetQuery<Session | null | undefined, undefined>(
     { queryKey: [QueryKey.session] },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   // Subscribe to only the slices actually rendered here. Without this,

@@ -25,7 +25,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 import { postJson } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { guaranteeRegionDefault } from "@/helpers/defaultValue";
 import { adminGuaranteeRegionsGet } from "@/helpers/get";
 import { ToastData } from "@/helpers/toastData";
@@ -44,7 +44,8 @@ export default function AdminGuaranteeRegionsCard() {
   const [showDeleted, setShowDeleted] = useState(false);
 
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
+  const [isWorking, setIsWorking] = useState(false);
 
   const { data: regionsData } = useGetQuery<
     GuaranteeRegionListResponse,
@@ -53,7 +54,9 @@ export default function AdminGuaranteeRegionsCard() {
     {
       queryKey: [QueryKey.guaranteeRegions],
     },
-    adminGuaranteeRegionsGet
+    adminGuaranteeRegionsGet,
+    undefined,
+    { silent: true }
   );
 
   const submit = async (
@@ -62,7 +65,8 @@ export default function AdminGuaranteeRegionsCard() {
     methods: UseFormReturn<any, any, undefined>,
     isEdit: boolean
   ) => {
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
     try {
       const payload: GuaranteeRegionUpdateProps = {
         id: data.id ?? 0,
@@ -98,11 +102,12 @@ export default function AdminGuaranteeRegionsCard() {
     } catch {
       toast({ id: ToastData.unknown, type: "error" });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const deleteRegion = async (id: number) => {
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } =
         await postJson<GuaranteeRegionDeleteProps>(
@@ -122,11 +127,12 @@ export default function AdminGuaranteeRegionsCard() {
     } catch {
       toast({ id: ToastData.unknown, type: "error" });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const restoreRegion = async (id: number) => {
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } =
         await postJson<GuaranteeRegionRestoreProps>(
@@ -144,7 +150,7 @@ export default function AdminGuaranteeRegionsCard() {
     } catch {
       toast({ id: ToastData.unknown, type: "error" });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const openEdit = (region: guarantee_region) => {

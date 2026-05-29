@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminChatNoticesGet } from "@/helpers/get";
 import { postJson, refreshCache } from "@/helpers/common";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -28,10 +28,12 @@ interface ChatNotice {
 
 export default function NoticesTab() {
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const { data } = useGetQuery<ChatNotice[] | null, undefined>(
     { queryKey: [QueryKey.chatNotices] },
-    adminChatNoticesGet
+    adminChatNoticesGet,
+    undefined,
+    { silent: true }
   );
   const notices = data ?? [];
 

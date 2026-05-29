@@ -63,6 +63,15 @@ export default async function ThreadEdit(props: { params: Params }) {
     },
   ]);
 
+  // Fullview (card-format home) topics use a dedicated admin-side CRUD flow,
+  // so the conventional thread editor is fully blocked for both general users
+  // and admins. Redirect to the topic's card listing instead of /Main so the
+  // bounce is contextual.
+  const topicSettings = queries[1].state.data as TopicSettings | undefined;
+  if (topicSettings?.fullview_on_homepage) {
+    redirect(`${AppRoute.Threads}/${topic_url}`);
+  }
+
   // Server-side validation
   try {
     const access = await BoardAccessService.fromSession({

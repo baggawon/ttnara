@@ -49,6 +49,7 @@ import { Kakaotalk } from "@/components/1_atoms/assets/Kakaotalk";
 import { AlertP2PTrade } from "@/components/1_atoms/AlertP2PTrade";
 import { CircleLight } from "@/components/1_atoms/CircleLight";
 import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
 
 export const TetherDetail = ({ tether_id }: { tether_id?: number }) => {
   const {
@@ -69,6 +70,11 @@ export const TetherDetail = ({ tether_id }: { tether_id?: number }) => {
     getAddress,
     dialogControllRef,
     sessionUid,
+    isTrading,
+    isRating,
+    isProposalCancelling,
+    isOwnerCancelling,
+    isDeleting,
   } = useTetherDetail({ tether_id });
 
   return (
@@ -547,6 +553,9 @@ export const TetherDetail = ({ tether_id }: { tether_id?: number }) => {
                           proposalConfirm={proposalConfirm}
                           proposalCancel={proposalCancel}
                           dialogControllRef={dialogControllRef}
+                          isRating={isRating}
+                          isOwnerCancelling={isOwnerCancelling}
+                          isProposalCancelling={isProposalCancelling}
                         />
                       </Fragment>
                     ))}
@@ -568,7 +577,15 @@ export const TetherDetail = ({ tether_id }: { tether_id?: number }) => {
                     description="거래를 삭제하시려면 확인을 눌러주세요."
                     onConfirm={tryDelete}
                   >
-                    <Button type="button" variant="outline">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isDeleting}
+                      aria-busy={isDeleting}
+                    >
+                      {isDeleting && (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                      )}
                       거래삭제
                     </Button>
                   </ConfirmDialog>
@@ -577,7 +594,16 @@ export const TetherDetail = ({ tether_id }: { tether_id?: number }) => {
             )}
             {isProposer && currentTether?.status === TetherStatus.Open && (
               <Form onSubmit={tryTrade}>
-                <Button type="submit">거래신청</Button>
+                <Button
+                  type="submit"
+                  disabled={isTrading}
+                  aria-busy={isTrading}
+                >
+                  {isTrading && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  )}
+                  거래신청
+                </Button>
               </Form>
             )}
           </div>
@@ -599,6 +625,9 @@ type TradeActionsProps = {
   proposalConfirm: any;
   proposalCancel: () => void;
   dialogControllRef: any;
+  isRating: boolean;
+  isOwnerCancelling: boolean;
+  isProposalCancelling: boolean;
 };
 
 const TradeActions = ({
@@ -613,6 +642,9 @@ const TradeActions = ({
   proposalConfirm,
   proposalCancel,
   dialogControllRef,
+  isRating,
+  isOwnerCancelling,
+  isProposalCancelling,
 }: TradeActionsProps) => {
   const { hasRatedByMe, otherHasRated } = useMemo(() => {
     const rates: { user_id: string }[] = proposal.tether_rate ?? [];
@@ -653,7 +685,10 @@ const TradeActions = ({
         </>
       }
     >
-      <Button type="button">거래완료</Button>
+      <Button type="button" disabled={isRating} aria-busy={isRating}>
+        {isRating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+        거래완료
+      </Button>
     </FormDialog>
   );
 
@@ -671,7 +706,15 @@ const TradeActions = ({
               description="거래를 취소하시려면 확인을 눌러주세요."
               onConfirm={ownerCancel}
             >
-              <Button type="button" variant="outline">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isOwnerCancelling}
+                aria-busy={isOwnerCancelling}
+              >
+                {isOwnerCancelling && (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                )}
                 거래취소
               </Button>
             </ConfirmDialog>
@@ -703,7 +746,15 @@ const TradeActions = ({
                 description="거래를 취소하시려면 확인을 눌러주세요."
                 onConfirm={proposalCancel}
               >
-                <Button type="button" variant="outline">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isProposalCancelling}
+                  aria-busy={isProposalCancelling}
+                >
+                  {isProposalCancelling && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  )}
                   거래취소
                 </Button>
               </ConfirmDialog>

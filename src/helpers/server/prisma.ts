@@ -8,12 +8,8 @@ export const handleConnect = async <T = any>(
   ) => Promise<T | null>
 ) => {
   try {
-    await prisma.$connect();
-    const data = await func(prisma);
-    await prisma.$disconnect();
-    return data;
+    return await func(prisma);
   } catch (error) {
     console.log("error", error);
-    await prisma.$disconnect();
   }
 };

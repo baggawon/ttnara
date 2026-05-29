@@ -28,8 +28,14 @@ import {
 import clsx from "clsx";
 
 export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
-  const { methods, topicsData, threadSettingsData, goBackList, submit } =
-    useAdminTopicsEditHook(topic_id);
+  const {
+    methods,
+    topicsData,
+    threadSettingsData,
+    goBackList,
+    submit,
+    isSubmitting,
+  } = useAdminTopicsEditHook(topic_id);
 
   return (
     <FormProvider {...methods}>
@@ -109,11 +115,35 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
                 </div>
               </FormBuilder>
 
-              <FormBuilder name="fullview_on_homepage" label="게시판 위젯 등록">
+              <FormBuilder
+                name="fullview_on_homepage"
+                label="메인 홈 카드형 게시판"
+              >
                 <div className="w-full">
-                  <SwitchInput name="fullview_on_homepage" />
+                  <SwitchInput
+                    name="fullview_on_homepage"
+                    onCheckedChange={(value) => {
+                      methods.setValue("fullview_on_homepage", value);
+                      // Card-format home board does not display authors and is
+                      // public-facing, so anonymity policies don't apply.
+                      // Force-clear them when this toggle goes on; the inputs
+                      // below are also disabled to communicate that visually.
+                      if (value) {
+                        methods.setValue("use_anonymous", false);
+                        methods.setValue("use_mypostonly", false);
+                      }
+                    }}
+                  />
                   <CardDescription className="text-xs w-full">
-                    게시판 위젯에 등록합니다
+                    메인 홈 상단에 운영자 PICK 캐러셀과 인기 게시글 섹션으로
+                    노출하고, 게시판 페이지를 카드형 레이아웃으로 표시합니다. 한
+                    번에 하나의 게시판만 지정할 수 있으며, 활성화하면 기존에
+                    지정된 다른 게시판은 자동으로 해제됩니다.
+                    <br />
+                    <span className="text-amber-600 dark:text-amber-400">
+                      ⓘ 활성화 시 게시판 익명 적용 / 본인 글만 열람 설정은
+                      적용되지 않으며, 입력란이 비활성화됩니다.
+                    </span>
                   </CardDescription>
                 </div>
               </FormBuilder>
@@ -361,33 +391,52 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
                 </div>
               </FormBuilder>
 
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormBuilder name="use_anonymous" label="게시판 익명 적용">
-                  <div className="w-full">
-                    <SwitchInput
-                      name="use_anonymous"
-                      onCheckedChange={(value) => {
-                        methods.setValue("use_anonymous", value);
-                        if (!value) {
-                          methods.setValue("use_mypostonly", false);
-                        }
-                      }}
-                    />
-                  </div>
-                </FormBuilder>
-                <WithUseWatch name={["use_anonymous"]}>
-                  {({ use_anonymous }: any) => (
-                    <FormBuilder name="use_mypostonly" label="본인 글만 열람">
-                      <div className="w-full">
-                        <SwitchInput
-                          name="use_mypostonly"
-                          disabled={use_anonymous !== "true"}
-                        />
-                      </div>
-                    </FormBuilder>
-                  )}
-                </WithUseWatch>
-              </div>
+              <WithUseWatch name={["use_anonymous", "fullview_on_homepage"]}>
+                {({ use_anonymous, fullview_on_homepage }: any) => {
+                  const isHomeTopic =
+                    fullview_on_homepage === true ||
+                    fullview_on_homepage === "true";
+                  return (
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormBuilder
+                        name="use_anonymous"
+                        label="게시판 익명 적용"
+                      >
+                        <div className="w-full">
+                          <SwitchInput
+                            name="use_anonymous"
+                            disabled={isHomeTopic}
+                            onCheckedChange={(value) => {
+                              methods.setValue("use_anonymous", value);
+                              if (!value) {
+                                methods.setValue("use_mypostonly", false);
+                              }
+                            }}
+                          />
+                          {isHomeTopic && (
+                            <CardDescription className="text-xs w-full mt-1">
+                              메인 홈 카드형 게시판에서는 사용할 수 없습니다.
+                            </CardDescription>
+                          )}
+                        </div>
+                      </FormBuilder>
+                      <FormBuilder name="use_mypostonly" label="본인 글만 열람">
+                        <div className="w-full">
+                          <SwitchInput
+                            name="use_mypostonly"
+                            disabled={isHomeTopic || use_anonymous !== "true"}
+                          />
+                          {isHomeTopic && (
+                            <CardDescription className="text-xs w-full mt-1">
+                              메인 홈 카드형 게시판에서는 사용할 수 없습니다.
+                            </CardDescription>
+                          )}
+                        </div>
+                      </FormBuilder>
+                    </div>
+                  );
+                }}
+              </WithUseWatch>
 
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormBuilder name="use_upvote" label="추천 기능 허용">
@@ -537,7 +586,13 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
           <Button type="button" onClick={goBackList} variant="outline">
             목록으로
           </Button>
-          <Button type="submit">저장</Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+          >
+            저장
+          </Button>
         </div>
       </Form>
     </FormProvider>

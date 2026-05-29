@@ -80,12 +80,20 @@ const toClientMenus = (items: NavParentItem[]): ClientNavMenu[] =>
         : undefined,
   }));
 
-export function TopNavigation({ menuItems }: { menuItems: NavParentItem[] }) {
+export function TopNavigation({
+  menuItems,
+  showPriceTicker = true,
+}: {
+  menuItems: NavParentItem[];
+  showPriceTicker?: boolean;
+}) {
   const { data: session } = useGetQuery<Session | null | undefined, undefined>(
     {
       queryKey: [QueryKey.session],
     },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   const { data: userData } = useGetQuery<UserAndSettings, undefined>(
@@ -93,7 +101,9 @@ export function TopNavigation({ menuItems }: { menuItems: NavParentItem[] }) {
       queryKey: [QueryKey.account],
       enabled: !!session?.user,
     },
-    userGet
+    userGet,
+    undefined,
+    { silent: true }
   );
 
   const tetherEnabled = useTetherEnabled();
@@ -104,7 +114,9 @@ export function TopNavigation({ menuItems }: { menuItems: NavParentItem[] }) {
       enabled: !!session?.user && tetherEnabled,
       staleTime: 60000,
     },
-    leaderboardUserGet
+    leaderboardUserGet,
+    undefined,
+    { silent: true }
   );
 
   const { setTheme, theme } = useTheme();
@@ -323,9 +335,11 @@ export function TopNavigation({ menuItems }: { menuItems: NavParentItem[] }) {
           </div>
         )}
         {/* Mobile Price Ticker */}
-        <div className="flex-1 min-w-0 lg:hidden">
-          <NavPriceTicker />
-        </div>
+        {showPriceTicker && (
+          <div className="flex-1 min-w-0 lg:hidden">
+            <NavPriceTicker />
+          </div>
+        )}
         <div className="ml-auto flex gap-2 items-center">
           <div className="hidden lg:flex gap-1 items-center min-h-8">
             {!mounted ? null : !(

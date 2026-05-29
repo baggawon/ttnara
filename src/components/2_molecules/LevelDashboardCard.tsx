@@ -13,7 +13,9 @@ export const LevelDashboardCard = ({ className }: { className?: string }) => {
     {
       queryKey: [QueryKey.levelSettings],
     },
-    adminLevelGet
+    adminLevelGet,
+    undefined,
+    { silent: true }
   );
 
   return (

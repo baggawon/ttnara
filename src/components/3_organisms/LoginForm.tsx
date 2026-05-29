@@ -13,8 +13,9 @@ import {
   BroadcastEvents,
 } from "@/helpers/types";
 import { postJson, refreshCache, setTestId } from "@/helpers/common";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { useToast } from "@/components/ui/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { removeColumnsFromObject } from "@/helpers/basic";
 import type { LoginProps } from "@/app/api/login";
 import { CustomCheckbox } from "@/components/2_molecules/Input/CheckboxInput";
@@ -26,7 +27,6 @@ import AccountNavigationWidget from "@/components/1_atoms/AccountNavigationWidge
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Logo from "@/components/1_atoms/Logo";
 import { GoogleOauth } from "@/components/1_atoms/GoogleOauth";
-import useLoading from "@/helpers/customHook/useLoading";
 import { useState } from "react";
 
 export interface LoginInitialValues {
@@ -43,8 +43,7 @@ export enum LoginFormIds {
 }
 
 const LoginForm = () => {
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
-  const { loading } = useLoading();
+  const queryClient = useQueryClient();
 
   const initialValues = (): LoginInitialValues => ({
     username: "",
@@ -90,10 +89,8 @@ const LoginForm = () => {
 
   const router = useRouter();
 
-  const tryGoogleLogin = async (accessToken: string) => {
-    if (loading) return;
-    setLoading();
-    try {
+  const googleLoginMutation = useMutation({
+    mutationFn: async (accessToken: string) => {
       const result = await signIn("google-token", {
         token: accessToken,
         redirect: false,
@@ -113,22 +110,23 @@ const LoginForm = () => {
         toast({ id: ToastData.oauth, type: "error" });
         router.push(AppRoute.Login);
       }
-    } catch (error) {
-      disableLoading();
+    },
+    onError: (error) => {
       console.log("error", error);
-    }
-    disableLoading();
+    },
+  });
+
+  const tryGoogleLogin = (accessToken: string) => {
+    if (googleLoginMutation.isPending) return;
+    googleLoginMutation.mutate(accessToken);
   };
 
-  const tryLogin = async (props: LoginInitialValues) => {
-    if (loading) return;
-    setLoading();
-    try {
+  const loginMutation = useMutation({
+    mutationFn: async (props: LoginInitialValues) => {
       const { isSuccess, hasMessage } = await postJson<LoginProps>(
         ApiRoute.login,
         removeColumnsFromObject(props, ["remember"])
       );
-      disableLoading();
       if (isSuccess) {
         const result = await signIn("credentials", {
           ...props,
@@ -156,11 +154,18 @@ const LoginForm = () => {
       } else if (!isSuccess && hasMessage) {
         toast({ id: hasMessage, type: "error" });
       }
-    } catch (error) {
-      disableLoading();
+    },
+    onError: (error) => {
       console.log("error", error);
-    }
+    },
+  });
+
+  const tryLogin = (props: LoginInitialValues) => {
+    if (loginMutation.isPending) return;
+    loginMutation.mutate(props);
   };
+
+  const isLoggingIn = loginMutation.isPending || googleLoginMutation.isPending;
 
   const saveRemember = async (_event: React.ChangeEvent<HTMLInputElement>) => {
     const currentData = methods.getValues("remember");
@@ -205,7 +210,15 @@ const LoginForm = () => {
                 {...setTestId(LoginFormIds.remember)}
               />
             </div>
-            <Button type="submit" className="w-fit mx-auto">
+            <Button
+              type="submit"
+              disabled={isLoggingIn}
+              aria-busy={isLoggingIn}
+              className="w-fit mx-auto"
+            >
+              {isLoggingIn && (
+                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+              )}
               로그인
             </Button>
             <div className="relative w-full border-t pt-6 mt-2 flex justify-center">

@@ -59,7 +59,8 @@ const MessageMenu = () => {
       queryKey: [QueryKey.message],
     },
     messageGet,
-    { history: true, inbox: true }
+    { history: true, inbox: true },
+    { silent: true }
   );
 
   return (

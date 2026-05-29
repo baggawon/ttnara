@@ -8,15 +8,15 @@ import { Handshake, Mail, MessageSquare, Megaphone } from "lucide-react";
 import type { alarm } from "@prisma/client";
 import type { alarmUpdateProps } from "@/app/api/alarm/update";
 import { useToast } from "@/components/ui/use-toast";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { ToastData } from "@/helpers/toastData";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AlarmItem = ({ alarm }: { alarm: alarm }) => {
   const router = useRouter();
 
   const { toast } = useToast();
 
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   const getIcon = (type: string) => {
     switch (type as AlarmTypes) {

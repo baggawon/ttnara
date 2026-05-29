@@ -29,7 +29,7 @@ import { ApiRoute, QueryKey } from "@/helpers/types";
 import { ToastData } from "@/helpers/toastData";
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminGeneralGet } from "@/helpers/get";
 
 const CANCEL_PHRASE = "모든 거래 취소";
@@ -43,13 +43,16 @@ type GeneralSettings = {
 
 export const SystemControlPanel = () => {
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
+  const [isWorking, setIsWorking] = useState(false);
 
   const { data: generalData } = useGetQuery<GeneralSettings, {}>(
     {
       queryKey: [QueryKey.generalSettings],
     },
-    adminGeneralGet
+    adminGeneralGet,
+    undefined,
+    { silent: true }
   );
 
   const paused = Boolean(generalData?.p2p_paused);
@@ -68,7 +71,7 @@ export const SystemControlPanel = () => {
   const runCancelAll = async () => {
     setCancelOpen(false);
     setCancelPhrase("");
-    setLoading();
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } = await postJson(
         ApiRoute.adminSystemCancelActiveTethers,
@@ -83,13 +86,13 @@ export const SystemControlPanel = () => {
     } catch {
       toast({ id: ToastData.systemTetherCancelAllFailed, type: "error" });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const runReset = async () => {
     setResetOpen(false);
     setResetPhrase("");
-    setLoading();
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } = await postJson(
         ApiRoute.adminSystemResetTradeRecords,
@@ -107,7 +110,7 @@ export const SystemControlPanel = () => {
     } catch {
       toast({ id: ToastData.systemTradeResetFailed, type: "error" });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const runPauseUpdate = async () => {
@@ -115,7 +118,7 @@ export const SystemControlPanel = () => {
     const next = pendingPaused;
     setPauseOpen(false);
     setPendingPaused(null);
-    setLoading();
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } = await postJson(
         ApiRoute.adminSystemP2pPause,
@@ -133,7 +136,7 @@ export const SystemControlPanel = () => {
     } catch {
       toast({ id: ToastData.systemP2pPauseUpdateFailed, type: "error" });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   // ─── UI ─────────────────────────────────────────────────────────────

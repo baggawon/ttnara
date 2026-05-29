@@ -16,7 +16,7 @@ import { forEach } from "@/helpers/basic";
 import { postJson, refreshCache } from "@/helpers/common";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { categoryDefault } from "@/helpers/defaultValue";
 import { adminTopicCategoriesGet, adminTopicsGet } from "@/helpers/get";
 import { ToastData } from "@/helpers/toastData";
@@ -40,7 +40,8 @@ export const useAdminTopicCategoriesEditHook = (
       queryKey: [{ [QueryKey.topics]: topic_id }],
     },
     adminTopicsGet,
-    topicPagination
+    topicPagination,
+    { silent: true }
   );
 
   const [pagination] = useState<TopicCategoriesReadProps>({
@@ -64,7 +65,8 @@ export const useAdminTopicCategoriesEditHook = (
       ],
     },
     adminTopicCategoriesGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const router = useRouter();
@@ -86,22 +88,20 @@ export const useAdminTopicCategoriesEditHook = (
   };
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
-  const editSave = async (props: category) => {
-    setLoading();
+  const editSaveMutation = useMutation({
+    mutationFn: async (props: category) => {
+      forEach(["topic_id", "description"], (key) => {
+        if ((props as any)[key] === "" || (props as any)[key] === undefined) {
+          (props as any)[key] = null;
+        }
+      });
 
-    forEach(["topic_id", "description"], (key) => {
-      if ((props as any)[key] === "" || (props as any)[key] === undefined) {
-        (props as any)[key] = null;
-      }
-    });
+      forEach(["display_order"], (key) => {
+        (props as any)[key] = Number((props as any)[key]);
+      });
 
-    forEach(["display_order"], (key) => {
-      (props as any)[key] = Number((props as any)[key]);
-    });
-
-    try {
       const { isSuccess, hasMessage } =
         await postJson<topicCategoriesUpdateProps>(
           ApiRoute.adminTopicCategoriesUpdate,
@@ -115,13 +115,15 @@ export const useAdminTopicCategoriesEditHook = (
         refreshCache(queryClient, `${QueryKey.topics}${QueryKey.categories}`);
         goBackList();
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const editSave = (props: category) => {
+    if (editSaveMutation.isPending) return;
+    editSaveMutation.mutate(props);
   };
 
   return {
@@ -130,5 +132,6 @@ export const useAdminTopicCategoriesEditHook = (
     categoriesData,
     goBackList,
     editSave,
+    isSubmitting: editSaveMutation.isPending,
   };
 };

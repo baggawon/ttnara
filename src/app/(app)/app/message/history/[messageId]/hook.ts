@@ -15,7 +15,8 @@ const MessageHistoryHook = (messageId: string) => {
       queryKey: [QueryKey.message],
     },
     messageGet,
-    { history: true, inbox: true }
+    { history: true, inbox: true },
+    { silent: true }
   );
 
   const messageIndex = messagesData?.history?.findIndex(

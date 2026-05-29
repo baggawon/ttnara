@@ -9,10 +9,7 @@ import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import type { Prisma, thread } from "@prisma/client";
 import { removeColumnsFromObject } from "@/helpers/basic";
-import {
-  deleteMultipleFilesFromS3,
-  stripCloudFrontSignatures,
-} from "@/helpers/server/s3";
+import { stripCloudFrontSignatures } from "@/helpers/server/s3";
 import { BoardAccessService } from "@/lib/boardAccess";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
 import { applyTopicPoints, getBalance } from "@/helpers/server/pointService";
@@ -21,85 +18,12 @@ import { recordActivity } from "@/helpers/server/boardActivity";
 import { BoardActivityAction } from "@/helpers/boardActivity";
 import { AlarmTypes, UserSettings } from "@/helpers/types";
 import { attachMediaToContent } from "@/helpers/server/mediaAttach";
+import {
+  deleteUnusedOrphans,
+  resolveThumbnailMediaId,
+  validateProposedThumbnail,
+} from "@/helpers/server/threadMedia";
 export interface threadUpdateProps extends thread {}
-
-// Confirms the proposed thumbnail belongs to this author and is either an
-// orphan (so the caller can request it be attached) or already attached to
-// this thread. Returns the id when usable, else null.
-const validateProposedThumbnail = async (
-  authorId: string,
-  threadId: number,
-  proposedId: number | null | undefined
-): Promise<number | null> => {
-  if (proposedId == null) return null;
-  const row = await handleConnect((prisma) =>
-    prisma.media_upload.findFirst({
-      where: {
-        id: proposedId,
-        author_id: authorId,
-        media_type: "image",
-        OR: [
-          { attached_to_id: null },
-          { attached_to_type: "thread", attached_to_id: threadId },
-        ],
-      },
-      select: { id: true },
-    })
-  );
-  return row ? row.id : null;
-};
-
-// Deletes the user's still-orphan media_uploads matching the client-declared
-// unused list. Scoped to the author to prevent cross-user deletion, and to
-// attached_to_id IS NULL so any row that got attached during this save (via
-// content or thumbnail keep) is preserved.
-const deleteUnusedOrphans = async (
-  authorId: string,
-  unusedIds: number[] | undefined
-): Promise<void> => {
-  if (!unusedIds || unusedIds.length === 0) return;
-  const rows = await handleConnect((prisma) =>
-    prisma.media_upload.findMany({
-      where: {
-        id: { in: unusedIds },
-        author_id: authorId,
-        attached_to_id: null,
-      },
-      select: { id: true, aws_cloud_front_url: true },
-    })
-  );
-  if (!rows || rows.length === 0) return;
-
-  await deleteMultipleFilesFromS3(
-    rows.map(
-      (r) => `https://${r.aws_cloud_front_url.replace(/^https?:\/\//, "")}`
-    )
-  );
-  await handleConnect((prisma) =>
-    prisma.media_upload.deleteMany({
-      where: { id: { in: rows.map((r) => r.id) } },
-    })
-  );
-};
-
-const resolveThumbnailMediaId = async (
-  threadId: number,
-  proposedId: number | null | undefined
-): Promise<number | null> => {
-  if (proposedId == null) return null;
-  const attached = await handleConnect((prisma) =>
-    prisma.media_upload.findFirst({
-      where: {
-        id: proposedId,
-        attached_to_type: "thread",
-        attached_to_id: threadId,
-        media_type: "image",
-      },
-      select: { id: true },
-    })
-  );
-  return attached ? attached.id : null;
-};
 
 export const POST = async (formData: FormData) => {
   try {
@@ -130,6 +54,17 @@ export const POST = async (formData: FormData) => {
     try {
       const topics = appCache.getByKey(CacheKey.Topics) as any;
       const topicSettings = topics[topic_url];
+
+      // Card-format home topics are managed exclusively from the admin-side
+      // dedicated CRUD pages; the conventional thread create/edit flow is
+      // disabled here regardless of session.
+      if (topicSettings?.fullview_on_homepage) {
+        return {
+          result: false,
+          message:
+            "메인 홈 카드형 게시판은 관리자 페이지에서만 작성/수정할 수 있습니다.",
+        };
+      }
 
       const access = await BoardAccessService.fromSession({
         session,

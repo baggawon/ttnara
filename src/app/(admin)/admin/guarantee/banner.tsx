@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { postFormData, refreshCache } from "@/helpers/common";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -16,11 +16,13 @@ import type { GuaranteeBannerResponse } from "@/app/api/admin_di2u3k2j/guarantee
 
 export default function AdminGuaranteeBannerCard() {
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   const { data } = useGetQuery<GuaranteeBannerResponse, undefined>(
     { queryKey: [QueryKey.guaranteeBanner] },
-    adminGuaranteeBannerGet
+    adminGuaranteeBannerGet,
+    undefined,
+    { silent: true }
   );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,7 +56,6 @@ export default function AdminGuaranteeBannerCard() {
     if (selectedFile) formData.append("image", selectedFile);
     if (removeFlag) formData.append("removeImage", "true");
 
-    setLoading();
     setIsSaving(true);
     try {
       const result = await postFormData(
@@ -80,7 +81,6 @@ export default function AdminGuaranteeBannerCard() {
     } catch {
       toast({ id: ToastData.unknown, type: "error" });
     } finally {
-      disableLoading();
       setIsSaving(false);
     }
   };

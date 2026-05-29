@@ -23,8 +23,13 @@ const ALLOWED_FIELDS = [
   "logo_image_url",
   "favicon_url",
   "apple_icon_url",
+  "hero_image_url",
+  "hero_action_url",
   "allow_user_registration",
   "p2p_paused",
+  "show_seo",
+  "show_price_calc",
+  "show_price_ticker",
 ] as const satisfies readonly (keyof general_setting)[];
 
 const pickAllowed = (

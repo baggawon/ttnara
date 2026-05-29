@@ -14,6 +14,7 @@ interface Props {
   pagination?: PaginationInfo;
   onPageChange: (index: number) => void;
   onTogglePreview: (index: number) => void;
+  onToggleFullview: (index: number) => void;
   onDelete: (index: number) => void;
 }
 
@@ -22,6 +23,7 @@ export function TopicMobileList({
   pagination,
   onPageChange,
   onTogglePreview,
+  onToggleFullview,
   onDelete,
 }: Props) {
   const router = useRouter();
@@ -48,6 +50,9 @@ export function TopicMobileList({
                 {topic.preview_on_homepage && (
                   <Badge variant="outline">홈 노출</Badge>
                 )}
+                {topic.fullview_on_homepage && (
+                  <Badge variant="outline">카드형 홈</Badge>
+                )}
               </div>
             </div>
 
@@ -65,6 +70,15 @@ export function TopicMobileList({
                 onClick={() => onTogglePreview(idx)}
               >
                 홈 미리보기 {topic.preview_on_homepage ? "ON" : "OFF"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={topic.fullview_on_homepage ? "default" : "outline"}
+                disabled={!topic.is_active}
+                onClick={() => onToggleFullview(idx)}
+              >
+                카드형 홈 {topic.fullview_on_homepage ? "ON" : "OFF"}
               </Button>
               <div className="grid grid-cols-3 gap-2">
                 <Button

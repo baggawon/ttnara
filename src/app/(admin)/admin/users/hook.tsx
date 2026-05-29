@@ -53,7 +53,9 @@ export const useAdminUsersListHook = () => {
     {
       queryKey: [QueryKey.levelSettings],
     },
-    adminLevelGet
+    adminLevelGet,
+    undefined,
+    { silent: true }
   );
 
   const [pagination, setPagination] = useState<UsersReadProps>({
@@ -66,7 +68,8 @@ export const useAdminUsersListHook = () => {
       queryKey: [{ [QueryKey.users]: pagination }],
     },
     adminUsersGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const router = useRouter();

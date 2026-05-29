@@ -17,7 +17,9 @@ const NoticeTableWidget = () => {
     {
       queryKey: [QueryKey.session],
     },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   const { data: summariesData } = useGetQuery<
@@ -27,7 +29,9 @@ const NoticeTableWidget = () => {
     {
       queryKey: [QueryKey.summaryThreads],
     },
-    summaryThreadsGet
+    summaryThreadsGet,
+    undefined,
+    { silent: true }
   );
 
   const methods = useForm({ reValidateMode: "onSubmit" });

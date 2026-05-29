@@ -26,17 +26,24 @@ export const POST = async (json: topicsUpdateProps) => {
     }
 
     const { id, ...data } = json;
+    // Only one topic at a time may hold `fullview_on_homepage` (the special-board
+    // home block keys off this single flag). Auto-demote any prior holder in the
+    // same transaction so admins don't have to manually unset it.
     const updateResult = await handleConnect((prisma) =>
-      json.id === 0
-        ? prisma.topic.create({
-            data,
-          })
-        : prisma.topic.update({
+      prisma.$transaction(async (tx) => {
+        if (data.fullview_on_homepage === true) {
+          await tx.topic.updateMany({
             where: {
-              id,
+              fullview_on_homepage: true,
+              ...(json.id !== 0 ? { NOT: { id } } : {}),
             },
-            data,
-          })
+            data: { fullview_on_homepage: false },
+          });
+        }
+        return json.id === 0
+          ? tx.topic.create({ data })
+          : tx.topic.update({ where: { id }, data });
+      })
     );
     if (!updateResult) throw ToastData.unknown;
 

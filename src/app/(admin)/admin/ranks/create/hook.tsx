@@ -4,7 +4,7 @@ import type { trade_rank } from "@prisma/client";
 import type { RankCreateProps } from "@/app/api/admin_di2u3k2j/ranks/create";
 import { useToast } from "@/components/ui/use-toast";
 import { postJson, refreshCache } from "@/helpers/common";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tradeRankCreateDefault } from "@/helpers/defaultValue";
 import { ToastData } from "@/helpers/toastData";
 import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
@@ -27,7 +27,8 @@ export const useAdminRanksCreateHook = () => {
       queryKey: [QueryKey.ranks],
     },
     adminRanksGet,
-    { page: 1, pageSize: 100 } // Fetch all ranks for validation
+    { page: 1, pageSize: 100 }, // Fetch all ranks for validation
+    { silent: true }
   );
 
   const methods = useForm<RankCreateProps>({
@@ -41,22 +42,10 @@ export const useAdminRanksCreateHook = () => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
-  const submit = async (props: trade_rank) => {
-    // Validate one final time before submitting
-    if (
-      !validateMinTradeCount(props.min_trade_count, props.rank_level, ranksData)
-    ) {
-      toast({
-        id: ToastData.rankMinTradeCount,
-        type: "error",
-      });
-      return;
-    }
-
-    setLoading();
-    try {
+  const submitMutation = useMutation({
+    mutationFn: async (props: trade_rank) => {
       const { isSuccess, hasMessage } = await postJson<RankCreateProps>(
         ApiRoute.adminRanksCreate,
         props
@@ -71,18 +60,31 @@ export const useAdminRanksCreateHook = () => {
         refreshCache(queryClient, QueryKey.ranks);
         goBack();
       }
-    } catch (error) {
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const submit = (props: trade_rank) => {
+    // Validate one final time before submitting
+    if (
+      !validateMinTradeCount(props.min_trade_count, props.rank_level, ranksData)
+    ) {
       toast({
-        id: ToastData.unknown,
+        id: ToastData.rankMinTradeCount,
         type: "error",
       });
+      return;
     }
-    disableLoading();
+    if (submitMutation.isPending) return;
+    submitMutation.mutate(props);
   };
 
   return {
     methods,
     goBack,
     submit,
+    isSubmitting: submitMutation.isPending,
   };
 };

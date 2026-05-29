@@ -14,7 +14,7 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminLevelGet, adminUserGet, userSettingsGet } from "@/helpers/get";
 import { ToastData } from "@/helpers/toastData";
 import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
@@ -29,19 +29,24 @@ export const useAdminUserEditHook = (user_id: string) => {
       queryKey: [{ [QueryKey.user]: user_id }],
     },
     adminUserGet,
-    { user_id }
+    { user_id },
+    { silent: true }
   );
   const { data: levelData } = useGetQuery<level_setting, LevelReadProps>(
     {
       queryKey: [QueryKey.levelSettings],
     },
-    adminLevelGet
+    adminLevelGet,
+    undefined,
+    { silent: true }
   );
   const { data: userSettingData } = useGetQuery<UserSettings, undefined>(
     {
       queryKey: [QueryKey.signupSettings],
     },
-    userSettingsGet
+    userSettingsGet,
+    undefined,
+    { silent: true }
   );
 
   const methods = useForm<UserForAdmin>({
@@ -62,21 +67,15 @@ export const useAdminUserEditHook = (user_id: string) => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
-  const submit = async (props: UserForAdmin) => {
-    if (!props || !props?.profile) {
-      console.error("Missing editUserData or profile:", props);
-      return;
-    }
-    setLoading();
-
-    try {
+  const submitMutation = useMutation({
+    mutationFn: async (props: UserForAdmin) => {
       // Validate and convert numeric fields
       const tradeCount = Number(props.trade_count);
-      const userLevel = Number(props.profile.user_level);
-      const authLevel = Number(props.profile.auth_level);
-      const point = Number(props.profile.point);
+      const userLevel = Number(props.profile!.user_level);
+      const authLevel = Number(props.profile!.auth_level);
+      const point = Number(props.profile!.point);
 
       // Validate numeric conversions
       if (
@@ -85,15 +84,14 @@ export const useAdminUserEditHook = (user_id: string) => {
         isNaN(authLevel) ||
         isNaN(point)
       ) {
-        const error = new Error("Invalid numeric value provided");
-        throw error;
+        throw new Error("Invalid numeric value provided");
       }
 
       // Validate nickname length if provided
-      if (props.profile.displayname && userSettingData) {
+      if (props.profile!.displayname && userSettingData) {
         const { min_displayname_length, max_displayname_length } =
           userSettingData;
-        const displaynameLength = props.profile.displayname.length;
+        const displaynameLength = props.profile!.displayname.length;
 
         if (
           displaynameLength < min_displayname_length ||
@@ -107,7 +105,7 @@ export const useAdminUserEditHook = (user_id: string) => {
 
       // Coerce blank email to null so we don't overwrite null → "" and
       // trip the @unique constraint when multiple legacy users have no email.
-      const normalizedEmail = props.profile.email?.trim() || null;
+      const normalizedEmail = props.profile!.email?.trim() || null;
 
       const editUserData: userUpdateProps = {
         id: props.id,
@@ -117,12 +115,12 @@ export const useAdminUserEditHook = (user_id: string) => {
         profile: {
           auth_level: authLevel,
           user_level: userLevel,
-          displayname: props.profile.displayname,
-          is_app_admin: props.profile.is_app_admin,
+          displayname: props.profile!.displayname,
+          is_app_admin: props.profile!.is_app_admin,
           point: point,
           email: normalizedEmail,
-          has_warranty: props.profile.has_warranty,
-          warranty_deposit_amount: props.profile.warranty_deposit_amount,
+          has_warranty: props.profile!.has_warranty,
+          warranty_deposit_amount: props.profile!.warranty_deposit_amount,
         },
       };
 
@@ -138,13 +136,22 @@ export const useAdminUserEditHook = (user_id: string) => {
         refreshCache(queryClient, QueryKey.user);
         goBackList();
       }
-    } catch (error) {
+    },
+    onError: (error) => {
       toast({
         id: error instanceof Error ? error.message : ToastData.unknown,
         type: "error",
       });
+    },
+  });
+
+  const submit = (props: UserForAdmin) => {
+    if (!props || !props?.profile) {
+      console.error("Missing editUserData or profile:", props);
+      return;
     }
-    disableLoading();
+    if (submitMutation.isPending) return;
+    submitMutation.mutate(props);
   };
 
   return {
@@ -155,5 +162,6 @@ export const useAdminUserEditHook = (user_id: string) => {
     goBackList,
     cancelEdit,
     submit,
+    isSubmitting: submitMutation.isPending,
   };
 };

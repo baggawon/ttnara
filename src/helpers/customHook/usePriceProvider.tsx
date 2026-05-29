@@ -34,7 +34,9 @@ const PriceProvider: React.FC<{
       queryKey: [QueryKey.tetherKrwRate],
       refetchInterval: 45 * 1000, // 45초마다 갱신
     },
-    tetherKrwRateGet
+    tetherKrwRateGet,
+    undefined,
+    { silent: true }
   );
 
   useEffectFunctionHook({

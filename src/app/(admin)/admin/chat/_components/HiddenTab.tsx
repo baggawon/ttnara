@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { RotateCw } from "lucide-react";
 
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminChatHiddenMessagesGet } from "@/helpers/get";
 import { postJson, refreshCache } from "@/helpers/common";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -36,7 +36,7 @@ interface PaginatedHidden {
 
 export default function HiddenTab() {
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -48,7 +48,8 @@ export default function HiddenTab() {
       queryKey: [{ [QueryKey.chatHiddenMessages]: { page, pageSize } }],
     },
     adminChatHiddenMessagesGet,
-    { page, pageSize }
+    { page, pageSize },
+    { silent: true }
   );
 
   const rows = data?.messages ?? [];

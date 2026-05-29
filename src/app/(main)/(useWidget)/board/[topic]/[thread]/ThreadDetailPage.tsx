@@ -4,12 +4,16 @@ import type { ThreadWithProfile } from "@/app/api/threads/read";
 import { ThreadBadges } from "@/components/1_atoms/ThreadBadges";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  User,
+  Calendar,
+  Eye,
+  MessageSquare,
+  Copy,
+  ArrowLeft,
+  Pencil,
+  Trash2,
+  Send,
+} from "lucide-react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -26,7 +30,6 @@ import {
 } from "@/helpers/common";
 import { ThreadList } from "@/components/4_templates/ThreadList";
 import { useToast } from "@/components/ui/use-toast";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import type { threadDeleteProps } from "@/app/api/threads/delete";
 import { ToastData } from "@/helpers/toastData";
 import ConfirmDialog from "@/components/1_atoms/ConfirmDialog";
@@ -35,7 +38,7 @@ import Form from "@/components/1_atoms/Form";
 import { commentDefault } from "@/helpers/defaultValue";
 import type { comment } from "@prisma/client";
 import { validateComment } from "@/helpers/validate";
-import { FormTextarea } from "@/components/2_molecules/Input/FormTextarea";
+import { Input } from "@/components/2_molecules/Input/FormInput";
 import { map } from "@/helpers/basic";
 import type { CommentUpdateProps } from "@/app/api/threads/comment/update";
 import HTMLViewer from "@/components/1_atoms/HTMLViewer";
@@ -43,6 +46,9 @@ import type { Session } from "next-auth";
 import type { TopicSettings } from "@/app/api/topic/read";
 import { VoteButtons } from "@/components/2_molecules/VoteButtons";
 import useTopicPoints from "@/helpers/customHook/useTopicPoints";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
+import { useRef } from "react";
 
 export const ThreadDetailPage = ({
   page,
@@ -63,7 +69,9 @@ export const ThreadDetailPage = ({
     {
       queryKey: [QueryKey.session],
     },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   const { data: topicSettings } = useGetQuery<
@@ -75,7 +83,8 @@ export const ThreadDetailPage = ({
       staleTime: Infinity,
     },
     topicSettingsGet, // New API endpoint needed
-    { topic_url }
+    { topic_url },
+    { silent: true }
   );
 
   // Get specific thread if editing
@@ -89,7 +98,8 @@ export const ThreadDetailPage = ({
       enabled: thread_id > 0,
     },
     threadGet,
-    { topic_url, thread_id }
+    { topic_url, thread_id },
+    { silent: true }
   );
 
   const authLevel = session?.user?.auth_level ?? 0;
@@ -103,7 +113,11 @@ export const ThreadDetailPage = ({
   const isAuthor = currentThread?.author_id === session?.user?.id;
 
   const canRead = authLevel >= levelRead;
-  const canEdit = isAppAdmin || isModerator || isAuthor;
+  // Card-format home topics are managed only from dedicated admin CRUD pages,
+  // so the conventional edit/delete actions are hidden here regardless of role.
+  const canEdit =
+    !topicSettings?.fullview_on_homepage &&
+    (isAppAdmin || isModerator || isAuthor);
   const canComment = authLevel >= levelComment;
 
   const topicPoints = useTopicPoints(topicSettings);
@@ -164,12 +178,11 @@ export const ThreadDetailPage = ({
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
+  const threadQueryKey = [{ [QueryKey.thread]: { topic_url, thread_id } }];
 
-  const tryDelete = async () => {
-    if (!canEdit) return;
-    setLoading();
-    try {
+  const threadDeleteMutation = useMutation({
+    mutationFn: async () => {
       const { isSuccess, hasMessage } = await postJson<threadDeleteProps>(
         ApiRoute.threadsDelete,
         { deleteThreadId: thread_id, topic_url }
@@ -177,233 +190,277 @@ export const ThreadDetailPage = ({
       if (hasMessage) {
         toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
       }
-
       if (isSuccess) {
         refreshCache(queryClient, QueryKey.thread);
         refreshCache(queryClient, QueryKey.threads);
         goBackList();
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
-  };
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
 
   const methods = useForm<comment>({
     defaultValues: commentDefault({ thread_id }),
     reValidateMode: "onSubmit",
   });
 
-  const commentSave = async (props: comment) => {
-    if (!canComment) return;
-    setLoading();
+  // Negative ids never collide with server ids; used to mark optimistic rows
+  // that we may still need to revert before the server confirms the write.
+  const tempIdRef = useRef(-1);
+  const allocateTempId = () => tempIdRef.current--;
 
-    try {
-      const { isSuccess, hasMessage } = await postJson<CommentUpdateProps>(
-        ApiRoute.threadCommentUpdate,
-        { ...props, topic_url }
-      );
-      if (hasMessage) {
-        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
-      }
+  const commentCreateMutation = useMutation({
+    mutationFn: async (props: comment) => {
+      const tempId = allocateTempId();
+      const sessionUser = (session as any)?.user;
+      const optimisticComment: any = {
+        ...props,
+        id: tempId,
+        thread_id,
+        author_id: sessionUser?.id ?? null,
+        created_at: new Date(),
+        updated_at: new Date(),
+        author: {
+          profile: {
+            displayname: sessionUser?.displayname ?? "",
+            is_app_admin: !!sessionUser?.is_app_admin,
+            auth_level: sessionUser?.auth_level ?? 0,
+          },
+        },
+      };
 
-      if (isSuccess) {
-        methods.reset(commentDefault({ thread_id }));
-        refreshCache(queryClient, QueryKey.thread);
-        refreshCache(queryClient, QueryKey.threads);
-      }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
+      const snapshot = queryClient.getQueryData<any>(threadQueryKey);
+      queryClient.setQueryData<any>(threadQueryKey, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          comments: [...(old.comments ?? []), optimisticComment],
+        };
       });
-    }
-    disableLoading();
-  };
+      methods.reset(commentDefault({ thread_id }));
 
-  const tryDeleteComment = async (deleteCommentId: number) => {
-    setLoading();
-    try {
-      const { isSuccess, hasMessage } = await postJson(
-        ApiRoute.threadCommentDelete,
-        {
-          deleteCommentId,
+      try {
+        const { isSuccess, hasMessage, hasData } =
+          await postJson<CommentUpdateProps>(ApiRoute.threadCommentUpdate, {
+            ...props,
+            topic_url,
+          });
+        if (hasMessage) {
+          toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
         }
-      );
-      if (hasMessage) {
-        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
+        if (!isSuccess) {
+          queryClient.setQueryData<any>(threadQueryKey, snapshot);
+          return;
+        }
+        // Swap the temp id (and timestamp) for the canonical server values so
+        // a follow-up delete targets the real row instead of our placeholder.
+        if (hasData) {
+          queryClient.setQueryData<any>(threadQueryKey, (old: any) => {
+            if (!old) return old;
+            return {
+              ...old,
+              comments: (old.comments ?? []).map((c: any) =>
+                c.id === tempId
+                  ? {
+                      ...c,
+                      id: hasData.id,
+                      created_at: hasData.created_at ?? c.created_at,
+                      updated_at: hasData.updated_at ?? c.updated_at,
+                    }
+                  : c
+              ),
+            };
+          });
+        }
+      } catch (error) {
+        queryClient.setQueryData<any>(threadQueryKey, snapshot);
+        toast({ id: ToastData.unknown, type: "error" });
       }
+    },
+  });
 
-      if (isSuccess) {
-        refreshCache(queryClient, QueryKey.thread);
-        refreshCache(queryClient, QueryKey.threads);
-      }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
+  const commentDeleteMutation = useMutation({
+    mutationFn: async (deleteCommentId: number) => {
+      // Guard against deleting an optimistic row whose temp id never made it
+      // to the server. The cache reconcile in commentCreateMutation should
+      // beat the user to it, but this is the safety net.
+      if (deleteCommentId < 0) return;
+      const snapshot = queryClient.getQueryData<any>(threadQueryKey);
+      queryClient.setQueryData<any>(threadQueryKey, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          comments: (old.comments ?? []).filter(
+            (c: any) => c.id !== deleteCommentId
+          ),
+        };
       });
-    }
-    disableLoading();
+
+      try {
+        const { isSuccess, hasMessage } = await postJson(
+          ApiRoute.threadCommentDelete,
+          { deleteCommentId }
+        );
+        if (hasMessage) {
+          toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
+        }
+        if (!isSuccess) {
+          queryClient.setQueryData<any>(threadQueryKey, snapshot);
+        }
+      } catch (error) {
+        queryClient.setQueryData<any>(threadQueryKey, snapshot);
+        toast({ id: ToastData.unknown, type: "error" });
+      }
+    },
+  });
+
+  const tryDelete = () => {
+    if (!canEdit) return;
+    threadDeleteMutation.mutate();
   };
+
+  const commentSave = (props: comment) => {
+    if (!canComment) return;
+    if (commentCreateMutation.isPending) return;
+    commentCreateMutation.mutate(props);
+  };
+
+  const tryDeleteComment = (deleteCommentId: number) => {
+    commentDeleteMutation.mutate(deleteCommentId);
+  };
+
+  const authorName = currentThread?.is_secret
+    ? "익명"
+    : getBoardPosterDisplayname(
+        currentThread?.author?.profile,
+        topicSettings?.level_moderator,
+        session?.user
+      );
 
   return (
     <FormProvider {...methods}>
-      <div className="w-full flex flex-col gap-4">
-        <Card className="overflow-hidden border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b p-3 sm:p-6">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words flex items-center gap-1.5">
+      <div className="w-full flex flex-col gap-6">
+        <article className="flex flex-col gap-4">
+          <header className="flex flex-col gap-3 border-b border-border/60 pb-4">
+            <h1 className="text-lg sm:text-xl font-semibold leading-snug break-words flex items-start gap-1.5">
               <ThreadBadges
                 commentCount={currentThread?.comments?.length ?? 0}
                 views={currentThread?.views ?? 0}
               />
-              {currentThread?.title}
+              <span>{currentThread?.title}</span>
             </h1>
-            <CardDescription className="flex flex-wrap gap-2 sm:gap-4 items-center text-xs sm:text-sm md:text-base">
-              <div className="flex items-center gap-1 sm:gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-slate-500 sm:w-4 sm:h-4"
-                >
-                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                <span>
-                  작성자{" "}
-                  <b className="text-primary">
-                    {currentThread?.is_secret
-                      ? "익명"
-                      : getBoardPosterDisplayname(
-                          currentThread?.author?.profile,
-                          topicSettings?.level_moderator,
-                          session?.user
-                        )}
-                  </b>
-                  {currentThread?.is_secret && (isAppAdmin || isAuthor) && (
-                    <span className="ml-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5 rounded">
-                      {getBoardPosterDisplayname(
-                        currentThread?.author?.profile,
-                        topicSettings?.level_moderator,
-                        session?.user
-                      )}
-                    </span>
-                  )}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                <span className="font-medium text-foreground">
+                  {authorName}
                 </span>
-              </div>
-              <div className="flex items-center gap-1 sm:gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-slate-500 sm:w-4 sm:h-4"
-                >
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                <span>
-                  작성일{" "}
-                  <b>
-                    {dayjs(currentThread?.created_at)
-                      .tz("Asia/Seoul")
-                      .format("YY-MM-DD HH:mm")}
-                  </b>
-                </span>
-              </div>
-              <div className="flex items-center gap-1 sm:gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-slate-500 sm:w-4 sm:h-4"
-                >
-                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <span>
-                  조회 <b>{currentThread?.views}회</b>
-                </span>
-              </div>
-              <div className="flex items-center gap-1 sm:gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-slate-500 sm:w-4 sm:h-4"
-                >
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <span>
-                  댓글 <b>{currentThread?.comments.length}건</b>
-                </span>
-              </div>
+                {currentThread?.is_secret && (isAppAdmin || isAuthor) && (
+                  <span className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
+                    {getBoardPosterDisplayname(
+                      currentThread?.author?.profile,
+                      topicSettings?.level_moderator,
+                      session?.user
+                    )}
+                  </span>
+                )}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                {dayjs(currentThread?.created_at)
+                  .tz("Asia/Seoul")
+                  .format("YY-MM-DD HH:mm")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Eye className="h-3.5 w-3.5" />
+                {currentThread?.views ?? 0}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5" />
+                {currentThread?.comments.length ?? 0}
+              </span>
               <Button
                 type="button"
                 onClick={copyCurrentUrl}
-                className="ml-auto p-1.5 sm:p-2 h-fit flex items-center gap-1 sm:gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs sm:text-sm"
-                variant="outline"
+                size="sm"
+                variant="ghost"
+                className="ml-auto h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="sm:w-4 sm:h-4"
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
+                <Copy className="h-3.5 w-3.5" />
                 주소복사
               </Button>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 md:p-8">
-            <div className="prose dark:prose-invert max-w-none">
-              <HTMLViewer
-                htmlContent={currentThread?.content ?? ""}
-                format={
-                  (currentThread?.content_format as "html" | "markdown") ??
-                  "html"
-                }
-              />
             </div>
-          </CardContent>
-        </Card>
+          </header>
+          <div className="prose dark:prose-invert max-w-none py-2">
+            <HTMLViewer
+              htmlContent={currentThread?.content ?? ""}
+              format={
+                (currentThread?.content_format as "html" | "markdown") ?? "html"
+              }
+            />
+          </div>
+        </article>
+
+        {topicSettings?.fullview_on_homepage &&
+          currentThread &&
+          (currentThread.action_url_1 || currentThread.action_url_2) &&
+          (() => {
+            const hasBoth =
+              !!currentThread.action_url_1 && !!currentThread.action_url_2;
+            return (
+              <div
+                className={
+                  hasBoth
+                    ? "grid grid-cols-1 sm:grid-cols-2 gap-3"
+                    : "flex justify-center"
+                }
+              >
+                {currentThread.action_url_1 && (
+                  <Button
+                    asChild
+                    size="lg"
+                    className={`bg-rose-500 hover:bg-rose-600 text-white font-semibold ${
+                      hasBoth ? "w-full" : "w-full sm:w-auto sm:min-w-[320px]"
+                    }`}
+                  >
+                    <a
+                      href={currentThread.action_url_1}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {currentThread.action_url_1_label || "바로가기"}
+                      <span aria-hidden className="ml-1">
+                        →
+                      </span>
+                    </a>
+                  </Button>
+                )}
+                {currentThread.action_url_2 && (
+                  <Button
+                    asChild
+                    size="lg"
+                    variant="outline"
+                    className={`font-semibold ${
+                      hasBoth ? "w-full" : "w-full sm:w-auto sm:min-w-[320px]"
+                    }`}
+                  >
+                    <a
+                      href={currentThread.action_url_2}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {currentThread.action_url_2_label || "바로가기"}
+                      <span aria-hidden className="ml-1">
+                        →
+                      </span>
+                    </a>
+                  </Button>
+                )}
+              </div>
+            );
+          })()}
 
         {(topicSettings?.use_upvote || topicSettings?.use_downvote) &&
           currentThread && (
@@ -426,82 +483,63 @@ export const ThreadDetailPage = ({
             />
           )}
 
-        {currentThread?.comments && currentThread?.comments.length === 0 && (
-          <Card className="overflow-hidden border-none shadow-md">
-            <CardContent className="flex items-center justify-center p-8 text-slate-500 dark:text-slate-400">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-2"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
+        <section className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <span>댓글</span>
+            <span className="text-muted-foreground font-normal">
+              {currentThread?.comments?.length ?? 0}
+            </span>
+          </div>
+          {currentThread?.comments && currentThread.comments.length === 0 && (
+            <div className="flex items-center justify-center py-10 text-sm text-muted-foreground bg-muted/30 rounded-lg">
               등록된 댓글이 없습니다.
-            </CardContent>
-          </Card>
-        )}
-        {currentThread?.comments && currentThread?.comments.length > 0 && (
-          <Card className="overflow-hidden border-none shadow-md">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b py-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                댓글 {currentThread.comments.length}건
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {map(currentThread.comments, (comment) => (
-                <div
-                  className="group flex flex-col gap-2 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b last:border-b-0"
-                  key={`comment*&*${comment.id}`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">
-                        {currentThread?.is_secret
-                          ? "익명"
-                          : getBoardPosterDisplayname(
-                              comment.author?.profile,
-                              topicSettings?.level_moderator,
-                              session?.user
-                            )}
-                        {currentThread?.is_secret &&
-                          (isAppAdmin || isAuthor) && (
-                            <span className="ml-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5 rounded">
-                              {getBoardPosterDisplayname(
-                                comment.author?.profile,
-                                topicSettings?.level_moderator,
-                                session?.user
-                              )}
-                            </span>
-                          )}
+            </div>
+          )}
+          {currentThread?.comments && currentThread.comments.length > 0 && (
+            <ul className="flex flex-col bg-muted/30 rounded-lg divide-y divide-border/60 overflow-hidden">
+              {map(currentThread.comments, (comment) => {
+                const commenterName = currentThread?.is_secret
+                  ? "익명"
+                  : getBoardPosterDisplayname(
+                      comment.author?.profile,
+                      topicSettings?.level_moderator,
+                      session?.user
+                    );
+                const isOptimistic = comment.id < 0;
+                const canDelete =
+                  !isOptimistic &&
+                  comment.author?.profile?.displayname ===
+                    (session as any)?.user?.displayname;
+                return (
+                  <li
+                    className="group flex items-baseline gap-2 px-3 py-2 hover:bg-muted/50 transition-colors"
+                    key={`comment*&*${comment.id}`}
+                  >
+                    <span className="text-xs font-semibold text-foreground shrink-0">
+                      {commenterName}
+                    </span>
+                    {currentThread?.is_secret && (isAppAdmin || isAuthor) && (
+                      <span className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded shrink-0">
+                        {getBoardPosterDisplayname(
+                          comment.author?.profile,
+                          topicSettings?.level_moderator,
+                          session?.user
+                        )}
                       </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {dayjs(comment.created_at)
-                          .tz("Asia/Seoul")
-                          .format("YY-MM-DD HH:mm")}
-                      </span>
-                    </div>
-                    {comment.author?.profile?.displayname ===
-                      (session as any)?.user?.displayname && (
+                    )}
+                    <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
+                      {dayjs(comment.created_at)
+                        .tz("Asia/Seoul")
+                        .format("MM-DD HH:mm")}
+                    </span>
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: comment.content ?? "",
+                      }}
+                      className="text-sm flex-1 min-w-0 break-words [&>p]:m-0 [&_*]:inline"
+                    />
+                    {canDelete && (
                       <ConfirmDialog
                         title="댓글 삭제"
                         description="댓글을 삭제하시려면 확인을 눌러주세요."
@@ -511,139 +549,69 @@ export const ThreadDetailPage = ({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0 self-center"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M3 6h18"></path>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                          </svg>
+                          <Trash2 className="h-3.5 w-3.5" />
                           <span className="sr-only">삭제</span>
                         </Button>
                       </ConfirmDialog>
                     )}
-                  </div>
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: comment.content ?? "",
-                    }}
-                    className="prose-sm dark:prose-invert max-w-none break-words text-sm"
-                  />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
         {session !== null && session !== undefined && canComment && (
-          <Card className="overflow-hidden border-none shadow-md">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b py-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                </svg>
-                댓글 작성
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              <Form onSubmit={commentSave} className="space-y-4">
-                <FormTextarea
-                  name="content"
-                  validate={validateComment}
-                  label="댓글을 입력하세요"
-                  placeholder="댓글을 입력하세요..."
-                />
-                <div className="flex justify-end">
-                  <Button
-                    type="submit"
-                    disabled={commentBlocked}
-                    title={commentTitle}
-                    className="px-4 bg-primary hover:bg-primary/90"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                    </svg>
-                    댓글 등록
-                  </Button>
-                </div>
-              </Form>
-            </CardContent>
-          </Card>
+          <Form onSubmit={commentSave} className="w-full">
+            <div className="flex items-center gap-1 rounded-full border border-input bg-background pl-2 pr-1 py-1 focus-within:ring-2 focus-within:ring-ring/40 focus-within:border-ring transition-colors">
+              <Input
+                name="content"
+                validate={validateComment}
+                placeholder="댓글을 입력하세요..."
+                className="flex-1"
+                inputClassName="border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-9 px-2 bg-transparent"
+                isErrorVislble={false}
+              />
+              <Button
+                type="submit"
+                disabled={commentBlocked || commentCreateMutation.isPending}
+                aria-busy={commentCreateMutation.isPending}
+                title={commentTitle}
+                size="sm"
+                className="rounded-full h-8 px-3 gap-1.5 shrink-0"
+              >
+                {commentCreateMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Send className="h-3.5 w-3.5" />
+                )}
+                등록
+              </Button>
+            </div>
+          </Form>
         )}
-        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+        <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/60">
           <Button
             type="button"
             onClick={goBackList}
-            variant="outline"
-            className="w-full sm:w-auto px-4"
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className=""
-            >
-              <path d="m12 19-7-7 7-7"></path>
-              <path d="M19 12H5"></path>
-            </svg>
+            <ArrowLeft className="h-4 w-4" />
             목록으로
           </Button>
           {canEdit && (
-            <>
+            <div className="flex items-center gap-2">
               <Button
                 type="button"
                 onClick={goEdit}
-                className="w-full sm:w-auto px-4 bg-primary hover:bg-primary/90"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
+                <Pencil className="h-3.5 w-3.5" />
                 편집
               </Button>
               <ConfirmDialog
@@ -654,37 +622,32 @@ export const ThreadDetailPage = ({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full sm:w-auto px-4"
+                  size="sm"
+                  disabled={threadDeleteMutation.isPending}
+                  aria-busy={threadDeleteMutation.isPending}
+                  className="gap-1.5 text-destructive hover:text-destructive"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 6h18"></path>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                  </svg>
+                  {threadDeleteMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
                   삭제
                 </Button>
               </ConfirmDialog>
-            </>
+            </div>
           )}
         </div>
-        <ThreadList
-          page={page}
-          category_name={category_name}
-          topic_url={topic_url}
-          thread_id={thread_id}
-          search={search}
-          column={column}
-        />
+        {!topicSettings?.fullview_on_homepage && (
+          <ThreadList
+            page={page}
+            category_name={category_name}
+            topic_url={topic_url}
+            thread_id={thread_id}
+            search={search}
+            column={column}
+          />
+        )}
       </div>
     </FormProvider>
   );

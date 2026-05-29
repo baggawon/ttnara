@@ -142,7 +142,7 @@ const DefaultThumbnailUploader = () => {
 };
 
 export const BoardGeneralForm = ({ className }: { className?: string }) => {
-  const { methods, submit } = useAdminThreadGeneralEditHook();
+  const { methods, submit, isSubmitting } = useAdminThreadGeneralEditHook();
 
   return (
     <FormProvider {...methods}>
@@ -613,7 +613,12 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
             </CardContent>
           </Card>
         </div>
-        <Button className="w-full sm:w-fit" type="submit">
+        <Button
+          className="w-full sm:w-fit"
+          type="submit"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+        >
           저장
         </Button>
       </Form>

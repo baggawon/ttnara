@@ -1,11 +1,11 @@
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
 import { ApiRoute, AppRoute, QueryKey } from "@/helpers/types";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { postJson } from "@/helpers/common";
 import type { MessageCreatePostProps } from "@/app/api/message/create";
 import { useRouter, useSearchParams } from "next/navigation";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface MessagePostInitialValues {
   to_uid: string;
@@ -38,11 +38,10 @@ const MessagePostHook = () => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
-  const trySend = async (props: MessagePostInitialValues) => {
-    setLoading();
-    try {
+  const sendMutation = useMutation({
+    mutationFn: async (props: MessagePostInitialValues) => {
       const { hasMessage, isSuccess } = await postJson<MessageCreatePostProps>(
         ApiRoute.messageCreate,
         props
@@ -54,15 +53,21 @@ const MessagePostHook = () => {
         queryClient.refetchQueries({ queryKey: [QueryKey.message] });
         router.push(AppRoute.MessageHistory);
       }
-    } catch (error) {
+    },
+    onError: (error) => {
       console.log("error", error);
-    }
-    disableLoading();
+    },
+  });
+
+  const trySend = (props: MessagePostInitialValues) => {
+    if (sendMutation.isPending) return;
+    sendMutation.mutate(props);
   };
 
   return {
     methods,
     trySend,
+    isSubmitting: sendMutation.isPending,
   };
 };
 

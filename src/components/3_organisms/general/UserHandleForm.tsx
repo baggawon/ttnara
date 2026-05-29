@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { postJson, refreshCache } from "@/helpers/common";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { userSettingDefault } from "@/helpers/defaultValue";
 import { adminUserSettingGet } from "@/helpers/get";
 import { ToastData } from "@/helpers/toastData";
@@ -32,7 +32,9 @@ export const UserHandleForm = ({ className }: { className?: string }) => {
     {
       queryKey: [QueryKey.userSettings],
     },
-    adminUserSettingGet
+    adminUserSettingGet,
+    undefined,
+    { silent: true }
   );
 
   const methods = useForm({
@@ -42,7 +44,7 @@ export const UserHandleForm = ({ className }: { className?: string }) => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   useEffectFunctionHook({
     Function: () => {
@@ -50,14 +52,13 @@ export const UserHandleForm = ({ className }: { className?: string }) => {
     },
     dependency: [userData],
   });
-  const trySave = async (props: user_setting) => {
-    setLoading();
-    props.min_displayname_length = Number(props.min_displayname_length);
-    props.max_displayname_length = Number(props.max_displayname_length);
-    props.default_auth_level = Number(props.default_auth_level);
-    props.default_user_level = Number(props.default_user_level);
-    props.user_delete_days = Number(props.user_delete_days);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (props: user_setting) => {
+      props.min_displayname_length = Number(props.min_displayname_length);
+      props.max_displayname_length = Number(props.max_displayname_length);
+      props.default_auth_level = Number(props.default_auth_level);
+      props.default_user_level = Number(props.default_user_level);
+      props.user_delete_days = Number(props.user_delete_days);
       const { isSuccess, hasMessage } = await postJson<userUpdateProps>(
         ApiRoute.adminUserSettingUpdate,
         props
@@ -68,14 +69,17 @@ export const UserHandleForm = ({ className }: { className?: string }) => {
       if (isSuccess) {
         refreshCache(queryClient, QueryKey.userSettings);
       }
-    } catch (error) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const trySave = (props: user_setting) => {
+    if (saveMutation.isPending) return;
+    saveMutation.mutate(props);
   };
+  const isSubmitting = saveMutation.isPending;
 
   return (
     <FormProvider {...methods}>
@@ -137,7 +141,12 @@ export const UserHandleForm = ({ className }: { className?: string }) => {
             0으로 설정하면 무제한입니다.
           </CardDescription>
         </FormInput>
-        <Button type="submit" className="w-fit col-span-1 sm:col-span-3">
+        <Button
+          type="submit"
+          className="w-fit col-span-1 sm:col-span-3"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+        >
           저장
         </Button>
       </Form>

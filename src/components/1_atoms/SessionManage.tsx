@@ -4,9 +4,9 @@ import React, { useRef } from "react";
 import { useLoadingStore, useSessionStore } from "@/helpers/state";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import { signOut } from "@/helpers/common";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { BroadcastChannels, BroadcastEvents, QueryKey } from "@/helpers/types";
 import type { Session } from "next-auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 const SessionManage = () => {
   const sessionStore = useSessionStore((state) => state);
@@ -22,7 +22,7 @@ const SessionManage = () => {
     dependency: [sessionStore.needLogout],
   });
 
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   const channel = useRef<BroadcastChannel | null>(null);
   useEffectFunctionHook({

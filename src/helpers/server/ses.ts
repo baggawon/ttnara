@@ -6,10 +6,15 @@ const getSesClient = () =>
     region: process.env.AWS_REGION,
   });
 
-export const sendEmail = async (to: string, subject: string, html: string) => {
+export const sendEmail = async (
+  to: string,
+  subject: string,
+  html: string,
+  from?: string
+) => {
   // 이메일 파라미터 설정
   const params = {
-    Source: process.env.SES_SENDER_EMAIL, // 발신자 이메일 (SES에서 검증된 이메일이어야 함)
+    Source: from || process.env.SES_SENDER_EMAIL, // 발신자 이메일 (SES에서 검증된 이메일이어야 함)
     Destination: {
       ToAddresses: [to], // 수신자 이메일 (배열 또는 단일 문자열)
     },

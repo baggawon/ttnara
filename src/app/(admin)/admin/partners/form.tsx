@@ -26,8 +26,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useRef, useEffect } from "react";
-import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { postFormData, refreshCache, parseFetchResult } from "@/helpers/common";
 import { X, Upload, Image as ImageIcon, Plus, Trash2 } from "lucide-react";
@@ -64,7 +63,7 @@ function PartnerSheetForm({
   isEdit = false,
 }: PartnerSheetFormProps) {
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
   const [selectedBannerFile, setSelectedBannerFile] = useState<File | null>(
     null
@@ -170,7 +169,6 @@ function PartnerSheetForm({
     if (removeBannerImage) {
       formData.append("removeBannerImage", "true");
     }
-    setLoading();
     setIsSubmitting(true);
     try {
       let result: { isSuccess: boolean; hasMessage?: string } = {
@@ -200,7 +198,6 @@ function PartnerSheetForm({
         type: "error",
       });
     } finally {
-      disableLoading();
       setIsSubmitting(false);
     }
   };

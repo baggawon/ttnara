@@ -195,6 +195,42 @@ export const adminGeneralGet = async (
   return null;
 };
 
+export const adminAmadoEventsGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminAmadoEventsRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const adminEmailTemplatesGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminEmailTemplatesRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const adminFeaturedPostGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: { id: number }
+) => {
+  const { hasData } = await get(ApiRoute.adminFeaturedPostRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
 export const adminLevelGet = async (
   router: AppRouterInstance,
   queryClient: QueryClient,

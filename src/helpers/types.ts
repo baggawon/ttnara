@@ -107,10 +107,19 @@ export enum ApiRoute {
   adminLevelUpdate = "/api/admin_di2u3k2j/settings/level/update",
   adminUserSettingRead = "/api/admin_di2u3k2j/settings/user/read",
   adminUserSettingUpdate = "/api/admin_di2u3k2j/settings/user/update",
+  adminEmailTemplatesRead = "/api/admin_di2u3k2j/email-templates/read",
+  adminEmailTemplatesUpdate = "/api/admin_di2u3k2j/email-templates/update",
+  adminEmailTemplatesPreview = "/api/admin_di2u3k2j/email-templates/preview",
+  adminEmailSendersSave = "/api/admin_di2u3k2j/email-templates/senders/save",
   adminThreadSettingsGeneralRead = "/api/admin_di2u3k2j/settings/thread/read",
   adminThreadSettingsGeneralUpdate = "/api/admin_di2u3k2j/settings/thread/update",
   adminTetherSettingsRead = "/api/admin_di2u3k2j/settings/tether/read",
   adminTetherSettingsUpdate = "/api/admin_di2u3k2j/settings/tether/update",
+  adminAmadoEventsRead = "/api/admin_di2u3k2j/amado/events/read",
+  adminFeaturedPostCreate = "/api/admin_di2u3k2j/featured/post/create",
+  adminFeaturedPostRead = "/api/admin_di2u3k2j/featured/post/read",
+  adminFeaturedPostUpdate = "/api/admin_di2u3k2j/featured/post/update",
+  adminFeaturedPostToggle = "/api/admin_di2u3k2j/featured/post/toggle-featured",
   tetherSettingsRead = "/api/tether/settings/read",
   adminTopicsRead = "/api/admin_di2u3k2j/topics/read",
   adminTopicsUpdate = "/api/admin_di2u3k2j/topics/update",
@@ -118,6 +127,7 @@ export enum ApiRoute {
   adminTopicCategoriesRead = "/api/admin_di2u3k2j/topics/categories/read",
   adminTopicCategoriesUpdate = "/api/admin_di2u3k2j/topics/categories/update",
   adminTopicCategoriesDelete = "/api/admin_di2u3k2j/topics/categories/delete",
+  adminTopicCategoriesBulkCreate = "/api/admin_di2u3k2j/topics/categories/bulk-create",
   adminTetherCategoriesRead = "/api/admin_di2u3k2j/tether_category/read",
   adminTetherCategoriesUpdate = "/api/admin_di2u3k2j/tether_category/update",
   adminTetherCategoriesDelete = "/api/admin_di2u3k2j/tether_category/delete",
@@ -140,6 +150,7 @@ export enum ApiRoute {
   topicSettingsRead = "/api/topic/read",
   adminUserRead = "/api/admin_di2u3k2j/user/read",
   adminUserUpdate = "/api/admin_di2u3k2j/user/update",
+  adminUserPassword = "/api/admin_di2u3k2j/user/password",
   adminPointAdjust = "/api/admin_di2u3k2j/points/adjust",
   adminPartnersRead = "/api/admin_di2u3k2j/partners/read",
   adminPartnersCreate = "/api/admin_di2u3k2j/partners/create",
@@ -290,6 +301,9 @@ export enum QueryKey {
   adminSupportQnaCategories = "adminSupportQnaCategories",
   adminSupportQna = "adminSupportQna",
   adminSupportQnaDetail = "adminSupportQnaDetail",
+  adminAmadoEvents = "adminAmadoEvents",
+  adminFeaturedPost = "adminFeaturedPost",
+  adminEmailTemplates = "adminEmailTemplates",
 }
 
 export type Profile = Pick<
@@ -352,6 +366,8 @@ export enum AdminAppRoute {
   SystemControl = "/admin/system-control",
   Navigation = "/admin/navigation",
   Support = "/admin/support",
+  Featured = "/admin/featured",
+  EmailTemplates = "/admin/email-templates",
 }
 
 export interface MessageDatas {

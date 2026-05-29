@@ -38,7 +38,9 @@ const useTopicPoints = (
       retry: false,
       throwOnError: false,
     },
-    userGet
+    userGet,
+    undefined,
+    { silent: true }
   );
 
   const balance = userData?.profile?.point ?? 0;

@@ -1,4 +1,5 @@
 import { ThreadList } from "@/components/4_templates/ThreadList";
+import { ThreadCardList } from "@/components/4_templates/ThreadCardList";
 import { BoardAccessService, BoardAccessError } from "@/lib/boardAccess";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]";
@@ -114,15 +115,26 @@ export default async function Page(props: {
     redirect(AppRoute.Main);
   }
 
+  const topicSettings = queries[1].state.data as TopicSettings | undefined;
+  const isFullview = Boolean(topicSettings?.fullview_on_homepage);
+
   return (
     <HydrationBoundary state={{ queries, mutations: [] }}>
-      <ThreadList
-        page={page}
-        category_name={category_name}
-        topic_url={topic_url}
-        search={search}
-        column={column}
-      />
+      {isFullview ? (
+        <ThreadCardList
+          topic_url={topic_url}
+          category_name={category_name}
+          page={page}
+        />
+      ) : (
+        <ThreadList
+          page={page}
+          category_name={category_name}
+          topic_url={topic_url}
+          search={search}
+          column={column}
+        />
+      )}
     </HydrationBoundary>
   );
 }

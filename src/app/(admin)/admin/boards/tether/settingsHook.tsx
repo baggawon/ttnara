@@ -8,7 +8,7 @@ import type { TetherSettingsReadProps } from "@/app/api/admin_di2u3k2j/settings/
 import type { TetherSettingsUpdateProps } from "@/app/api/admin_di2u3k2j/settings/tether/update";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ToastData } from "@/helpers/toastData";
 import { ApiRoute, QueryKey } from "@/helpers/types";
 import { useForm } from "react-hook-form";
@@ -23,7 +23,9 @@ export const useAdminTetherSettingsHook = () => {
     {
       queryKey: [QueryKey.adminTetherSettings],
     },
-    adminTetherSettingsGet
+    adminTetherSettingsGet,
+    undefined,
+    { silent: true }
   );
 
   const methods = useForm<tether_setting>({
@@ -41,23 +43,22 @@ export const useAdminTetherSettingsHook = () => {
   });
 
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const router = useRouter();
 
-  const submit = async (props: tether_setting) => {
-    setLoading();
-    cleanFormData(props, {
-      keysToNumber: [
-        "min_thread_title_length",
-        "max_thread_title_length",
-        "min_thread_content_length",
-        "max_thread_content_length",
-        "max_file_size_mb",
-        "max_upload_items",
-      ],
-    });
+  const submitMutation = useMutation({
+    mutationFn: async (props: tether_setting) => {
+      cleanFormData(props, {
+        keysToNumber: [
+          "min_thread_title_length",
+          "max_thread_title_length",
+          "min_thread_content_length",
+          "max_thread_content_length",
+          "max_file_size_mb",
+          "max_upload_items",
+        ],
+      });
 
-    try {
       const { isSuccess, hasMessage } =
         await postJson<TetherSettingsUpdateProps>(
           ApiRoute.adminTetherSettingsUpdate,
@@ -73,15 +74,21 @@ export const useAdminTetherSettingsHook = () => {
         refreshCache(queryClient, QueryKey.tetherSettings);
         router.refresh();
       }
-    } catch (error) {
+    },
+    onError: () => {
       toast({ id: ToastData.unknown, type: "error" });
-    }
-    disableLoading();
+    },
+  });
+
+  const submit = (props: tether_setting) => {
+    if (submitMutation.isPending) return;
+    submitMutation.mutate(props);
   };
 
   return {
     methods,
     tetherSettingsData,
     submit,
+    isSubmitting: submitMutation.isPending,
   };
 };

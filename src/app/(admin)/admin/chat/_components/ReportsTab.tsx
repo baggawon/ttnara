@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { RotateCw } from "lucide-react";
 
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminChatReportsGet } from "@/helpers/get";
 import { postJson, refreshCache } from "@/helpers/common";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -43,7 +43,7 @@ interface PaginatedReports {
 
 export default function ReportsTab() {
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -53,7 +53,8 @@ export default function ReportsTab() {
   >(
     { queryKey: [{ [QueryKey.chatReports]: { page, pageSize } }] },
     adminChatReportsGet,
-    { page, pageSize }
+    { page, pageSize },
+    { silent: true }
   );
 
   const rows = data?.reports ?? [];

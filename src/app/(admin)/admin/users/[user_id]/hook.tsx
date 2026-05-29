@@ -18,14 +18,17 @@ export const useAdminUserViewHook = (user_id: string) => {
       queryKey: [{ [QueryKey.user]: user_id }],
     },
     adminUserGet,
-    { user_id }
+    { user_id },
+    { silent: true }
   );
 
   const { data: userSettingData } = useGetQuery<UserSettings, undefined>(
     {
       queryKey: [QueryKey.signupSettings],
     },
-    userSettingsGet
+    userSettingsGet,
+    undefined,
+    { silent: true }
   );
 
   const router = useRouter();

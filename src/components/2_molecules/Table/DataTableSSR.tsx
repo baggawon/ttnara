@@ -130,8 +130,11 @@ export function DataTableSSR<TData, TValue>({
         onRowClick={onRowClick}
         useHeader={useHeader}
         className={clsx(
-          "border-l-0 border-r-0 border-t-4 border-t-gray-400 rounded-none",
-          "[&>div>table>thead]:bg-gray-200 [&>div>table]:w-full [&>div>table]:table-fixed"
+          "border-l-0 border-r-0 border-t border-b border-border/60 rounded-none",
+          "[&>div>table>thead]:bg-muted/40 [&>div>table>thead]:text-muted-foreground",
+          "[&>div>table>thead_th]:font-medium [&>div>table>thead_th]:text-xs [&>div>table>thead_th]:tracking-wide [&>div>table>thead_th]:uppercase",
+          "[&>div>table>tbody>tr]:transition-colors [&>div>table>tbody>tr]:border-b [&>div>table>tbody>tr]:border-border/40 [&>div>table>tbody>tr:last-child]:border-b-0",
+          "[&>div>table]:w-full [&>div>table]:table-fixed"
         )}
         useSSR={true}
       />

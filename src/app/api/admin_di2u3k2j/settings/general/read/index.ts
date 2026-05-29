@@ -15,6 +15,7 @@ export type GeneralReadResult = general_setting & {
   logo_image_signed_url: string | null;
   favicon_signed_url: string | null;
   apple_icon_signed_url: string | null;
+  hero_image_signed_url: string | null;
 };
 
 export const GET = async (queryParams: GeneralReadProps) => {
@@ -37,6 +38,9 @@ export const GET = async (queryParams: GeneralReadProps) => {
         : null,
       apple_icon_signed_url: generalSettings.apple_icon_url
         ? signStoredCloudFrontUrl(generalSettings.apple_icon_url)
+        : null,
+      hero_image_signed_url: generalSettings.hero_image_url
+        ? signStoredCloudFrontUrl(generalSettings.hero_image_url)
         : null,
     };
 

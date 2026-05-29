@@ -68,7 +68,8 @@ const RankingList = ({
       queryKey: [{ [QueryKey.leaderboard]: { period } }],
     },
     leaderboardGet,
-    { period }
+    { period },
+    { silent: true }
   );
 
   const entries: LeaderboardEntry[] = data?.entries ?? [];

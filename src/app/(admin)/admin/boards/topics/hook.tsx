@@ -15,7 +15,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { forEach } from "@/helpers/basic";
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminTopicsGet, boardPreviewGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
@@ -43,13 +43,16 @@ export const useAdminTopicsHook = () => {
       queryKey: [{ [QueryKey.topics]: pagination }],
     },
     adminTopicsGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const { data: previewData } = useGetQuery<
     BoardPreviewResponse | null,
     undefined
-  >({ queryKey: [QueryKey.boardPreview] }, boardPreviewGet);
+  >({ queryKey: [QueryKey.boardPreview] }, boardPreviewGet, undefined, {
+    silent: true,
+  });
 
   const previewCount = previewData?.topics?.length ?? 0;
 
@@ -73,33 +76,33 @@ export const useAdminTopicsHook = () => {
     {
       accessorKey: "name",
       headerTitle: "이름",
-      headerClassName: "!w-[20%]",
-      cellClassName: "!w-[20%]",
+      headerClassName: "!w-auto",
+      cellClassName: "!w-auto",
     },
     {
       accessorKey: "url",
       headerTitle: "URL",
-      headerClassName: "!w-[20%]",
-      cellClassName: "!w-[20%]",
+      headerClassName: "!w-auto",
+      cellClassName: "!w-auto",
     },
     {
       accessorKey: "display_order",
       headerTitle: "순서",
-      headerClassName: "!max-w-[40px]",
-      cellClassName: "!max-w-[40px]",
+      headerClassName: "!w-[60px]",
+      cellClassName: "!w-[60px]",
     },
     {
       accessorKey: "is_active",
-      headerClassName: "!max-w-[40px]",
-      cellClassName: "!max-w-[40px]",
+      headerClassName: "!w-[64px]",
+      cellClassName: "!w-[64px]",
       headerTitle: "활성화",
       convertValue: (value) => (value ? "활성" : "비활성"),
     },
     {
       accessorKey: "preview_on_homepage",
       headerTitle: "미리보기",
-      headerClassName: "!max-w-[80px]",
-      cellClassName: "!max-w-[80px]",
+      headerClassName: "!w-[80px]",
+      cellClassName: "!w-[80px]",
       cell: (props) => {
         const topic = topicsData?.topics[props.row.index];
         if (!topic) return null;
@@ -117,9 +120,30 @@ export const useAdminTopicsHook = () => {
       },
     },
     {
+      accessorKey: "fullview_on_homepage",
+      headerTitle: "카드형 홈",
+      headerClassName: "!w-[90px]",
+      cellClassName: "!w-[90px]",
+      cell: (props) => {
+        const topic = topicsData?.topics[props.row.index];
+        if (!topic) return null;
+        return (
+          <Button
+            type="button"
+            className="!p-2 !h-fit"
+            variant={topic.fullview_on_homepage ? "default" : "outline"}
+            disabled={!topic.is_active}
+            onClick={() => toggleFullview(props.row.index)}
+          >
+            {topic.fullview_on_homepage ? "ON" : "OFF"}
+          </Button>
+        );
+      },
+    },
+    {
       accessorKey: "control",
-      headerClassName: "!max-w-[250px]",
-      cellClassName: "!max-w-[250px] overflow-hidden",
+      headerClassName: "!w-[260px]",
+      cellClassName: "!w-[260px]",
       headerTitle: "수정",
       cell: (props) => {
         return (
@@ -175,11 +199,13 @@ export const useAdminTopicsHook = () => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
+  const [isWorking, setIsWorking] = useState(false);
 
   const deleteTopic = async (index: number) => {
     if (!topicsData) return;
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } = await postJson<topicsDeleteProps>(
         ApiRoute.adminTopicsDelete,
@@ -195,7 +221,7 @@ export const useAdminTopicsHook = () => {
         type: "error",
       });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const togglePreview = async (index: number) => {
@@ -210,7 +236,8 @@ export const useAdminTopicsHook = () => {
       return;
     }
 
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } = await postJson<topicsUpdateProps>(
         ApiRoute.adminTopicsUpdate,
@@ -229,11 +256,37 @@ export const useAdminTopicsHook = () => {
     } catch (error) {
       toast({ id: ToastData.unknown, type: "error" });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const newCreateTopic = () => {
     router.push(`${AdminAppRoute.Boards}/0`);
+  };
+
+  const toggleFullview = async (index: number) => {
+    if (!topicsData) return;
+    const topic = topicsData.topics[index];
+
+    if (isWorking) return;
+    setIsWorking(true);
+    try {
+      const { isSuccess, hasMessage } = await postJson<topicsUpdateProps>(
+        ApiRoute.adminTopicsUpdate,
+        {
+          ...topic,
+          fullview_on_homepage: !topic.fullview_on_homepage,
+        }
+      );
+      if (hasMessage) {
+        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
+      }
+      if (isSuccess) {
+        refreshCache(queryClient, QueryKey.topics);
+      }
+    } catch (error) {
+      toast({ id: ToastData.unknown, type: "error" });
+    }
+    setIsWorking(false);
   };
 
   return {
@@ -243,6 +296,8 @@ export const useAdminTopicsHook = () => {
     topicsData,
     newCreateTopic,
     togglePreview,
+    toggleFullview,
     deleteTopic,
+    isWorking,
   };
 };

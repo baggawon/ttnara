@@ -2,7 +2,6 @@ import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
 import type { UserAndSettings, ValidateStatus } from "@/helpers/types";
 import { ApiRoute, AppRoute, QueryKey } from "@/helpers/types";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { postJson } from "@/helpers/common";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
@@ -14,6 +13,7 @@ import type { UserSettings } from "@/app/api/signup/read";
 import { useRef } from "react";
 import type { FormDialogMethods } from "@/components/1_atoms/FormDialog";
 import { isCuid } from "@paralleldrive/cuid2";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface SettingsInitialValues {
   username: string;
@@ -48,14 +48,18 @@ const SettingsHook = () => {
     {
       queryKey: [QueryKey.account],
     },
-    userGet
+    userGet,
+    undefined,
+    { silent: true }
   );
 
   const { data: userSettingData } = useGetQuery<UserSettings, undefined>(
     {
       queryKey: [QueryKey.signupSettings],
     },
-    userSettingsGet
+    userSettingsGet,
+    undefined,
+    { silent: true }
   );
 
   const createRef = useRef<HTMLButtonElement | null>(null);
@@ -99,11 +103,10 @@ const SettingsHook = () => {
 
   const router = useRouter();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
-  const trySave = async (props: SettingsInitialValues) => {
-    setLoading();
-    try {
+  const trySaveMutation = useMutation({
+    mutationFn: async (props: SettingsInitialValues) => {
       methods.setValue("password", "");
       methods.setValue("passwordConfirm", "");
 
@@ -123,18 +126,19 @@ const SettingsHook = () => {
         toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
       }
       if (isSuccess) {
-        queryClient.invalidateQueries({
-          queryKey: [QueryKey.account],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QueryKey.session],
-        });
+        queryClient.invalidateQueries({ queryKey: [QueryKey.account] });
+        queryClient.invalidateQueries({ queryKey: [QueryKey.session] });
         router.push(AppRoute.Main);
       }
-    } catch (error) {
+    },
+    onError: (error) => {
       console.log("error", error);
-    }
-    disableLoading();
+    },
+  });
+
+  const trySave = (props: SettingsInitialValues) => {
+    if (trySaveMutation.isPending) return;
+    trySaveMutation.mutate(props);
   };
 
   return {
@@ -143,6 +147,7 @@ const SettingsHook = () => {
     userSettingData,
     dialogControllRef,
     createRef,
+    isSubmitting: trySaveMutation.isPending,
   };
 };
 

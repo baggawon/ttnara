@@ -2,7 +2,6 @@ import type { PushUpdateProps } from "@/app/api/push/update";
 import { useToast } from "@/components/ui/use-toast";
 import { postJson } from "@/helpers/common";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { ApiRoute, PushType } from "@/helpers/types";
 import { useState } from "react";
 
@@ -21,8 +20,6 @@ export const usePushNotification = (): PushNotificationState => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading } = useLoadingHandler();
-
   // VAPID 키를 Uint8Array로 변환
   const urlB64ToUint8Array = (base64String: string) => {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -40,7 +37,6 @@ export const usePushNotification = (): PushNotificationState => {
   };
 
   const subscribeInput = async (data: string) => {
-    setLoading();
     const { isSuccess, hasMessage } = await postJson<PushUpdateProps>(
       ApiRoute.pushUpdate,
       {
@@ -56,11 +52,9 @@ export const usePushNotification = (): PushNotificationState => {
     }
     if (hasMessage)
       toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
-    disableLoading();
   };
 
   const unSubscribeInput = async (data: string) => {
-    setLoading();
     const { isSuccess, hasMessage } = await postJson<PushUpdateProps>(
       ApiRoute.pushUpdate,
       {
@@ -72,7 +66,6 @@ export const usePushNotification = (): PushNotificationState => {
     setIsSubscribed(false);
     if (hasMessage)
       toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
-    disableLoading();
   };
 
   // Service Worker 등록

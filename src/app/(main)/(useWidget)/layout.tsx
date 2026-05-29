@@ -2,8 +2,10 @@ import type { ReactNode } from "react";
 import { RightWidgets } from "@/components/3_organisms/RightWidgets";
 import MainFooterWidget from "@/components/1_atoms/MainFooterWidget";
 import { PartnerBanners } from "@/components/1_atoms/PartnerBanners";
+import { getHomeVisibility } from "@/helpers/server/homeVisibility";
 
-export default function Layout(props: { children: ReactNode }) {
+export default async function Layout(props: { children: ReactNode }) {
+  const { showPriceCalc, showPriceTicker } = await getHomeVisibility();
   return (
     <>
       <div className="flex gap-4 w-full">
@@ -15,7 +17,10 @@ export default function Layout(props: { children: ReactNode }) {
           </div>
           <MainFooterWidget />
         </div>
-        <RightWidgets />
+        <RightWidgets
+          showPriceCalc={showPriceCalc}
+          showPriceTicker={showPriceTicker}
+        />
       </div>
     </>
   );

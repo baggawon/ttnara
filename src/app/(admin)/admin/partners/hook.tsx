@@ -13,7 +13,7 @@ import Image from "next/image";
 
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminPartnersGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
@@ -27,6 +27,7 @@ import timezone from "dayjs/plugin/timezone";
 import { forEach, getBoolean } from "@/helpers/basic";
 
 import { useMutation } from "@tanstack/react-query";
+
 import { useToast } from "@/components/ui/use-toast";
 
 dayjs.extend(utc);
@@ -75,12 +76,13 @@ export const useAdminPartnersListHook = () => {
       queryKey: [{ [QueryKey.partners]: pagination }],
     },
     adminPartnersGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const isLoading = status === "pending" || partnersData === null;
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const deletePartnersMutation = useMutation({
     mutationFn: deletePartners,
     onSuccess: () => {

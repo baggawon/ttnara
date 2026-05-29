@@ -22,7 +22,9 @@ interface Props {
 export default function GuaranteeDetailPage({ id }: Props) {
   const { data, status } = useGetQuery<PublicGuaranteeResponse, undefined>(
     { queryKey: [QueryKey.guaranteeCompanies, "public"] },
-    publicGuaranteeGet
+    publicGuaranteeGet,
+    undefined,
+    { silent: true }
   );
 
   const item = data?.items.find((i) => i.id === id);

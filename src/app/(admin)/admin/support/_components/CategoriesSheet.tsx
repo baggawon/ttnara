@@ -18,7 +18,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { postJson, refreshCache } from "@/helpers/common";
 import { ToastData } from "@/helpers/toastData";
 import { ApiRoute, QueryKey } from "@/helpers/types";
@@ -46,7 +46,7 @@ export default function CategoriesSheet({
   isEdit = false,
 }: CategoriesSheetProps) {
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -84,7 +84,6 @@ export default function CategoriesSheet({
   };
 
   const onSubmit = async (data: CategoryFormData) => {
-    setLoading();
     setIsSubmitting(true);
     try {
       const payload = isEdit && category ? { id: category.id, ...data } : data;
@@ -106,7 +105,6 @@ export default function CategoriesSheet({
     } catch (error) {
       toast({ id: ToastData.unknown, type: "error" });
     } finally {
-      disableLoading();
       setIsSubmitting(false);
     }
   };

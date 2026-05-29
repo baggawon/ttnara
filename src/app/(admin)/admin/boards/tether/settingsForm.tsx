@@ -25,7 +25,7 @@ import {
 import { useAdminTetherSettingsHook } from "@/app/(admin)/admin/boards/tether/settingsHook";
 
 export const TetherSettingsForm = ({ className }: { className?: string }) => {
-  const { methods, submit } = useAdminTetherSettingsHook();
+  const { methods, submit, isSubmitting } = useAdminTetherSettingsHook();
 
   return (
     <FormProvider {...methods}>
@@ -183,7 +183,13 @@ export const TetherSettingsForm = ({ className }: { className?: string }) => {
         </div>
 
         <div className="flex justify-end mt-2 mb-4">
-          <Button type="submit">저장</Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+          >
+            저장
+          </Button>
         </div>
       </Form>
     </FormProvider>

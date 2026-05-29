@@ -27,7 +27,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { forEach, map } from "@/helpers/basic";
 import { postJson } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { tetherCategoryDefault } from "@/helpers/defaultValue";
 import { adminTetherCategoriesGet } from "@/helpers/get";
 import { ToastData } from "@/helpers/toastData";
@@ -50,19 +50,23 @@ export default function BoardThether() {
     {
       queryKey: [QueryKey.tetherCategories],
     },
-    adminTetherCategoriesGet
+    adminTetherCategoriesGet,
+    undefined,
+    { silent: true }
   );
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
+  const [isWorking, setIsWorking] = useState(false);
 
   const toppestCreate = async (
     data: tether_category,
     cancelRef: RefObject<HTMLButtonElement | null>,
     methods: UseFormReturn<any, any, undefined>
   ) => {
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
 
     try {
       const { isSuccess, hasMessage } =
@@ -87,7 +91,7 @@ export default function BoardThether() {
         type: "error",
       });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   interface TetherCategoryNest extends tether_category {
@@ -113,7 +117,8 @@ export default function BoardThether() {
   };
 
   const deleteList = async (id: number) => {
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
 
     try {
       const { isSuccess, hasMessage } =
@@ -138,11 +143,12 @@ export default function BoardThether() {
         type: "error",
       });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const restoreList = async (id: number) => {
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
 
     try {
       const { isSuccess, hasMessage } =
@@ -167,7 +173,7 @@ export default function BoardThether() {
         type: "error",
       });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const parentCreate = (id: number) => {

@@ -23,7 +23,8 @@ const MessageInboxHook = () => {
       }),
     },
     messageGet,
-    { history: true, inbox: true }
+    { history: true, inbox: true },
+    { silent: true }
   );
 
   const { tryDelete, DeleteConfirmModal } = useMessageDelete();

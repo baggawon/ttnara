@@ -75,7 +75,12 @@ export default function Page() {
   const { data } = useGetQuery<
     PointHistoryResponse | null,
     PointHistoryReadProps
-  >({ queryKey: [{ [QueryKey.pointHistory]: query }] }, pointHistoryGet, query);
+  >(
+    { queryKey: [{ [QueryKey.pointHistory]: query }] },
+    pointHistoryGet,
+    query,
+    { silent: true }
+  );
 
   const summary = data?.summary;
   const rows = data?.history ?? [];

@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminPushTemplatesGet, adminPushHistoryGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
@@ -50,7 +50,7 @@ export const useAdminPushSendHook = () => {
   const [isSending, setIsSending] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   const { data: templateListData } = useGetQuery<
     PushTemplateListResponse,
@@ -61,7 +61,8 @@ export const useAdminPushSendHook = () => {
       staleTime: Infinity,
     },
     adminPushTemplatesGet,
-    { mode: "all" }
+    { mode: "all" },
+    { silent: true }
   );
 
   const templates = templateListData?.templates ?? [];
@@ -184,12 +185,13 @@ export const useAdminPushTemplateHook = () => {
       queryKey: [{ [QueryKey.pushTemplates]: pagination }],
     },
     adminPushTemplatesGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const isLoading = status === "pending" || templateData === null;
   const { toast } = useToast();
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   const deleteTemplatesMutation = useMutation({
     mutationFn: deleteTemplates,
@@ -404,7 +406,8 @@ export const useAdminPushHistoryHook = () => {
       queryKey: [{ [QueryKey.pushHistory]: pagination }],
     },
     adminPushHistoryGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const isLoading = status === "pending" || historyData === null;

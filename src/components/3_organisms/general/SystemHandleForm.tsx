@@ -15,7 +15,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { postJson, refreshCache } from "@/helpers/common";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { generalDefault } from "@/helpers/defaultValue";
 import { adminGeneralGet } from "@/helpers/get";
 import { ToastData } from "@/helpers/toastData";
@@ -30,7 +30,9 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
     {
       queryKey: [QueryKey.generalSettings],
     },
-    adminGeneralGet
+    adminGeneralGet,
+    undefined,
+    { silent: true }
   );
 
   const methods = useForm({
@@ -39,7 +41,7 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
   });
 
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   useEffectFunctionHook({
     Function: () => {
@@ -48,14 +50,16 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
     dependency: [generalData],
   });
 
-  const trySave = async (props: generalUpdateProps) => {
-    setLoading();
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (props: generalUpdateProps) => {
       const { isSuccess, hasMessage } = await postJson<generalUpdateProps>(
         ApiRoute.adminGeneralUpdate,
         {
           id: props.id,
           allow_user_registration: props.allow_user_registration,
+          show_seo: props.show_seo,
+          show_price_calc: props.show_price_calc,
+          show_price_ticker: props.show_price_ticker,
         }
       );
       if (hasMessage) {
@@ -64,14 +68,17 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
       if (isSuccess) {
         refreshCache(queryClient, QueryKey.generalSettings);
       }
-    } catch {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const trySave = (props: generalUpdateProps) => {
+    if (saveMutation.isPending) return;
+    saveMutation.mutate(props);
   };
+  const isSubmitting = saveMutation.isPending;
 
   return (
     <FormProvider {...methods}>
@@ -90,7 +97,37 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
             </CardDescription>
           </div>
         </FormBuilder>
-        <Button type="submit" className="w-fit col-span-1 sm:col-span-3">
+        <FormBuilder name="show_seo" label="홈 SEO 컨텐츠 표시">
+          <div className="w-full">
+            <SwitchInput name="show_seo" />
+            <CardDescription className="text-xs w-full">
+              해제하면 메인 홈의 SEO 컨텐츠가 숨겨집니다.
+            </CardDescription>
+          </div>
+        </FormBuilder>
+        <FormBuilder name="show_price_calc" label="가격 계산기 위젯 표시">
+          <div className="w-full">
+            <SwitchInput name="show_price_calc" />
+            <CardDescription className="text-xs w-full">
+              해제하면 우측 사이드의 환율 계산기 위젯이 숨겨집니다.
+            </CardDescription>
+          </div>
+        </FormBuilder>
+        <FormBuilder name="show_price_ticker" label="시세 티커 위젯 표시">
+          <div className="w-full">
+            <SwitchInput name="show_price_ticker" />
+            <CardDescription className="text-xs w-full">
+              해제하면 우측 사이드 시세 위젯과 모바일 상단 시세 티커가 함께
+              숨겨집니다.
+            </CardDescription>
+          </div>
+        </FormBuilder>
+        <Button
+          type="submit"
+          className="w-fit col-span-1 sm:col-span-3"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+        >
           저장
         </Button>
       </Form>

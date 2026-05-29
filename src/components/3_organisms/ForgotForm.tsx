@@ -11,8 +11,9 @@ import {
   type ValidateStatus,
 } from "@/helpers/types";
 import { postJson } from "@/helpers/common";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { useToast } from "@/components/ui/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { map, removeColumnsFromObject } from "@/helpers/basic";
 import type { ToastData } from "@/helpers/toastData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,8 +46,6 @@ export interface ForgotInitialValues {
 }
 
 const ForgotForm = () => {
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
-
   const initialValues = (): ForgotInitialValues => ({
     forgotType: ForgotTypes.Id,
     email: "",
@@ -66,14 +65,12 @@ const ForgotForm = () => {
   const dialogControllRef = useRef<FormDialogMethods>(undefined);
   const createRef = useRef<HTMLButtonElement | null>(null);
 
-  const tryForgot = async (props: ForgotInitialValues) => {
-    setLoading();
-    try {
+  const forgotMutation = useMutation({
+    mutationFn: async (props: ForgotInitialValues) => {
       const { isSuccess, hasMessage, hasData } = await postJson<ForgotProps>(
         ApiRoute.forgot,
         removeColumnsFromObject(props, ["status", "otp", "message"])
       );
-      disableLoading();
       if (isSuccess) {
         if (props.forgotType === ForgotTypes.Id && hasData) {
           dialogControllRef.current?.methods.setValue("username", hasData);
@@ -86,11 +83,18 @@ const ForgotForm = () => {
       } else if (!isSuccess && hasMessage) {
         toast({ id: hasMessage, type: "error" });
       }
-    } catch (error) {
-      disableLoading();
+    },
+    onError: (error) => {
       console.log("error", error);
-    }
+    },
+  });
+
+  const tryForgot = (props: ForgotInitialValues) => {
+    if (forgotMutation.isPending) return;
+    forgotMutation.mutate(props);
   };
+
+  const isSubmitting = forgotMutation.isPending;
 
   return (
     <Card className="mt-6 w-full sm:w-96">
@@ -172,7 +176,15 @@ const ForgotForm = () => {
             </div>
             <WithUseWatch name={["forgotType"]}>
               {({ forgotType }: ForgotInitialValues) => (
-                <Button type="submit" className="w-fit mx-auto">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  aria-busy={isSubmitting}
+                  className="w-fit mx-auto"
+                >
+                  {isSubmitting && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  )}
                   {forgotType === ForgotTypes.Id ? "찾기" : "변경하기"}
                 </Button>
               )}

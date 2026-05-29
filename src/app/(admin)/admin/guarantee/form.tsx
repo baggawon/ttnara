@@ -28,7 +28,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useRef, useEffect } from "react";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { postFormData, refreshCache } from "@/helpers/common";
 import { X, Upload, Image as ImageIcon, Plus, Trash2 } from "lucide-react";
@@ -113,7 +113,7 @@ function GuaranteeSheetForm({
   isEdit = false,
 }: SheetFormProps) {
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(
@@ -124,7 +124,14 @@ function GuaranteeSheetForm({
   const { data: regionsData } = useGetQuery<
     GuaranteeRegionListResponse,
     undefined
-  >({ queryKey: [QueryKey.guaranteeRegions] }, adminGuaranteeRegionsGet);
+  >(
+    { queryKey: [QueryKey.guaranteeRegions] },
+    adminGuaranteeRegionsGet,
+    undefined,
+    {
+      silent: true,
+    }
+  );
   const activeRegionNames = (regionsData?.guaranteeRegions ?? [])
     .filter((r) => r.is_active)
     .map((r) => r.name);
@@ -284,7 +291,6 @@ function GuaranteeSheetForm({
     formData.append("description_format", data.description_format ?? "html");
     if (selectedFile) formData.append("image", selectedFile);
 
-    setLoading();
     setIsSubmitting(true);
     try {
       const result = await postFormData(
@@ -311,7 +317,6 @@ function GuaranteeSheetForm({
     } catch {
       toast({ id: ToastData.unknown, type: "error" });
     } finally {
-      disableLoading();
       setIsSubmitting(false);
     }
   };
@@ -662,7 +667,14 @@ export default function AdminGuaranteeListForm() {
   const { data: regionsData } = useGetQuery<
     GuaranteeRegionListResponse,
     undefined
-  >({ queryKey: [QueryKey.guaranteeRegions] }, adminGuaranteeRegionsGet);
+  >(
+    { queryKey: [QueryKey.guaranteeRegions] },
+    adminGuaranteeRegionsGet,
+    undefined,
+    {
+      silent: true,
+    }
+  );
   const filterRegions = regionsData?.guaranteeRegions ?? [];
 
   return (

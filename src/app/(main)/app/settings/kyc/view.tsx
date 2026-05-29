@@ -53,7 +53,9 @@ const SettingsKYCView = () => {
     {
       queryKey: [QueryKey.account],
     },
-    userGet
+    userGet,
+    undefined,
+    { silent: true }
   );
 
   useEffectFunctionHook({

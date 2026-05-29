@@ -13,7 +13,9 @@ export const GoAdminPageButton = () => {
     {
       queryKey: [QueryKey.session],
     },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   return (

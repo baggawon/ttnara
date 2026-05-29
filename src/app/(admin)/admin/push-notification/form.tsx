@@ -29,7 +29,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useEffect } from "react";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { postJson, refreshCache } from "@/helpers/common";
 import { ToastData } from "@/helpers/toastData";
@@ -64,7 +64,7 @@ const TemplateSheetForm = ({
   isEdit,
 }: TemplateSheetFormProps) => {
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const methods = useForm<TemplateFormData>({
@@ -102,7 +102,6 @@ const TemplateSheetForm = ({
   }, [isOpen, isEdit, template, reset]);
 
   const onSubmit = async (data: TemplateFormData) => {
-    setLoading();
     setIsSubmitting(true);
     try {
       const payload = {
@@ -125,7 +124,6 @@ const TemplateSheetForm = ({
     } catch {
       toast({ id: ToastData.unknown, type: "error" });
     }
-    disableLoading();
     setIsSubmitting(false);
   };
 

@@ -22,8 +22,8 @@ import { LenBadge } from "./LenBadge";
 // import "slick-carousel/slick/slick-theme.css";
 import { postJson, refreshCache } from "@/helpers/common";
 import type { alarmUpdateProps } from "@/app/api/alarm/update";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import { useToast } from "@/components/ui/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { Close } from "@radix-ui/react-popover";
 import { useRef } from "react";
 import clsx from "clsx";
@@ -179,14 +179,15 @@ export const AlarmNavigation = ({
       queryKey: [{ [QueryKey.alarms]: pagination }],
     },
     alarmGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const { toast } = useToast();
 
   const router = useRouter();
 
-  const { queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
   const closeRef = useRef<HTMLButtonElement>(null);
 

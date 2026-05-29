@@ -5,13 +5,13 @@ import { AppRoute } from "@/helpers/types";
 import { postJson } from "@/helpers/common";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
 import type { SignupProps } from "@/app/api/signup";
 import { removeColumnsFromObject } from "@/helpers/basic";
 import type { ToastData } from "@/helpers/toastData";
 import { userSettingsGet } from "@/helpers/get";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import type { UserSettings } from "@/app/api/signup/read";
+import { useMutation } from "@tanstack/react-query";
 
 export interface SignupInitialValues extends SignupProps {
   passwordConfirm: string;
@@ -25,7 +25,9 @@ const SignupHook = () => {
     {
       queryKey: [QueryKey.signupSettings],
     },
-    userSettingsGet
+    userSettingsGet,
+    undefined,
+    { silent: true }
   );
 
   const initialValues: () => SignupInitialValues = () => ({
@@ -49,20 +51,22 @@ const SignupHook = () => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading } = useLoadingHandler();
+  const trySignupMutation = useMutation({
+    mutationFn: async (props: SignupInitialValues) => {
+      const { hasMessage, isSuccess } = await postJson<SignupProps>(
+        ApiRoute.signup,
+        removeColumnsFromObject(props, ["passwordConfirm", "validate"])
+      );
+      if (hasMessage)
+        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
 
-  const trySignup = async (props: SignupInitialValues) => {
-    setLoading();
+      if (isSuccess) router.push(AppRoute.Main);
+    },
+  });
 
-    const { hasMessage, isSuccess } = await postJson<SignupProps>(
-      ApiRoute.signup,
-      removeColumnsFromObject(props, ["passwordConfirm", "validate"])
-    );
-    if (hasMessage)
-      toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
-
-    if (isSuccess) router.push(AppRoute.Main);
-    disableLoading();
+  const trySignup = (props: SignupInitialValues) => {
+    if (trySignupMutation.isPending) return;
+    trySignupMutation.mutate(props);
   };
 
   return {
@@ -70,6 +74,7 @@ const SignupHook = () => {
     trySignup,
     router,
     userSettingData,
+    isSubmitting: trySignupMutation.isPending,
   };
 };
 

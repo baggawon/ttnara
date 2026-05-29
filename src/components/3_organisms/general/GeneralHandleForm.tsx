@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { postJson, refreshCache } from "@/helpers/common";
 import useEffectFunctionHook from "@/helpers/customHook/useEffectFunction";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { generalDefault } from "@/helpers/defaultValue";
 import { adminGeneralGet } from "@/helpers/get";
 import { ToastData } from "@/helpers/toastData";
@@ -35,7 +35,9 @@ export const GeneralHandleForm = ({ className }: { className?: string }) => {
     {
       queryKey: [QueryKey.generalSettings],
     },
-    adminGeneralGet
+    adminGeneralGet,
+    undefined,
+    { silent: true }
   );
 
   const methods = useForm({
@@ -44,17 +46,23 @@ export const GeneralHandleForm = ({ className }: { className?: string }) => {
   });
 
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
 
-  type BrandImageField = "logo_image_url" | "favicon_url" | "apple_icon_url";
+  type BrandImageField =
+    | "logo_image_url"
+    | "favicon_url"
+    | "apple_icon_url"
+    | "hero_image_url";
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
   const appleIconInputRef = useRef<HTMLInputElement>(null);
+  const heroInputRef = useRef<HTMLInputElement>(null);
 
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
   const [appleIconPreview, setAppleIconPreview] = useState<string | null>(null);
+  const [heroPreview, setHeroPreview] = useState<string | null>(null);
 
   const [uploadingField, setUploadingField] = useState<BrandImageField | null>(
     null
@@ -67,6 +75,7 @@ export const GeneralHandleForm = ({ className }: { className?: string }) => {
         setLogoPreview(generalData.logo_image_signed_url);
         setFaviconPreview(generalData.favicon_signed_url);
         setAppleIconPreview(generalData.apple_icon_signed_url);
+        setHeroPreview(generalData.hero_image_signed_url);
       }
     },
     dependency: [generalData],
@@ -75,13 +84,15 @@ export const GeneralHandleForm = ({ className }: { className?: string }) => {
   const setPreview = (field: BrandImageField, url: string | null) => {
     if (field === "logo_image_url") setLogoPreview(url);
     else if (field === "favicon_url") setFaviconPreview(url);
-    else setAppleIconPreview(url);
+    else if (field === "apple_icon_url") setAppleIconPreview(url);
+    else setHeroPreview(url);
   };
 
   const inputRefForField = (field: BrandImageField) => {
     if (field === "logo_image_url") return logoInputRef;
     if (field === "favicon_url") return faviconInputRef;
-    return appleIconInputRef;
+    if (field === "apple_icon_url") return appleIconInputRef;
+    return heroInputRef;
   };
 
   const uploadBrandImage = async (field: BrandImageField, file: File) => {
@@ -125,9 +136,8 @@ export const GeneralHandleForm = ({ className }: { className?: string }) => {
     setPreview(field, null);
   };
 
-  const trySave = async (props: generalUpdateProps) => {
-    setLoading();
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (props: generalUpdateProps) => {
       const { isSuccess, hasMessage } = await postJson<generalUpdateProps>(
         ApiRoute.adminGeneralUpdate,
         {
@@ -150,6 +160,12 @@ export const GeneralHandleForm = ({ className }: { className?: string }) => {
           logo_image_url: props.logo_image_url ?? null,
           favicon_url: props.favicon_url ?? null,
           apple_icon_url: props.apple_icon_url ?? null,
+          hero_image_url: props.hero_image_url ?? null,
+          hero_action_url:
+            typeof props.hero_action_url === "string" &&
+            props.hero_action_url.trim()
+              ? props.hero_action_url.trim()
+              : null,
         }
       );
       if (hasMessage) {
@@ -158,14 +174,17 @@ export const GeneralHandleForm = ({ className }: { className?: string }) => {
       if (isSuccess) {
         refreshCache(queryClient, QueryKey.generalSettings);
       }
-    } catch {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-    }
-    disableLoading();
+    },
+    onError: () => {
+      toast({ id: ToastData.unknown, type: "error" });
+    },
+  });
+
+  const trySave = (props: generalUpdateProps) => {
+    if (saveMutation.isPending) return;
+    saveMutation.mutate(props);
   };
+  const isSubmitting = saveMutation.isPending;
 
   return (
     <FormProvider {...methods}>
@@ -263,7 +282,40 @@ export const GeneralHandleForm = ({ className }: { className?: string }) => {
           onClear={() => clearBrandImage("apple_icon_url")}
         />
 
-        <Button type="submit" className="w-fit sm:col-span-2">
+        <BrandImageSlot
+          field="hero_image_url"
+          label="히어로 배너 이미지"
+          inputId="general-hero-input"
+          inputRef={heroInputRef}
+          preview={heroPreview}
+          uploading={uploadingField === "hero_image_url"}
+          previewBoxClassName="w-64 h-24"
+          accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+          uploadLabel="배너"
+          description={
+            <>
+              메인 홈 최상단에 모든 콘텐츠보다 위에 표시되는 배너입니다.
+              <br />
+              권장: 가로형, 1920×480px 이상.
+            </>
+          }
+          onUpload={(file) => void uploadBrandImage("hero_image_url", file)}
+          onClear={() => clearBrandImage("hero_image_url")}
+        />
+
+        <FormInput
+          name="hero_action_url"
+          label="히어로 배너 클릭 링크 (선택)"
+          placeholder="예: /event 또는 https://example.com"
+          inputClassName="sm:col-span-2"
+        />
+
+        <Button
+          type="submit"
+          className="w-fit sm:col-span-2"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+        >
           저장
         </Button>
       </Form>
@@ -284,7 +336,7 @@ const BrandImageSlot = ({
   onUpload,
   onClear,
 }: {
-  field: "logo_image_url" | "favicon_url" | "apple_icon_url";
+  field: "logo_image_url" | "favicon_url" | "apple_icon_url" | "hero_image_url";
   label: string;
   inputId: string;
   inputRef: React.RefObject<HTMLInputElement | null>;

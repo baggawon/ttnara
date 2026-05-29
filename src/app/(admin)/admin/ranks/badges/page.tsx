@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminRankBadgesGet } from "@/helpers/get";
 import { postFormData, postJson } from "@/helpers/common";
 import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
@@ -44,7 +44,8 @@ import Image from "next/image";
 export default function RankBadgesPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
+  const [isWorking, setIsWorking] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadName, setUploadName] = useState("");
   const [assignTarget, setAssignTarget] = useState<RankBadgeListItem | null>(
@@ -55,7 +56,9 @@ export default function RankBadgesPage() {
 
   const { data } = useGetQuery<RankBadgeListResponse | null, undefined>(
     { queryKey: [QueryKey.rankBadges] },
-    adminRankBadgesGet
+    adminRankBadgesGet,
+    undefined,
+    { silent: true }
   );
   const badges = data?.badges ?? [];
 
@@ -83,7 +86,7 @@ export default function RankBadgesPage() {
     fd.append("file", file);
     if (uploadName.trim()) fd.append("name", uploadName.trim());
 
-    setLoading();
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage, hasData } = await postFormData(
         ApiRoute.adminRankBadgesUpload,
@@ -109,7 +112,7 @@ export default function RankBadgesPage() {
       setUploadName("");
       await refresh();
     } finally {
-      disableLoading();
+      setIsWorking(false);
     }
   };
 
@@ -134,7 +137,7 @@ export default function RankBadgesPage() {
       toast({ id: ToastData.rankBadgeRangeInvalid, type: "error" });
       return;
     }
-    setLoading();
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage, hasData } =
         await postJson<RankBadgeAssignProps>(ApiRoute.adminRankBadgesAssign, {
@@ -162,12 +165,12 @@ export default function RankBadgesPage() {
       setAssignTarget(null);
       await refresh();
     } finally {
-      disableLoading();
+      setIsWorking(false);
     }
   };
 
   const unassign = async (badge: RankBadgeListItem) => {
-    setLoading();
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } = await postJson<RankBadgeUnassignProps>(
         ApiRoute.adminRankBadgesUnassign,
@@ -179,12 +182,12 @@ export default function RankBadgesPage() {
       });
       if (isSuccess) await refresh();
     } finally {
-      disableLoading();
+      setIsWorking(false);
     }
   };
 
   const removeBadge = async (badge: RankBadgeListItem) => {
-    setLoading();
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } = await postJson<RankBadgeDeleteProps>(
         ApiRoute.adminRankBadgesDelete,
@@ -196,7 +199,7 @@ export default function RankBadgesPage() {
       });
       if (isSuccess) await refresh();
     } finally {
-      disableLoading();
+      setIsWorking(false);
     }
   };
 
@@ -371,7 +374,12 @@ export default function RankBadgesPage() {
             >
               취소
             </Button>
-            <Button type="button" onClick={submitAssign}>
+            <Button
+              type="button"
+              onClick={submitAssign}
+              disabled={isWorking}
+              aria-busy={isWorking}
+            >
               할당
             </Button>
           </DialogFooter>

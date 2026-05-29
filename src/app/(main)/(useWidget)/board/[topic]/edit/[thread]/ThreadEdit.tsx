@@ -1,11 +1,12 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { FormProvider, useWatch } from "react-hook-form";
 import {
   FormBuilder,
   FormInput,
 } from "@/components/2_molecules/Input/FormInput";
+import { FormTextarea } from "@/components/2_molecules/Input/FormTextarea";
 import { Button } from "@/components/ui/button";
 import Form from "@/components/1_atoms/Form";
 import { validateToipcName } from "@/helpers/validate";
@@ -83,8 +84,14 @@ export const ThreadEditor = ({
   topic_url: string;
   thread_id: number;
 }) => {
-  const { methods, topicSettings, attachedMedia, goBackList, submit } =
-    useThreadsEditHook(topic_url, thread_id);
+  const {
+    methods,
+    topicSettings,
+    attachedMedia,
+    goBackList,
+    submit,
+    isSubmitting,
+  } = useThreadsEditHook(topic_url, thread_id);
 
   const session = useSession();
 
@@ -332,6 +339,21 @@ export const ThreadEditor = ({
                 );
               })()}
 
+              {topicSettings?.fullview_on_homepage && (
+                <FormBuilder name="description" label="카드 설명">
+                  <div className="w-full">
+                    <FormTextarea
+                      name="description"
+                      placeholder="홈/게시판 카드에 노출되는 짧은 설명을 입력하세요 (최대 300자)"
+                    />
+                    <CardDescription className="text-xs w-full mt-1">
+                      메인 홈 카드형 게시판에서만 사용되는 카드 요약입니다.
+                      비워두면 본문에서 자동 추출된 요약이 표시됩니다.
+                    </CardDescription>
+                  </div>
+                </FormBuilder>
+              )}
+
               <FormBuilder
                 name="content"
                 label={
@@ -403,24 +425,42 @@ export const ThreadEditor = ({
             </Button>
             <Button
               type="submit"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
               className="px-4 bg-primary hover:bg-primary/90"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className=""
-              >
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                <polyline points="7 3 7 8 15 8"></polyline>
-              </svg>
+              {isSubmitting ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="animate-spin"
+                >
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+              )}
               저장
             </Button>
           </div>

@@ -180,12 +180,16 @@ export const BoardPreviewSection = () => {
   const queryClient = useQueryClient();
   const { data } = useGetQuery<BoardPreviewResponse | null, undefined>(
     { queryKey: [QueryKey.boardPreview] },
-    boardPreviewGet
+    boardPreviewGet,
+    undefined,
+    { silent: true }
   );
 
   const { data: session } = useGetQuery<Session | null | undefined, undefined>(
     { queryKey: [QueryKey.session] },
-    sessionGet
+    sessionGet,
+    undefined,
+    { silent: true }
   );
 
   const topics = data?.topics ?? [];

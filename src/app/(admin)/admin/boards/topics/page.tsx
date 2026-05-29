@@ -16,6 +16,7 @@ export default function BoardTopics() {
     updatePagination,
     newCreateTopic,
     togglePreview,
+    toggleFullview,
     deleteTopic,
   } = useAdminTopicsHook();
 
@@ -69,6 +70,7 @@ export default function BoardTopics() {
           pagination={topicsData?.pagination}
           onPageChange={handlePageChange}
           onTogglePreview={togglePreview}
+          onToggleFullview={toggleFullview}
           onDelete={deleteTopic}
         />
 

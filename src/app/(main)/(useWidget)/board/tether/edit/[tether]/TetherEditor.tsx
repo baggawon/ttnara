@@ -20,6 +20,7 @@ import { QuantityCard } from "@/app/(main)/(useWidget)/board/tether/edit/[tether
 import { LocationCard } from "@/app/(main)/(useWidget)/board/tether/edit/[tether]/LocationCard";
 import { validateToipcName, validateTradeName } from "@/helpers/validate";
 import SimpleMarkdownEditor from "@/components/2_molecules/Input/SimpleMarkdownEditor";
+import { Loader2 } from "lucide-react";
 
 export const TetherEditor = ({ tether_id }: { tether_id?: number }) => {
   const {
@@ -30,6 +31,7 @@ export const TetherEditor = ({ tether_id }: { tether_id?: number }) => {
     goBackList,
     editSave,
     userData,
+    isSubmitting,
   } = useTetherEditHook(tether_id);
 
   return (
@@ -81,7 +83,16 @@ export const TetherEditor = ({ tether_id }: { tether_id?: number }) => {
             <Button onClick={goBackList} type="button" variant="outline">
               목록으로
             </Button>
-            <Button type="submit">저장</Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            >
+              {isSubmitting && (
+                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+              )}
+              저장
+            </Button>
           </div>
         </section>
       </Form>

@@ -8,6 +8,7 @@ import { FormProvider } from "react-hook-form";
 import { setTestId } from "@/helpers/common";
 import { Textarea } from "@/components/2_molecules/Input/FormTextarea";
 import MessagePostHook from "@/app/(app)/app/message/post/hook";
+import { Loader2 } from "lucide-react";
 
 export enum MessagePostFormIds {
   to_uid = "to_uid",
@@ -16,7 +17,7 @@ export enum MessagePostFormIds {
 }
 
 const MessagePost = () => {
-  const { methods, trySend } = MessagePostHook();
+  const { methods, trySend, isSubmitting } = MessagePostHook();
 
   return (
     <div className="relative w-full sm:w-96">
@@ -40,7 +41,15 @@ const MessagePost = () => {
             {...setTestId(MessagePostFormIds.contents)}
           />
           <div className="relative flex gap-4 justify-center w-full text-center">
-            <Button type="submit" {...setTestId(MessagePostFormIds.submit)}>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              {...setTestId(MessagePostFormIds.submit)}
+            >
+              {isSubmitting && (
+                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+              )}
               보내기
             </Button>
             <Button

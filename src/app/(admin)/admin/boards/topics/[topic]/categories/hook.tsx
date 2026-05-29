@@ -18,7 +18,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { forEach } from "@/helpers/basic";
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import useLoadingHandler from "@/helpers/customHook/useLoadingHandler";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminTopicCategoriesGet, adminTopicsGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
@@ -47,7 +47,8 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
       queryKey: [{ [QueryKey.topics]: topic_id }],
     },
     adminTopicsGet,
-    topicPagination
+    topicPagination,
+    { silent: true }
   );
 
   const [pagination, setPagination] = useState<TopicCategoriesReadProps>({
@@ -64,7 +65,8 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
       queryKey: [{ [`${QueryKey.topics}${QueryKey.categories}`]: pagination }],
     },
     adminTopicCategoriesGet,
-    pagination
+    pagination,
+    { silent: true }
   );
 
   const updatePagination = () => {
@@ -157,11 +159,13 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
 
   const { toast } = useToast();
 
-  const { setLoading, disableLoading, queryClient } = useLoadingHandler();
+  const queryClient = useQueryClient();
+  const [isWorking, setIsWorking] = useState(false);
 
   const deleteCategory = async (index: number) => {
     if (!topicsData) return;
-    setLoading();
+    if (isWorking) return;
+    setIsWorking(true);
     try {
       const { isSuccess, hasMessage } =
         await postJson<topicCategoriesDeleteProps>(
@@ -179,7 +183,7 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
         type: "error",
       });
     }
-    disableLoading();
+    setIsWorking(false);
   };
 
   const newCreateTopic = () => {
@@ -193,5 +197,6 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
     topicsData,
     categoriesData,
     newCreateTopic,
+    isWorking,
   };
 };
