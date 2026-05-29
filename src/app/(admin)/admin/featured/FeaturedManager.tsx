@@ -24,7 +24,6 @@ import {
   Pencil,
   RefreshCw,
   Star,
-  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -387,8 +386,9 @@ const EventCard = ({
   onEdit: () => void;
   onToggleFeatured: (next: boolean) => void;
 }) => {
-  const mot = dayjs(event.moment_of_truth);
-  const isEnded = event.status !== "open" || mot.isBefore(dayjs());
+  const mot = event.moment_of_truth ? dayjs(event.moment_of_truth) : null;
+  const isEnded =
+    event.status !== "open" || (mot != null && mot.isBefore(dayjs()));
   const statusLabel =
     event.status === "resolved"
       ? "종료"
@@ -428,6 +428,14 @@ const EventCard = ({
                 작성됨
               </Badge>
             )}
+            {event.archived && (
+              <Badge
+                variant="outline"
+                className="text-[11px] border-rose-300 text-rose-600 dark:text-rose-400 dark:border-rose-900"
+              >
+                만료
+              </Badge>
+            )}
           </div>
           <Badge
             variant={event.status === "open" ? "default" : "outline"}
@@ -449,22 +457,26 @@ const EventCard = ({
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Calendar className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">
-            {mot.format("YYYY-MM-DD HH:mm")} ·{" "}
-            <span
-              className={clsx(
-                isEnded ? "text-muted-foreground" : "text-primary font-medium"
-              )}
-            >
-              {isEnded ? `${mot.fromNow()} 종료` : `${mot.fromNow()} 결정`}
-            </span>
+            {mot ? (
+              <>
+                {mot.format("YYYY-MM-DD HH:mm")} ·{" "}
+                <span
+                  className={clsx(
+                    isEnded
+                      ? "text-muted-foreground"
+                      : "text-primary font-medium"
+                  )}
+                >
+                  {isEnded ? `${mot.fromNow()} 종료` : `${mot.fromNow()} 결정`}
+                </span>
+              </>
+            ) : (
+              "마감일 미정"
+            )}
           </span>
         </div>
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" />
-            {event.participants.toLocaleString()}
-          </span>
           <span>거래액 {formatVolume(event.volume_krw)}</span>
         </div>
 

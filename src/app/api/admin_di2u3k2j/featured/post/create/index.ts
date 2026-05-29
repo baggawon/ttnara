@@ -13,6 +13,7 @@ import {
 } from "@/helpers/server/threadMedia";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
 import { getSpecialTopic } from "@/helpers/server/specialBoard";
+import { getAmadoEvents } from "@/helpers/server/amado/amadoApi";
 import type { Prisma } from "@prisma/client";
 
 export interface FeaturedPostCreateProps {
@@ -79,6 +80,21 @@ export const POST = async (json: FeaturedPostCreateProps) => {
     const content = stripCloudFrontSignatures(json.content ?? "");
     const categoryId = json.category_id ? Number(json.category_id) : null;
 
+    // Snapshot the source event's resolution date so the user-end can flag the
+    // post "expired" by date later without re-hitting Amado. Best-effort: if the
+    // feed is unreachable the read-path reconciliation fills it in on next view.
+    let amadoEndDate: Date | null = null;
+    try {
+      const liveEvent = (await getAmadoEvents()).find(
+        (e) => e.id === json.amado_event_id
+      );
+      if (liveEvent?.moment_of_truth) {
+        amadoEndDate = new Date(liveEvent.moment_of_truth);
+      }
+    } catch {
+      // leave null
+    }
+
     // Determine next topic_order, mirroring the regular thread create path.
     const lastThread = await handleConnect((prisma) =>
       prisma.thread.findFirst({
@@ -108,6 +124,8 @@ export const POST = async (json: FeaturedPostCreateProps) => {
       action_url_2_label: json.action_url_2_label?.trim() || null,
       is_featured: !!json.is_featured,
       amado_event_id: json.amado_event_id,
+      amado_event_end_date: amadoEndDate,
+      amado_event_removed: false,
     };
 
     let created;

@@ -144,15 +144,16 @@ interface Toast {
   value?: string;
 }
 
-const getData = (toast: Toast) => {
-  const result: { title: string; description: string } =
-    typeof toastData[toast.id]?.[toast.type] === "function"
-      ? toastData[toast.id]?.[toast.type](toast.value)
-      : (toastData[toast.id]?.[toast.type] ?? {
-          title: "진행에 문제가 있습니다.",
-          description: toast.id,
-        });
-  return result;
+const getData = (toast: Toast): { title: string; description: string } => {
+  const registered = toastData[toast.id]?.[toast.type];
+  if (typeof registered === "function") return registered(toast.value);
+  if (registered) return registered;
+  // Unregistered id: treat it as a free-form message. Only the error variant
+  // gets the generic problem title (message as detail); success/info surface
+  // the message as the title, matching how registered toasts render.
+  return toast.type === "error"
+    ? { title: "진행에 문제가 있습니다.", description: toast.id }
+    : { title: toast.id, description: "" };
 };
 
 function toast({ ...props }: Toast) {

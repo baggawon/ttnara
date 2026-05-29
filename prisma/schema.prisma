@@ -218,8 +218,15 @@ model thread {
   action_url_1_label String?  @db.VarChar(50)
   action_url_2       String?  @db.VarChar(500)
   action_url_2_label String?  @db.VarChar(50)
-  is_featured        Boolean  @default(false)
-  amado_event_id     String?  @db.VarChar(100)
+  is_featured          Boolean   @default(false)
+  amado_event_id       String?   @db.VarChar(100)
+  // Last-known resolution date of the source Amado event (its "moment of
+  // truth"), copied at create time and refreshed on admin reads. Lets the
+  // user-end mark a post "expired" by date without re-hitting the feed.
+  amado_event_end_date DateTime?
+  // Set when the source event drops off the live Amado feed (resolved/cancelled
+  // /hidden upstream). Drives the "expired" badge for events removed early.
+  amado_event_removed  Boolean   @default(false)
 
   @@unique([topic_id, topic_order]) // 토픽별로 유니크한 순서 보장
   @@unique([topic_id, amado_event_id]) // Each Amado event maps to at most one post per topic

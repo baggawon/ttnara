@@ -77,6 +77,7 @@ export const SpecialBoardSection = async () => {
               action_url_1_label: f.action_url_1_label,
               action_url_2: f.action_url_2,
               action_url_2_label: f.action_url_2_label,
+              expired: f.expired,
             }))}
           />
         ) : (
@@ -243,6 +244,9 @@ const TodayCard = ({
           </p>
         )}
         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-auto pt-2">
+          {card.expired && (
+            <span className="font-medium text-rose-500">만료</span>
+          )}
           <span>{dayjs(card.created_at).fromNow()}</span>
           <span className="inline-flex items-center gap-1">
             <MessageSquare className="h-3.5 w-3.5" />
@@ -287,8 +291,8 @@ const CompactCard = ({
 }) => {
   const detailHref = `${AppRoute.Threads}/${topic_url}/${card.id}`;
   return (
-    <Link href={detailHref} className="block">
-      <Card className="overflow-hidden hover:shadow-md transition-shadow">
+    <Link href={detailHref} className="block h-full">
+      <Card className="overflow-hidden hover:shadow-md transition-shadow h-full">
         {showThumbnail && (
           <div className="relative aspect-[16/9] bg-muted">
             {card.thumbnail_url ? (
@@ -318,10 +322,13 @@ const CompactCard = ({
               {category_name}
             </Badge>
           )}
-          <h4 className="text-xs font-medium line-clamp-2 leading-snug break-words">
+          <h4 className="text-xs font-medium line-clamp-2 leading-snug break-words min-h-[2.1rem]">
             {card.title}
           </h4>
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1.5">
+            {card.expired && (
+              <span className="font-medium text-rose-500">만료</span>
+            )}
             <span className="inline-flex items-center gap-0.5">
               <MessageSquare className="h-3 w-3" />
               {card.comment_count}
@@ -347,7 +354,7 @@ const CompactPlaceholder = ({
   category_name: string;
   showThumbnail: boolean;
 }) => (
-  <Card className="overflow-hidden border-dashed opacity-70">
+  <Card className="overflow-hidden border-dashed opacity-70 h-full">
     {showThumbnail && (
       <div className="relative aspect-[16/9] bg-muted/40 flex items-center justify-center">
         <span className="text-[10px] text-muted-foreground">
@@ -367,7 +374,7 @@ const CompactPlaceholder = ({
           {category_name}
         </Badge>
       )}
-      <h4 className="text-xs font-medium leading-snug break-words text-muted-foreground">
+      <h4 className="text-xs font-medium leading-snug break-words text-muted-foreground line-clamp-2 min-h-[2.1rem]">
         등록된 게시글이 없습니다
       </h4>
       <div className="text-[10px] text-muted-foreground mt-1.5">

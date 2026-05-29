@@ -29,6 +29,9 @@ export interface SpecialBoardCard {
   action_url_2: string | null;
   action_url_2_label: string | null;
   activity_score: number;
+  // Source Amado event has resolved/closed: removed from the live feed, or its
+  // moment-of-truth date has passed. Surfaced as an "expired" marker on cards.
+  expired: boolean;
 }
 
 export interface SpecialTopicInfo {
@@ -116,6 +119,10 @@ const toCard = (
   // Prefer the admin-authored `description` when set; otherwise derive from
   // content as a fallback so older posts still get a readable preview.
   const description = (t.description?.trim() || buildExcerpt(t.content)) ?? "";
+  const expired =
+    t.amado_event_removed ||
+    (t.amado_event_end_date != null &&
+      t.amado_event_end_date.getTime() < Date.now());
   return {
     id: t.id,
     title: t.title,
@@ -133,6 +140,7 @@ const toCard = (
     action_url_2: t.action_url_2,
     action_url_2_label: t.action_url_2_label,
     activity_score,
+    expired,
   };
 };
 

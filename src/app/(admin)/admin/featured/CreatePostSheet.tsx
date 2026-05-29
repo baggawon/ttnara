@@ -427,7 +427,7 @@ export const CreatePostSheet = ({
 };
 
 const EventReferenceCard = ({ event }: { event: AmadoEventWithLocal }) => {
-  const mot = dayjs(event.moment_of_truth);
+  const mot = event.moment_of_truth ? dayjs(event.moment_of_truth) : null;
   return (
     <Card className="bg-muted/40 border-dashed">
       <CardContent className="p-3 flex flex-col gap-1.5">
@@ -442,7 +442,8 @@ const EventReferenceCard = ({ event }: { event: AmadoEventWithLocal }) => {
         </div>
         <div className="text-xs text-muted-foreground inline-flex items-center gap-1">
           <Calendar className="h-3.5 w-3.5" />
-          {mot.format("YYYY-MM-DD HH:mm")} · {event.id}
+          {mot ? `${mot.format("YYYY-MM-DD HH:mm")} · ` : ""}
+          {event.id}
         </div>
       </CardContent>
     </Card>

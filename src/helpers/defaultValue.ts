@@ -91,6 +91,8 @@ export const threadDefault = (data?: Partial<thread>): thread => {
     action_url_2_label: null,
     is_featured: false,
     amado_event_id: null,
+    amado_event_end_date: null,
+    amado_event_removed: false,
     ...data,
   };
 };

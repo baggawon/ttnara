@@ -205,6 +205,11 @@ const ThreadCard = ({
   const thumb = thread.images?.[0]?.aws_cloud_front_url ?? null;
   const action1 = thread.action_url_1?.trim();
   const action1Label = thread.action_url_1_label?.trim();
+  // Source Amado event resolved/closed: removed from the feed or past its date.
+  const expired =
+    thread.amado_event_removed ||
+    (!!thread.amado_event_end_date &&
+      dayjs(thread.amado_event_end_date).isBefore(dayjs()));
 
   return (
     <Card className="overflow-hidden flex flex-col hover:shadow-md transition-shadow">
@@ -274,6 +279,7 @@ const ThreadCard = ({
         )}
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-auto pt-2">
+          {expired && <span className="font-medium text-rose-500">만료</span>}
           <span>{dayjs(thread.created_at).fromNow()}</span>
           <span className="inline-flex items-center gap-1">
             <MessageSquare className="h-3.5 w-3.5" />

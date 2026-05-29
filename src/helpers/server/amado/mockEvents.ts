@@ -1,19 +1,20 @@
 import "server-only";
 
-// Stand-in for the future Amado partner API. Shape matches what we expect to
-// receive from the real endpoint so swapping the source later is one file.
-// The real API will pull live events from https://playamado.com — for now we
-// ship hand-curated samples covering each category surfaced on the home block.
+// Offline / dev fallback for the Amado partner API. The live source is
+// `amadoApi.ts` (fetches playamado.com); this bundled list is served only when
+// that upstream is unreachable on a cold start. The shape here IS the contract
+// every consumer codes against.
 export interface AmadoEvent {
   id: string;
   title: string;
   category: string;
-  // ISO datetime when the event resolves / its "moment of truth".
-  moment_of_truth: string;
+  // ISO datetime when the event resolves / its "moment of truth". Null when the
+  // event has no markets yet (the date lives on the per-event markets upstream).
+  moment_of_truth: string | null;
   thumbnail_url: string | null;
   detail_url: string;
   status: "open" | "closed" | "resolved";
-  participants: number;
+  // Summed traded volume across the event's markets, in KRW. Null when unknown.
   volume_krw: number | null;
 }
 
@@ -26,9 +27,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "코인",
     moment_of_truth: "2026-09-30T23:59:59+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_btc_100k_2026q3",
+    detail_url: "https://playamado.com/events/amd_btc_100k_2026q3",
     status: "open",
-    participants: 12845,
     volume_krw: 184_500_000,
   },
   {
@@ -37,9 +37,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "코인",
     moment_of_truth: "2026-06-30T23:59:59+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_eth_etf_inflow",
+    detail_url: "https://playamado.com/events/amd_eth_etf_inflow",
     status: "open",
-    participants: 6532,
     volume_krw: 92_800_000,
   },
   {
@@ -48,9 +47,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "경제",
     moment_of_truth: "2026-06-18T03:00:00+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_fomc_jun_rate",
+    detail_url: "https://playamado.com/events/amd_fomc_jun_rate",
     status: "open",
-    participants: 15231,
     volume_krw: 211_200_000,
   },
   {
@@ -59,9 +57,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "경제",
     moment_of_truth: "2026-08-01T09:00:00+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_kor_export_jul",
+    detail_url: "https://playamado.com/events/amd_kor_export_jul",
     status: "open",
-    participants: 4926,
     volume_krw: 38_700_000,
   },
   {
@@ -70,9 +67,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "기술",
     moment_of_truth: "2026-08-21T05:00:00+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_nvda_q2_earnings",
+    detail_url: "https://playamado.com/events/amd_nvda_q2_earnings",
     status: "open",
-    participants: 8214,
     volume_krw: 67_300_000,
   },
   {
@@ -81,9 +77,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "기술",
     moment_of_truth: "2026-12-31T23:59:59+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_ai_chip_market",
+    detail_url: "https://playamado.com/events/amd_ai_chip_market",
     status: "open",
-    participants: 12301,
     volume_krw: 105_900_000,
   },
   {
@@ -92,9 +87,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "정치",
     moment_of_truth: "2027-04-15T23:59:59+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_kor_general_election",
+    detail_url: "https://playamado.com/events/amd_kor_general_election",
     status: "open",
-    participants: 7201,
     volume_krw: 59_400_000,
   },
   {
@@ -103,9 +97,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "정치",
     moment_of_truth: "2026-11-04T23:59:59+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_us_midterm_senate",
+    detail_url: "https://playamado.com/events/amd_us_midterm_senate",
     status: "open",
-    participants: 9532,
     volume_krw: 88_100_000,
   },
   {
@@ -114,9 +107,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "스포츠",
     moment_of_truth: "2026-05-25T23:59:59+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_son_top_scorer",
+    detail_url: "https://playamado.com/events/amd_son_top_scorer",
     status: "closed",
-    participants: 7305,
     volume_krw: 41_200_000,
   },
   {
@@ -125,9 +117,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "스포츠",
     moment_of_truth: "2026-11-15T23:59:59+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_kbo_champion",
+    detail_url: "https://playamado.com/events/amd_kbo_champion",
     status: "open",
-    participants: 5803,
     volume_krw: 32_600_000,
   },
   {
@@ -136,9 +127,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "연예",
     moment_of_truth: "2026-12-31T23:59:59+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_kpop_album_million",
+    detail_url: "https://playamado.com/events/amd_kpop_album_million",
     status: "open",
-    participants: 7001,
     volume_krw: 28_400_000,
   },
   {
@@ -147,9 +137,8 @@ export const MOCK_AMADO_EVENTS: AmadoEvent[] = [
     category: "연예",
     moment_of_truth: "2026-05-24T23:59:59+09:00",
     thumbnail_url: null,
-    detail_url: "https://playamado.com/event/amd_cannes_palme",
+    detail_url: "https://playamado.com/events/amd_cannes_palme",
     status: "resolved",
-    participants: 4912,
     volume_krw: 18_900_000,
   },
 ];
