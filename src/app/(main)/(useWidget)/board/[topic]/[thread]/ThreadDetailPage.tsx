@@ -80,7 +80,12 @@ export const ThreadDetailPage = ({
   >(
     {
       queryKey: [{ [QueryKey.topicSettings]: { topic_url } }],
-      staleTime: Infinity,
+      // Revalidate on mount rather than caching forever. This setting decides
+      // whether the page renders the fullview (home-card) layout or the normal
+      // board layout; an admin can flip `fullview_on_homepage` mid-session, and
+      // with staleTime: Infinity a client that had cached the old value kept
+      // rendering the wrong layout until a hard refresh.
+      staleTime: 0,
     },
     topicSettingsGet, // New API endpoint needed
     { topic_url },
@@ -115,8 +120,11 @@ export const ThreadDetailPage = ({
   const canRead = authLevel >= levelRead;
   // Card-format home topics are managed only from dedicated admin CRUD pages,
   // so the conventional edit/delete actions are hidden here regardless of role.
+  // Gate on `topicSettings` being loaded so we don't flash the normal-board
+  // actions before we know this is a fullview topic.
   const canEdit =
-    !topicSettings?.fullview_on_homepage &&
+    !!topicSettings &&
+    !topicSettings.fullview_on_homepage &&
     (isAppAdmin || isModerator || isAuthor);
   const canComment = authLevel >= levelComment;
 
@@ -638,7 +646,7 @@ export const ThreadDetailPage = ({
             </div>
           )}
         </div>
-        {!topicSettings?.fullview_on_homepage && (
+        {topicSettings && !topicSettings.fullview_on_homepage && (
           <ThreadList
             page={page}
             category_name={category_name}

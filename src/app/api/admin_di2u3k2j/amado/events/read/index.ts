@@ -6,7 +6,10 @@ import {
   MOCK_AMADO_EVENTS,
   type AmadoEvent,
 } from "@/helpers/server/amado/mockEvents";
-import { getAmadoEvents } from "@/helpers/server/amado/amadoApi";
+import {
+  getAmadoEvents,
+  getAmadoEventsFetchedAt,
+} from "@/helpers/server/amado/amadoApi";
 import { handleConnect } from "@/helpers/server/prisma";
 import { getSpecialTopic } from "@/helpers/server/specialBoard";
 
@@ -33,6 +36,10 @@ export interface AmadoEventWithLocal extends AmadoEvent {
 
 export interface AmadoEventsReadResult {
   events: AmadoEventWithLocal[];
+  // ISO-8601 of the last successful upstream pull, or null when serving the
+  // bundled mock (cold-start fallback). Drives the "last synced" freshness
+  // label in the admin manager.
+  fetched_at: string | null;
 }
 
 export const GET = async (queryParams: AmadoEventsReadProps) => {
@@ -175,9 +182,13 @@ export const GET = async (queryParams: AmadoEventsReadProps) => {
       enriched = events.map((e) => ({ ...e, local_post: null }));
     }
 
+    const fetchedAt = getAmadoEventsFetchedAt();
     return {
       result: true,
-      data: { events: [...enriched, ...archived] } as AmadoEventsReadResult,
+      data: {
+        events: [...enriched, ...archived],
+        fetched_at: fetchedAt ? new Date(fetchedAt).toISOString() : null,
+      } as AmadoEventsReadResult,
     };
   } catch (error) {
     return {

@@ -181,3 +181,10 @@ export const getAmadoEvents = async (): Promise<AmadoEvent[]> => {
   })();
   return inflight;
 };
+
+// Epoch ms of the last successful upstream pull, or null if the cache is cold.
+// This is the real freshness signal — `getAmadoEvents()` may serve this same
+// snapshot for up to CACHE_TTL_MS, so an admin "refresh" won't move it until
+// the server cache expires.
+export const getAmadoEventsFetchedAt = (): number | null =>
+  cache?.fetchedAt ?? null;

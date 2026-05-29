@@ -119,6 +119,7 @@ export enum ApiRoute {
   adminFeaturedPostCreate = "/api/admin_di2u3k2j/featured/post/create",
   adminFeaturedPostRead = "/api/admin_di2u3k2j/featured/post/read",
   adminFeaturedPostUpdate = "/api/admin_di2u3k2j/featured/post/update",
+  adminFeaturedPostDelete = "/api/admin_di2u3k2j/featured/post/delete",
   adminFeaturedPostToggle = "/api/admin_di2u3k2j/featured/post/toggle-featured",
   tetherSettingsRead = "/api/tether/settings/read",
   adminTopicsRead = "/api/admin_di2u3k2j/topics/read",

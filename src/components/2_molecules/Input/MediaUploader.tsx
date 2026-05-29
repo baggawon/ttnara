@@ -31,6 +31,10 @@ export type MediaInsertPayload = MediaUploadResult & {
 
 export interface MediaUploaderProps {
   onInsert: (payload: MediaInsertPayload) => void;
+  // Fired when an item is removed from the list, so the host editor can also
+  // strip any copies the user inserted into the body — otherwise the media
+  // disappears from the uploader but lingers in the rendered post.
+  onRemove?: (item: MediaUploadResult) => void;
   onItemsChange?: (items: MediaUploadResult[]) => void;
   initialItems?: MediaUploadResult[];
   maxSizeMb?: number;
@@ -50,6 +54,7 @@ const buildMarkdown = (item: MediaUploadResult): string =>
 
 const MediaUploader = ({
   onInsert,
+  onRemove,
   onItemsChange,
   initialItems,
   maxSizeMb = DEFAULT_MAX_SIZE_MB,
@@ -185,7 +190,9 @@ const MediaUploader = ({
   };
 
   const removeLocal = (id: number) => {
+    const removed = items.find((i) => i.id === id);
     updateItems(items.filter((i) => i.id !== id));
+    if (removed) onRemove?.(removed);
   };
 
   const handleThumbClick = (item: MediaUploadResult) => {

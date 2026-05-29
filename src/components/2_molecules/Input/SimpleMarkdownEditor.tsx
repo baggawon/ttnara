@@ -207,6 +207,33 @@ const SimpleMarkdownEditor = ({
     }
   };
 
+  // When an item is dropped from the uploader, strip every copy of it from the
+  // body too. Match on the unsigned CloudFront base (`awsCloudFrontUrl`) since
+  // the body may hold a differently-signed variant of the same asset.
+  const handleMediaRemove = (item: MediaUploadResult) => {
+    if (!editor) return;
+    const needle = item.awsCloudFrontUrl || item.url;
+    if (!needle) return;
+    const { state } = editor;
+    const ranges: { from: number; to: number }[] = [];
+    state.doc.descendants((node, pos) => {
+      if (node.type.name === "image" || node.type.name === "video") {
+        const src = (node.attrs.src as string) ?? "";
+        if (src === item.url || src.includes(needle)) {
+          ranges.push({ from: pos, to: pos + node.nodeSize });
+        }
+      }
+      return true;
+    });
+    if (ranges.length === 0) return;
+    const tr = state.tr;
+    // Delete back-to-front so earlier deletions don't shift later positions.
+    ranges
+      .sort((a, b) => b.from - a.from)
+      .forEach(({ from, to }) => tr.delete(from, to));
+    editor.view.dispatch(tr);
+  };
+
   const promptLink = () => {
     if (!editor) return;
     const previousUrl = (editor.getAttributes("link").href as string) ?? "";
@@ -318,6 +345,7 @@ const SimpleMarkdownEditor = ({
       {uploadEnabled && (
         <MediaUploader
           onInsert={handleInsert}
+          onRemove={handleMediaRemove}
           initialItems={uploadInitialItems}
           maxSizeMb={uploadMaxSizeMb}
           maxItems={uploadMaxItems}

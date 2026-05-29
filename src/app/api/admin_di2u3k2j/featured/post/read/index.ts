@@ -5,7 +5,10 @@ import {
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import { getSpecialTopic } from "@/helpers/server/specialBoard";
-import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
+import {
+  signCloudFrontUrlsInHtml,
+  signStoredCloudFrontUrl,
+} from "@/helpers/server/s3";
 import type { thread } from "@prisma/client";
 import type { MediaUploadResult } from "@/app/api/uploads/media";
 
@@ -42,6 +45,14 @@ export const GET = async (queryParams: FeaturedPostReadProps) => {
     );
     if (!post) {
       return { result: false, message: "게시글을 찾을 수 없습니다." };
+    }
+
+    // Content is persisted with unsigned CloudFront URLs (signatures stripped
+    // on save). Re-sign them so embedded images actually load in the edit
+    // editor — otherwise CloudFront 403s and the body images render blank,
+    // which previously led admins to re-insert and duplicate them on save.
+    if (post.content) {
+      post.content = signCloudFrontUrlsInHtml(post.content);
     }
 
     const mediaRows = await handleConnect((prisma) =>

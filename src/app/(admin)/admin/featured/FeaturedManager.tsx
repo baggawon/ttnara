@@ -110,6 +110,10 @@ export const FeaturedManager = ({
   const [pendingFeatured, setPendingFeatured] = useState<
     Record<number, boolean>
   >({});
+  // Drives the button spinner during an explicit 새로고침 click. The query's
+  // own `status` stays "success" across background refetches, so it can't
+  // signal this on its own.
+  const [manualRefreshing, setManualRefreshing] = useState(false);
 
   const { data, status } = useGetQuery<AmadoEventsReadResult, undefined>(
     {
@@ -161,6 +165,44 @@ export const FeaturedManager = ({
     setPendingFeatured({});
   };
 
+  // Explicit 새로고침: force a refetch, then report the outcome via toast.
+  // `fetchQuery` resolves with the fresh payload (and updates the cache the
+  // card list reads from), so we can count items / detect failure inline.
+  // Kept separate from `refresh()` so the silent internal callers (toggle,
+  // save, category create) don't spawn toasts.
+  const handleManualRefresh = async () => {
+    if (manualRefreshing) return;
+    setManualRefreshing(true);
+    setPendingFeatured({});
+    try {
+      const result = await queryClient.fetchQuery<AmadoEventsReadResult | null>(
+        {
+          queryKey: [QueryKey.adminAmadoEvents],
+          queryFn: () => adminAmadoEventsGet(router, queryClient, undefined),
+          staleTime: 0,
+        }
+      );
+      if (!result) {
+        toast({ id: "이벤트를 불러오지 못했습니다.", type: "error" });
+      } else if (result.fetched_at == null) {
+        // Server fell back to the bundled sample — the live re-fetch failed.
+        toast({
+          id: "실시간 이벤트를 불러오지 못해 샘플을 표시합니다.",
+          type: "error",
+        });
+      } else {
+        toast({
+          id: `이벤트 ${result.events.length}개를 불러왔습니다.`,
+          type: "success",
+        });
+      }
+    } catch {
+      toast({ id: "이벤트를 불러오지 못했습니다.", type: "error" });
+    } finally {
+      setManualRefreshing(false);
+    }
+  };
+
   const handleToggleFeatured = async (
     event: AmadoEventWithLocal,
     next: boolean
@@ -200,83 +242,106 @@ export const FeaturedManager = ({
   };
 
   return (
-    <section className="w-full flex flex-col gap-4">
-      <header className="flex items-start justify-between gap-2 flex-wrap">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">이벤트 리스트</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            홈 게시판/카드형 게시판인{" "}
-            <span className="font-medium text-foreground">{topicName}</span>에
-            노출할 게시글을 이벤트 리스트에서 선택해 작성합니다.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={refresh}
-          disabled={isFetching}
-        >
-          <RefreshCw
-            className={clsx("h-4 w-4 mr-1.5", isFetching && "animate-spin")}
-          />
-          새로고침
-        </Button>
-      </header>
-
-      {missingCategories.length > 0 && (
-        <Alert className="border-amber-300 dark:border-amber-900 bg-amber-50/60 dark:bg-amber-950/20">
-          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          <AlertTitle className="text-sm">
-            누락된 카테고리 {missingCategories.length}개
-          </AlertTitle>
-          <AlertDescription className="text-xs flex items-center justify-between gap-2 flex-wrap">
-            <span>
-              {missingCategories.slice(0, 5).join(", ")}
-              {missingCategories.length > 5
-                ? ` 외 ${missingCategories.length - 5}개`
-                : ""}
-            </span>
+    <TooltipProvider delayDuration={200}>
+      <section className="w-full flex flex-col gap-4">
+        <header className="flex items-start justify-between gap-2 flex-wrap">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">이벤트 리스트</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              홈 게시판/카드형 게시판인{" "}
+              <span className="font-medium text-foreground">{topicName}</span>에
+              노출할 게시글을 이벤트 리스트에서 선택해 작성합니다.
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5">
+            {data?.fetched_at ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    마지막 동기화 {dayjs(data.fetched_at).fromNow()}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {dayjs(data.fetched_at).format("YYYY-MM-DD HH:mm:ss")}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              status === "success" && (
+                <span className="text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                  실시간 데이터 없음 (샘플 표시 중)
+                </span>
+              )
+            )}
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={() => setMissingDialogOpen(true)}
+              onClick={handleManualRefresh}
+              disabled={isFetching || manualRefreshing}
             >
-              자세히 보기
+              <RefreshCw
+                className={clsx(
+                  "h-4 w-4 mr-1.5",
+                  (isFetching || manualRefreshing) && "animate-spin"
+                )}
+              />
+              새로고침
             </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+          </div>
+        </header>
 
-      <div className="flex flex-col gap-2">
-        <FilterRow
-          label="상태"
-          value={statusFilter}
-          options={STATUS_FILTERS}
-          onChange={setStatusFilter}
-        />
-        <FilterRow
-          label="게시글"
-          value={postStateFilter}
-          options={POST_STATE_FILTERS.map((f) =>
-            f.value === "missing"
-              ? { ...f, label: `미작성 (${missingCount})` }
-              : f.value === "created"
-                ? { ...f, label: `작성됨 (${createdCount})` }
-                : f
-          )}
-          onChange={setPostStateFilter}
-        />
-      </div>
+        {missingCategories.length > 0 && (
+          <Alert className="border-amber-300 dark:border-amber-900 bg-amber-50/60 dark:bg-amber-950/20">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertTitle className="text-sm">
+              누락된 카테고리 {missingCategories.length}개
+            </AlertTitle>
+            <AlertDescription className="text-xs flex items-center justify-between gap-2 flex-wrap">
+              <span>
+                {missingCategories.slice(0, 5).join(", ")}
+                {missingCategories.length > 5
+                  ? ` 외 ${missingCategories.length - 5}개`
+                  : ""}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMissingDialogOpen(true)}
+              >
+                자세히 보기
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            조건에 맞는 이벤트가 없습니다.
-          </CardContent>
-        </Card>
-      ) : (
-        <TooltipProvider delayDuration={200}>
+        <div className="flex flex-col gap-2">
+          <FilterRow
+            label="상태"
+            value={statusFilter}
+            options={STATUS_FILTERS}
+            onChange={setStatusFilter}
+          />
+          <FilterRow
+            label="게시글"
+            value={postStateFilter}
+            options={POST_STATE_FILTERS.map((f) =>
+              f.value === "missing"
+                ? { ...f, label: `미작성 (${missingCount})` }
+                : f.value === "created"
+                  ? { ...f, label: `작성됨 (${createdCount})` }
+                  : f
+            )}
+            onChange={setPostStateFilter}
+          />
+        </div>
+
+        {filtered.length === 0 ? (
+          <Card>
+            <CardContent className="py-10 text-center text-sm text-muted-foreground">
+              조건에 맞는 이벤트가 없습니다.
+            </CardContent>
+          </Card>
+        ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {filtered.map((event) => (
               <EventCard
@@ -306,37 +371,37 @@ export const FeaturedManager = ({
               />
             ))}
           </div>
-        </TooltipProvider>
-      )}
+        )}
 
-      <CreatePostSheet
-        open={sheetTarget !== null}
-        onOpenChange={(o) => {
-          if (!o) setSheetTarget(null);
-        }}
-        mode={sheetTarget?.mode ?? "create"}
-        event={sheetTarget?.event ?? null}
-        existingPostId={sheetTarget?.postId ?? null}
-        topicCategories={topicCategories}
-        uploadSettings={uploadSettings}
-        onSaved={refresh}
-      />
+        <CreatePostSheet
+          open={sheetTarget !== null}
+          onOpenChange={(o) => {
+            if (!o) setSheetTarget(null);
+          }}
+          mode={sheetTarget?.mode ?? "create"}
+          event={sheetTarget?.event ?? null}
+          existingPostId={sheetTarget?.postId ?? null}
+          topicCategories={topicCategories}
+          uploadSettings={uploadSettings}
+          onSaved={refresh}
+        />
 
-      <MissingCategoriesDialog
-        open={missingDialogOpen}
-        onOpenChange={setMissingDialogOpen}
-        missing={missingCategories}
-        topicId={topicId}
-        topicName={topicName}
-        onCreated={() => {
-          // Server component owns `topicCategories`, so a router refresh is
-          // needed to pick up the newly created rows. Also bust the events
-          // query so the missing-set recomputes on the next render.
-          router.refresh();
-          refresh();
-        }}
-      />
-    </section>
+        <MissingCategoriesDialog
+          open={missingDialogOpen}
+          onOpenChange={setMissingDialogOpen}
+          missing={missingCategories}
+          topicId={topicId}
+          topicName={topicName}
+          onCreated={() => {
+            // Server component owns `topicCategories`, so a router refresh is
+            // needed to pick up the newly created rows. Also bust the events
+            // query so the missing-set recomputes on the next render.
+            router.refresh();
+            refresh();
+          }}
+        />
+      </section>
+    </TooltipProvider>
   );
 };
 

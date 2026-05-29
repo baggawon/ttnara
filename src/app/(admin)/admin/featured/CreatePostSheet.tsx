@@ -31,9 +31,11 @@ import { adminFeaturedPostGet } from "@/helpers/get";
 import { ApiRoute, QueryKey } from "@/helpers/types";
 import { ToastData } from "@/helpers/toastData";
 import type { FeaturedPostCreateProps } from "@/app/api/admin_di2u3k2j/featured/post/create";
+import type { FeaturedPostDeleteProps } from "@/app/api/admin_di2u3k2j/featured/post/delete";
+import ConfirmDialog from "@/components/1_atoms/ConfirmDialog";
 import dayjs from "dayjs";
 import "dayjs/locale/ko";
-import { Calendar, Loader2, Sparkles } from "lucide-react";
+import { Calendar, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
@@ -150,9 +152,6 @@ export const CreatePostSheet = ({
   // which ones aren't actually referenced when submitting, and forward those
   // ids to the server for cleanup.
   const [mediaItems, setMediaItems] = useState<MediaUploadResult[]>([]);
-  const [initialAttachedMedia, setInitialAttachedMedia] = useState<
-    MediaUploadResult[]
-  >([]);
 
   // In edit mode, pull the existing post + attached media so the form can
   // pre-populate. Gated on `open` so we don't fetch while the sheet is closed.
@@ -168,22 +167,30 @@ export const CreatePostSheet = ({
     { silent: true }
   );
 
+  // Only trust `loaded` once it actually belongs to the post we're editing.
+  // The sheet stays mounted across edits, so when switching posts `loaded`
+  // (and any state derived from a prior post) can briefly point at the
+  // previously opened post — which used to leak that post's attached media
+  // into the uploader until a re-open. Id-matching closes that window.
+  const editLoaded =
+    isEdit && loaded && existingPostId && loaded.post.id === existingPostId
+      ? loaded
+      : null;
+
   // Reset form when picking a new event (create mode) or when edit data
   // arrives. Also clear local media so uploads from prior drafts don't leak.
   useEffect(() => {
     if (!open) return;
     if (isEdit) {
-      if (loaded) {
-        methods.reset(buildEditDefaults(loaded));
-        setInitialAttachedMedia(loaded.attachedMedia);
-        setMediaItems(loaded.attachedMedia);
+      if (editLoaded) {
+        methods.reset(buildEditDefaults(editLoaded));
+        setMediaItems(editLoaded.attachedMedia);
       }
     } else if (event) {
       methods.reset(buildCreateDefaults(event, topicCategories));
-      setInitialAttachedMedia([]);
       setMediaItems([]);
     }
-  }, [open, isEdit, loaded, event, topicCategories, methods]);
+  }, [open, isEdit, editLoaded, event, topicCategories, methods]);
 
   const allowedExtensions = uploadSettings.allowed_file_extensions
     ?.split(",")
@@ -274,6 +281,30 @@ export const CreatePostSheet = ({
     toast({ id: ToastData.unknown, type: "error" });
   };
 
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (deleting || submitting) return;
+    if (!isEdit || !existingPostId) return;
+    setDeleting(true);
+    try {
+      const { isSuccess, hasMessage } = await postJson<FeaturedPostDeleteProps>(
+        ApiRoute.adminFeaturedPostDelete,
+        { id: existingPostId }
+      );
+      if (isSuccess) {
+        toast({ id: "게시글이 삭제되었습니다.", type: "success" });
+        onSaved?.();
+        onOpenChange(false);
+      } else {
+        toast({ id: hasMessage ?? ToastData.unknown, type: "error" });
+      }
+    } catch {
+      toast({ id: ToastData.unknown, type: "error" });
+    }
+    setDeleting(false);
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -341,21 +372,36 @@ export const CreatePostSheet = ({
               </FormBuilder>
 
               <FormBuilder name="content" label="본문">
-                <SimpleMarkdownEditor
-                  name="content"
-                  formatName="content_format"
-                  uploadEnabled={uploadSettings.use_upload_file}
-                  uploadMaxItems={uploadSettings.max_upload_items}
-                  uploadMaxSizeMb={uploadSettings.max_file_size_mb}
-                  uploadAcceptedExtensions={allowedExtensions}
-                  uploadInitialItems={isEdit ? initialAttachedMedia : undefined}
-                  uploadEnableThumbnailPicker={uploadSettings.use_thumbnail}
-                  uploadInitialThumbnailId={
-                    isEdit ? (loaded?.post.thumbnail_media_id ?? null) : null
-                  }
-                  uploadOnThumbnailChange={handleThumbnailChange}
-                  uploadOnItemsChange={setMediaItems}
-                />
+                {isEdit && !editLoaded ? (
+                  // Hold the editor until the post's data (incl. attached media)
+                  // has loaded. Mounting it early let the media uploader seed
+                  // before its items arrived, intermittently leaving the body
+                  // image present but the uploader list empty.
+                  <div className="flex items-center justify-center gap-2 rounded-md border min-h-[200px] text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    불러오는 중...
+                  </div>
+                ) : (
+                  <SimpleMarkdownEditor
+                    name="content"
+                    formatName="content_format"
+                    uploadEnabled={uploadSettings.use_upload_file}
+                    uploadMaxItems={uploadSettings.max_upload_items}
+                    uploadMaxSizeMb={uploadSettings.max_file_size_mb}
+                    uploadAcceptedExtensions={allowedExtensions}
+                    uploadInitialItems={
+                      isEdit ? editLoaded?.attachedMedia : undefined
+                    }
+                    uploadEnableThumbnailPicker={uploadSettings.use_thumbnail}
+                    uploadInitialThumbnailId={
+                      isEdit
+                        ? (editLoaded?.post.thumbnail_media_id ?? null)
+                        : null
+                    }
+                    uploadOnThumbnailChange={handleThumbnailChange}
+                    uploadOnItemsChange={setMediaItems}
+                  />
+                )}
               </FormBuilder>
 
               <div className="rounded-lg border p-4 flex flex-col gap-3">
@@ -403,21 +449,48 @@ export const CreatePostSheet = ({
               </FormBuilder>
             </div>
 
-            <SheetFooter className="px-6 py-4 border-t bg-background gap-2 sm:gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={submitting}
-              >
-                취소
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting && (
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                )}
-                {isEdit ? "수정" : "저장"}
-              </Button>
+            <SheetFooter className="px-6 py-4 border-t bg-background gap-2 sm:gap-2 sm:justify-between">
+              {isEdit && existingPostId ? (
+                <ConfirmDialog
+                  title="게시글 삭제"
+                  description="이 게시글과 첨부된 이미지를 삭제합니다. 되돌릴 수 없습니다. 계속하시겠습니까?"
+                  onConfirm={handleDelete}
+                >
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={submitting || deleting}
+                  >
+                    {deleting ? (
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-1.5" />
+                    )}
+                    삭제
+                  </Button>
+                </ConfirmDialog>
+              ) : (
+                <span />
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={submitting || deleting}
+                >
+                  취소
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submitting || deleting || (isEdit && !editLoaded)}
+                >
+                  {submitting && (
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  )}
+                  {isEdit ? "수정" : "저장"}
+                </Button>
+              </div>
             </SheetFooter>
           </Form>
         </FormProvider>
