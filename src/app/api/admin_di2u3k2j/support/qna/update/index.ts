@@ -5,7 +5,7 @@ import {
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
-import { stripCloudFrontSignatures } from "@/helpers/server/s3";
+import { sanitizeStoredHtml } from "@/helpers/server/sanitizeHtml";
 
 export interface SupportQnaUpdateProps {
   id: number;
@@ -26,7 +26,7 @@ export const POST = async (json: SupportQnaUpdateProps) => {
     const question = json.question?.trim();
     // Strip CloudFront signatures — answer is signed on read, so editor
     // round-trips must not persist an expiring signature.
-    const answer = stripCloudFrontSignatures(json.answer ?? "");
+    const answer = sanitizeStoredHtml(json.answer ?? "");
 
     if (
       !Number.isFinite(id) ||

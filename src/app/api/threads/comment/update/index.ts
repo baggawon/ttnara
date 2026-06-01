@@ -13,6 +13,7 @@ import { PointAction } from "@/helpers/pointSystem";
 import { recordActivity } from "@/helpers/server/boardActivity";
 import { BoardActivityAction } from "@/helpers/boardActivity";
 import { enqueueCommentNotification } from "@/helpers/server/notificationQueue";
+import { sanitizeStoredHtml } from "@/helpers/server/sanitizeHtml";
 
 export interface CommentUpdateProps extends comment {
   topic_url: string;
@@ -29,6 +30,12 @@ export const POST = async (json: CommentUpdateProps) => {
 
     const author_id = uid!;
     const { topic_url, ...jsonData } = json;
+
+    // Comment bodies are rendered as HTML (dangerouslySetInnerHTML on the
+    // thread page), so sanitize on write to neutralize injected scripts.
+    if (jsonData.content) {
+      jsonData.content = sanitizeStoredHtml(jsonData.content);
+    }
 
     try {
       const topics = appCache.getByKey(CacheKey.Topics) as any;

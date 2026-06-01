@@ -145,9 +145,10 @@ const toCard = (
 };
 
 const resolveThumbnails = async (
-  threadIds: number[]
+  threads: Pick<ThreadRow, "id" | "thumbnail_media_id">[]
 ): Promise<Map<number, string>> => {
-  if (threadIds.length === 0) return new Map();
+  if (threads.length === 0) return new Map();
+  const threadIds = threads.map((t) => t.id);
   const media = await handleConnect((prisma) =>
     prisma.media_upload.findMany({
       where: {
@@ -155,15 +156,29 @@ const resolveThumbnails = async (
         attached_to_id: { in: threadIds },
         media_type: "image",
       },
-      select: { attached_to_id: true, aws_cloud_front_url: true },
+      select: { id: true, attached_to_id: true, aws_cloud_front_url: true },
       orderBy: { id: Prisma.SortOrder.asc },
     })
   );
-  const map = new Map<number, string>();
+  // Group each thread's images, preserving upload order (id asc) so the first
+  // entry is the oldest upload — used as the fallback when no thumbnail is set.
+  const byThread = new Map<number, { id: number; url: string }[]>();
   for (const m of media ?? []) {
     if (m.attached_to_id == null) continue;
-    if (map.has(m.attached_to_id)) continue;
-    map.set(m.attached_to_id, signStoredCloudFrontUrl(m.aws_cloud_front_url));
+    const list = byThread.get(m.attached_to_id) ?? [];
+    list.push({ id: m.id, url: m.aws_cloud_front_url });
+    byThread.set(m.attached_to_id, list);
+  }
+  const map = new Map<number, string>();
+  for (const t of threads) {
+    const candidates = byThread.get(t.id);
+    if (!candidates || candidates.length === 0) continue;
+    // Honor the author-selected thumbnail; fall back to the first upload.
+    const chosen =
+      (t.thumbnail_media_id != null &&
+        candidates.find((c) => c.id === t.thumbnail_media_id)) ||
+      candidates[0];
+    map.set(t.id, signStoredCloudFrontUrl(chosen.url));
   }
   return map;
 };
@@ -213,13 +228,12 @@ export const getSpecialBoardHomeData = cache(
     if (!rows) return { topic, featured: [], today: [], byCategory: [] };
     const [featuredRows, windowRows] = rows;
 
-    const allIds = Array.from(
-      new Set([
-        ...featuredRows.map((t: ThreadRow) => t.id),
-        ...windowRows.map((t: ThreadRow) => t.id),
-      ])
+    const uniqueThreads = Array.from(
+      new Map(
+        [...featuredRows, ...windowRows].map((t: ThreadRow) => [t.id, t])
+      ).values()
     );
-    const thumbnailMap = await resolveThumbnails(allIds);
+    const thumbnailMap = await resolveThumbnails(uniqueThreads);
 
     const featured = featuredRows.map((t: ThreadRow) =>
       toCard(t, thumbnailMap)

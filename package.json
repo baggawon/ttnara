@@ -1,6 +1,6 @@
 {
   "name": "platypus",
-  "version": "0.11.3",
+  "version": "0.11.4",
   "private": true,
   "scripts": {
     "secure": "node setup.mjs && prisma generate && next dev --experimental-https -p 3030 --turbopack",
@@ -59,9 +59,12 @@
     "@tanstack/react-query": "5.90.12",
     "@tanstack/react-query-devtools": "5.91.1",
     "@tanstack/react-table": "^8.21.3",
+    "@tiptap/extension-color": "^3.22.5",
     "@tiptap/extension-image": "^3.22.5",
     "@tiptap/extension-link": "^3.22.5",
     "@tiptap/extension-placeholder": "^3.22.5",
+    "@tiptap/extension-text-align": "^3.22.5",
+    "@tiptap/extension-text-style": "^3.22.5",
     "@tiptap/pm": "^3.22.5",
     "@tiptap/react": "^3.22.5",
     "@tiptap/starter-kit": "^3.22.5",
@@ -76,6 +79,7 @@
     "dompurify": "^3.3.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
+    "jsdom": "^29.1.1",
     "lucide-react": "^0.556.0",
     "marked": "^18.0.3",
     "next": "^15.5.18",

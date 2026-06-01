@@ -4,7 +4,7 @@ import {
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
-import { stripCloudFrontSignatures } from "@/helpers/server/s3";
+import { sanitizeStoredHtml } from "@/helpers/server/sanitizeHtml";
 import { attachMediaToContent } from "@/helpers/server/mediaAttach";
 import {
   deleteUnusedOrphans,
@@ -77,7 +77,7 @@ export const POST = async (json: FeaturedPostCreateProps) => {
       };
     }
 
-    const content = stripCloudFrontSignatures(json.content ?? "");
+    const content = sanitizeStoredHtml(json.content ?? "");
     const categoryId = json.category_id ? Number(json.category_id) : null;
 
     // Snapshot the source event's resolution date so the user-end can flag the

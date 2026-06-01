@@ -16,9 +16,11 @@ const HTMLViewer = ({
   format?: ContentFormat;
   className?: string;
 }) => {
-  // DOMPurify needs `window`, so markdown can't be sanitized during SSR.
-  // We render empty on the server *and* on the first client render, then fill
-  // in after mount — this keeps the SSR and hydration outputs identical.
+  // DOMPurify needs `window`, so content can't be sanitized during SSR.
+  // We render the raw HTML on the server *and* on the first client render,
+  // then sanitize after mount — this keeps the SSR and hydration outputs
+  // identical. Markdown can't render on the server at all (it needs marked +
+  // DOMPurify), so it starts empty and fills in after mount.
   const [rendered, setRendered] = useState(
     format === "markdown" ? "" : htmlContent
   );
@@ -31,7 +33,14 @@ const HTMLViewer = ({
         )
       );
     } else {
-      setRendered(htmlContent);
+      // Sanitize but keep inline styles (text color / alignment set in the
+      // editor) and media tags so the output matches what was authored.
+      setRendered(
+        DOMPurify.sanitize(htmlContent ?? "", {
+          ADD_TAGS: ["video"],
+          ADD_ATTR: ["controls", "style"],
+        })
+      );
     }
   }, [htmlContent, format]);
 
@@ -41,7 +50,7 @@ const HTMLViewer = ({
       dangerouslySetInnerHTML={{
         __html: rendered,
       }}
-      className={clsx("py-8 px-4 ck-conetnt ", className)}
+      className={clsx("rich-content py-8 px-4", className)}
     />
   );
 };

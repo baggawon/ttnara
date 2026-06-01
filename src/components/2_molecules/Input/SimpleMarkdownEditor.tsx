@@ -5,15 +5,19 @@ import { useFormContext, useWatch } from "react-hook-form";
 import clsx from "clsx";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
+import TextAlign from "@tiptap/extension-text-align";
+import { TextStyle } from "@tiptap/extension-text-style";
+import { Color } from "@tiptap/extension-color";
 import {
   Bold as BoldIcon,
   Italic as ItalicIcon,
+  Underline as UnderlineIcon,
   Strikethrough,
   Heading1,
   Heading2,
@@ -22,9 +26,18 @@ import {
   ListOrdered,
   Link as LinkIcon,
   Unlink,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Palette,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   ErrorMessage,
   type ValidateType,
@@ -147,6 +160,9 @@ const SimpleMarkdownEditor = ({
   const editor = useEditor({
     extensions: [
       StarterKit,
+      TextStyle,
+      Color,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
       Link.configure({ openOnClick: false, autolink: true }),
       Image,
       VideoNode,
@@ -158,7 +174,7 @@ const SimpleMarkdownEditor = ({
     editorProps: {
       attributes: {
         class: clsx(
-          "prose dark:prose-invert max-w-none p-3 text-sm leading-relaxed",
+          "rich-content max-w-none p-3",
           "focus:outline-none",
           disabled && "opacity-60 pointer-events-none"
         ),
@@ -267,6 +283,14 @@ const SimpleMarkdownEditor = ({
             <ItalicIcon className="w-4 h-4" />
           </ToolbarButton>
           <ToolbarButton
+            onClick={() => editor?.chain().focus().toggleUnderline().run()}
+            isActive={!!editor?.isActive("underline")}
+            disabled={disabled}
+            title="밑줄"
+          >
+            <UnderlineIcon className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
             onClick={() => editor?.chain().focus().toggleStrike().run()}
             isActive={!!editor?.isActive("strike")}
             disabled={disabled}
@@ -274,6 +298,7 @@ const SimpleMarkdownEditor = ({
           >
             <Strikethrough className="w-4 h-4" />
           </ToolbarButton>
+          <ColorButton editor={editor} disabled={disabled} />
           <ToolbarSeparator />
           <ToolbarButton
             onClick={() =>
@@ -321,6 +346,31 @@ const SimpleMarkdownEditor = ({
             title="번호 매기기"
           >
             <ListOrdered className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarSeparator />
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+            isActive={!!editor?.isActive({ textAlign: "left" })}
+            disabled={disabled}
+            title="왼쪽 정렬"
+          >
+            <AlignLeft className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+            isActive={!!editor?.isActive({ textAlign: "center" })}
+            disabled={disabled}
+            title="가운데 정렬"
+          >
+            <AlignCenter className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+            isActive={!!editor?.isActive({ textAlign: "right" })}
+            disabled={disabled}
+            title="오른쪽 정렬"
+          >
+            <AlignRight className="w-4 h-4" />
           </ToolbarButton>
           <ToolbarSeparator />
           <ToolbarButton
@@ -410,5 +460,97 @@ const ToolbarButton = ({
 const ToolbarSeparator = () => (
   <div className="w-px self-stretch bg-border mx-1" />
 );
+
+// A small palette of preset text colors plus a native picker for anything else.
+const PRESET_COLORS = [
+  "#111827",
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+];
+
+interface ColorButtonProps {
+  editor: Editor | null;
+  disabled?: boolean;
+}
+
+const ColorButton = ({ editor, disabled }: ColorButtonProps) => {
+  const activeColor =
+    (editor?.getAttributes("textStyle").color as string | undefined) ?? "";
+
+  const applyColor = (color: string) =>
+    editor?.chain().focus().setColor(color).run();
+
+  const clearColor = () => editor?.chain().focus().unsetColor().run();
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onMouseDown={(event) => event.preventDefault()}
+          disabled={disabled}
+          title="글자 색"
+          className={clsx(
+            "h-8 w-8 p-0 relative",
+            !!activeColor && "bg-accent text-accent-foreground"
+          )}
+        >
+          <Palette className="w-4 h-4" />
+          <span
+            className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-4 rounded-sm"
+            style={{ backgroundColor: activeColor || "transparent" }}
+          />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-auto p-2"
+        align="start"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
+        <div className="grid grid-cols-4 gap-1">
+          {PRESET_COLORS.map((color) => (
+            <button
+              key={color}
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => applyColor(color)}
+              title={color}
+              className="h-6 w-6 rounded border border-border"
+              style={{ backgroundColor: color }}
+            />
+          ))}
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <label className="flex items-center gap-1 text-xs cursor-pointer">
+            <input
+              type="color"
+              value={activeColor || "#000000"}
+              onChange={(event) => applyColor(event.target.value)}
+              className="h-6 w-6 cursor-pointer border border-border rounded bg-transparent p-0"
+            />
+            사용자 지정
+          </label>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={clearColor}
+            className="h-6 px-2 text-xs ml-auto"
+          >
+            초기화
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 export default SimpleMarkdownEditor;

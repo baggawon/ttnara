@@ -5,11 +5,8 @@ import {
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
-import {
-  uploadFileToS3,
-  deleteFileFromS3,
-  stripCloudFrontSignatures,
-} from "@/helpers/server/s3";
+import { uploadFileToS3, deleteFileFromS3 } from "@/helpers/server/s3";
+import { sanitizeStoredHtml } from "@/helpers/server/sanitizeHtml";
 import type { popup } from "@prisma/client";
 
 const IMAGE_MAX_BYTES = 20 * 1024 * 1024;
@@ -25,11 +22,9 @@ export const POST = async (formData: FormData) => {
     const json: PopupUpdateProps = {
       id: parseInt(formData.get("id") as string),
       title: formData.get("title") as string,
-      // Strip CloudFront signatures before persisting — content is signed on
-      // read, so editor round-trips must not bake an expiring signature in.
-      content: stripCloudFrontSignatures(
-        (formData.get("content") as string) ?? ""
-      ),
+      // Strip CloudFront signatures (content is signed on read, so editor
+      // round-trips must not bake an expiring signature in) and sanitize.
+      content: sanitizeStoredHtml((formData.get("content") as string) ?? ""),
       content_format:
         (formData.get("content_format") as string | null) ?? "html",
       image_cloud_front_url: null, // will be set later

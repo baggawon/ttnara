@@ -4,11 +4,8 @@ import {
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
-import {
-  uploadFileToS3,
-  deleteFileFromS3,
-  stripCloudFrontSignatures,
-} from "@/helpers/server/s3";
+import { uploadFileToS3, deleteFileFromS3 } from "@/helpers/server/s3";
+import { sanitizeStoredHtml } from "@/helpers/server/sanitizeHtml";
 import { GuaranteeCurrency, GuaranteePosition } from "@/helpers/types";
 
 const POSITION_VALUES = Object.values(GuaranteePosition) as string[];
@@ -73,9 +70,9 @@ export const POST = async (formData: FormData) => {
       parseInt(formData.get("display_order") as string) || 1;
     const is_active = formData.get("is_active") === "true";
     const imageFile = formData.get("image") as File | null;
-    // Strip CloudFront signatures — description is signed on read, so editor
-    // round-trips must not persist an expiring signature.
-    const description = stripCloudFrontSignatures(
+    // Strip CloudFront signatures (description is signed on read, so editor
+    // round-trips must not persist an expiring signature) and sanitize.
+    const description = sanitizeStoredHtml(
       (formData.get("description") as string) ?? ""
     );
     const descriptionFormatRaw = (

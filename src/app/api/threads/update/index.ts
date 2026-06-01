@@ -9,7 +9,7 @@ import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import type { Prisma, thread } from "@prisma/client";
 import { removeColumnsFromObject } from "@/helpers/basic";
-import { stripCloudFrontSignatures } from "@/helpers/server/s3";
+import { sanitizeStoredHtml } from "@/helpers/server/sanitizeHtml";
 import { BoardAccessService } from "@/lib/boardAccess";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
 import { applyTopicPoints, getBalance } from "@/helpers/server/pointService";
@@ -133,11 +133,10 @@ export const POST = async (formData: FormData) => {
       };
     }
 
-    // Strip CloudFront signing params from content before saving to DB.
-    // Markdown content from the new editor uses unsigned URLs; this is a
-    // no-op there but still meaningful when editing legacy HTML threads.
+    // Strip CloudFront signing params and sanitize content before saving to
+    // DB. Sanitizing on write means stored content is already safe to render.
     if (json.content) {
-      json.content = stripCloudFrontSignatures(json.content);
+      json.content = sanitizeStoredHtml(json.content);
     }
 
     if (json.id === 0) {

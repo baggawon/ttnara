@@ -4,7 +4,7 @@ import {
 } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
-import { stripCloudFrontSignatures } from "@/helpers/server/s3";
+import { sanitizeStoredHtml } from "@/helpers/server/sanitizeHtml";
 import { attachMediaToContent } from "@/helpers/server/mediaAttach";
 import {
   deleteUnusedOrphans,
@@ -66,7 +66,7 @@ export const POST = async (json: FeaturedPostUpdateProps) => {
       return { result: false, message: "게시글을 찾을 수 없습니다." };
     }
 
-    const content = stripCloudFrontSignatures(json.content ?? "");
+    const content = sanitizeStoredHtml(json.content ?? "");
     const categoryId = json.category_id ? Number(json.category_id) : null;
 
     // Validate the proposed thumbnail before content attachment so we can
