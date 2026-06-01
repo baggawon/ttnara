@@ -105,6 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tokio::spawn(loop_get_tether());
     tokio::spawn(loop_cleanup_orphans());
+    tokio::spawn(loop_dispatch_notifications());
 
     // 애플리케이션이 종료되거나 시그널을 받을 때까지 대기
     tokio::select! {
@@ -212,6 +213,50 @@ async fn loop_cleanup_orphans() -> Result<(), Box<dyn std::error::Error + Send +
             }
             Err(e) => {
                 eprintln!("orphan cleanup request failed: {:?}", e);
+            }
+        }
+    }
+}
+
+async fn loop_dispatch_notifications() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let api_url = match env::var("API_URL") {
+        Ok(v) => v,
+        Err(_) => {
+            eprintln!("notification dispatch: API_URL not set, task disabled");
+            return Ok(());
+        }
+    };
+    let cron_secret = match env::var("CRON_SECRET") {
+        Ok(v) => v,
+        Err(_) => {
+            eprintln!("notification dispatch: CRON_SECRET not set, task disabled");
+            return Ok(());
+        }
+    };
+    let url = format!("{}/api/notification/dispatch", api_url);
+
+    let mut interval = interval(Duration::from_secs(60));
+    loop {
+        interval.tick().await;
+
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .unwrap();
+
+        match client
+            .post(&url)
+            .header("x-cron-secret", &cron_secret)
+            .send()
+            .await
+        {
+            Ok(resp) => {
+                let status = resp.status();
+                let body = resp.text().await.unwrap_or_default();
+                println!("notification dispatch: status={} body={}", status, body);
+            }
+            Err(e) => {
+                eprintln!("notification dispatch request failed: {:?}", e);
             }
         }
     }
