@@ -21,7 +21,7 @@ import {
 interface TrendChartCardProps {
   title: string;
   description?: string;
-  data: Array<Record<string, string | number>>;
+  data: Array<Record<string, string | number | null>>;
   series: Array<{ key: string; label: string; color: string }>;
   xKey: string;
   /** Optional footer label; omit to hide the footer entirely. */
@@ -45,7 +45,7 @@ export function TrendChartCard({
         )}
       </CardHeader>
       <CardContent>
-        <div className="h-[220px] -ml-2">
+        <div className="h-[180px] -ml-2">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}
