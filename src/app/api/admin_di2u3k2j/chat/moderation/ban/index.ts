@@ -27,12 +27,18 @@ export const POST = async (json: ChatModerationBanProps) => {
     if (!setting) {
       return { result: false, message: "채팅 설정을 불러올 수 없습니다." };
     }
-    await handleConnect((prisma) =>
+    // handleConnect swallows DB errors and returns undefined (e.g. the uid no
+    // longer exists -> P2025 on connect). Null-check before broadcasting and
+    // audit-logging so a ban that never persisted isn't reported as success.
+    const updated = await handleConnect((prisma) =>
       prisma.chat_setting.update({
         where: { id: setting.id },
         data: { banned_users: { connect: { id: json.uid } } },
       })
     );
+    if (!updated) {
+      return { result: false, message: "차단 처리에 실패했습니다." };
+    }
     await sendChatAdminEvent({ kind: "ban", uid: json.uid });
     await logChatModeration({
       action: "ban",

@@ -143,38 +143,40 @@ export const POST = async (json: FeaturedPostCreateProps) => {
     if (!created) throw ToastData.threadCreatePrismaError;
 
     // Attach uploads referenced in the body + thumbnail. Mirrors the regular
-    // thread create flow but skipping points/anonymity since neither applies
-    // to admin-authored fullview posts.
-    if (content) {
-      const keepId = await validateProposedThumbnail(
-        author_id,
-        created.id,
-        json.thumbnail_media_id
-      );
-      await attachMediaToContent({
-        authorId: author_id,
-        content,
-        attachedToType: "thread",
-        attachedToId: created.id,
-        isEdit: false,
-        extraKeepIds: keepId != null ? [keepId] : [],
-      });
+    // thread create flow (and the featured update route) but skipping
+    // points/anonymity since neither applies to admin-authored fullview posts.
+    // This must run unconditionally: a card can have a thumbnail with an empty
+    // body, and attachMediaToContent is what sets the thumbnail's
+    // attached_to_id — gating it behind `content` dropped the thumbnail on
+    // text-free cards (the card then rendered with no image).
+    const keepId = await validateProposedThumbnail(
+      author_id,
+      created.id,
+      json.thumbnail_media_id
+    );
+    await attachMediaToContent({
+      authorId: author_id,
+      content,
+      attachedToType: "thread",
+      attachedToId: created.id,
+      isEdit: false,
+      extraKeepIds: keepId != null ? [keepId] : [],
+    });
 
-      const resolvedThumbId = await resolveThumbnailMediaId(
-        created.id,
-        json.thumbnail_media_id
+    const resolvedThumbId = await resolveThumbnailMediaId(
+      created.id,
+      json.thumbnail_media_id
+    );
+    if (resolvedThumbId != null) {
+      await handleConnect((prisma) =>
+        prisma.thread.update({
+          where: { id: created.id },
+          data: { thumbnail_media_id: resolvedThumbId },
+        })
       );
-      if (resolvedThumbId != null) {
-        await handleConnect((prisma) =>
-          prisma.thread.update({
-            where: { id: created.id },
-            data: { thumbnail_media_id: resolvedThumbId },
-          })
-        );
-      }
-
-      await deleteUnusedOrphans(author_id, json.unused_media_ids);
     }
+
+    await deleteUnusedOrphans(author_id, json.unused_media_ids);
 
     await appCache.refreshCache(CacheKey.Topics);
 

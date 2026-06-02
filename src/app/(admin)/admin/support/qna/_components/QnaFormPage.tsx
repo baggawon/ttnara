@@ -173,6 +173,15 @@ export default function QnaFormPage({ qnaId }: QnaFormPageProps) {
 
       if (result.isSuccess) {
         refreshCache(queryClient, QueryKey.adminSupportQna);
+        // The detail query key is [adminSupportQnaDetail, qnaId] — an array
+        // shape refreshCache() can't match (it only matches `"key":` or the
+        // exact `["key"]`). Invalidate it directly so re-opening 수정 on the
+        // same QnA shows the just-saved values rather than the stale detail.
+        if (isEdit && qnaId) {
+          queryClient.invalidateQueries({
+            queryKey: [QueryKey.adminSupportQnaDetail, qnaId],
+          });
+        }
         goBack();
       }
     } catch (error) {

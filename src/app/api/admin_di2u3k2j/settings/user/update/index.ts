@@ -14,15 +14,26 @@ export const POST = async (json: userUpdateProps) => {
     if (typeof json?.id !== "number" || json?.id === 0) throw ToastData.unknown;
 
     await requestValidator([RequestValidator.Admin], json);
+    const { id: _ignoredId, ...data } = json;
+
+    // Singleton row with no DB-enforced uniqueness: always write the canonical
+    // (lowest-id) row so the write hits the same row every reader returns (all
+    // reads use `orderBy: { id: "asc" }`), otherwise the saved value can appear
+    // to "revert" when an unordered findFirst() later returns a duplicate row.
+    const canonical = await handleConnect((prisma) =>
+      prisma.user_setting.findFirst({
+        orderBy: { id: "asc" },
+        select: { id: true },
+      })
+    );
+    if (!canonical) throw ToastData.unknown;
 
     const updateResult = await handleConnect((prisma) =>
       prisma.user_setting.update({
         where: {
-          id: json.id,
+          id: canonical.id,
         },
-        data: {
-          ...json,
-        },
+        data,
       })
     );
     if (!updateResult) throw ToastData.unknown;

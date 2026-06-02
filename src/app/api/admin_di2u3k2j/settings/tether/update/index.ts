@@ -15,10 +15,25 @@ export const POST = async (json: TetherSettingsUpdateProps) => {
     if (typeof json?.id !== "number" || json?.id === 0) throw ToastData.unknown;
 
     await requestValidator([RequestValidator.Admin], json);
-    const { id, ...data } = json;
+    const { id: _ignoredId, ...data } = json;
+
+    // The settings row is a singleton, but no DB constraint enforces that and a
+    // historic check-then-create race may have left duplicate rows. Always write
+    // the canonical (lowest-id) row so the write hits the same row every reader
+    // returns (all reads use `orderBy: { id: "asc" }`). Otherwise an unordered
+    // findFirst() could return a different row after the update and the admin UI
+    // would appear to "revert" the saved value.
+    const canonical = await handleConnect((prisma) =>
+      prisma.tether_setting.findFirst({
+        orderBy: { id: "asc" },
+        select: { id: true },
+      })
+    );
+    if (!canonical) throw ToastData.unknown;
+
     const updateResult = await handleConnect((prisma) =>
       prisma.tether_setting.update({
-        where: { id },
+        where: { id: canonical.id },
         data,
       })
     );

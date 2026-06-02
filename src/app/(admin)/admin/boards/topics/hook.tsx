@@ -8,7 +8,7 @@ import type {
 } from "@/app/api/admin_di2u3k2j/topics/read";
 import type { topicsUpdateProps } from "@/app/api/admin_di2u3k2j/topics/update";
 import type { BoardPreviewResponse } from "@/app/api/board-preview/read";
-import ConfirmDialog from "@/components/1_atoms/ConfirmDialog";
+import CascadeDeleteDialog from "@/components/1_atoms/CascadeDeleteDialog";
 import type { CustomColumDef } from "@/components/2_molecules/Table/DataTable";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -172,15 +172,22 @@ export const useAdminTopicsHook = () => {
             >
               카테고리 관리
             </Button>
-            <ConfirmDialog
-              title="게시판 삭제"
-              description="게시판을 삭제하시려면 확인을 눌러주세요."
-              onConfirm={() => deleteTopic(props.row.index)}
+            <CascadeDeleteDialog
+              itemLabel="게시판"
+              itemName={topicsData?.topics[props.row.index].name ?? ""}
+              cascadeDescription={
+                "이 게시판을 삭제하면 하위 카테고리, 게시글, 댓글, 추천까지 모두 영구 삭제되며 복구할 수 없습니다.\n비활성화를 권장합니다."
+              }
+              deactivateDisabled={
+                !topicsData?.topics[props.row.index].is_active
+              }
+              onDeactivate={() => deactivateTopic(props.row.index)}
+              onDelete={() => deleteTopic(props.row.index)}
             >
               <Button type="button" className="!p-2 !h-fit" variant="outline">
                 삭제
               </Button>
-            </ConfirmDialog>
+            </CascadeDeleteDialog>
           </div>
         );
       },
@@ -220,6 +227,29 @@ export const useAdminTopicsHook = () => {
         id: ToastData.unknown,
         type: "error",
       });
+    }
+    setIsWorking(false);
+  };
+
+  const deactivateTopic = async (index: number) => {
+    if (!topicsData) return;
+    if (isWorking) return;
+    setIsWorking(true);
+    try {
+      const topic = topicsData.topics[index];
+      const { isSuccess, hasMessage } = await postJson<topicsUpdateProps>(
+        ApiRoute.adminTopicsUpdate,
+        { ...topic, is_active: false }
+      );
+      if (hasMessage) {
+        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
+      }
+      if (isSuccess) {
+        refreshCache(queryClient, QueryKey.topics);
+        refreshCache(queryClient, QueryKey.boardPreview);
+      }
+    } catch (error) {
+      toast({ id: ToastData.unknown, type: "error" });
     }
     setIsWorking(false);
   };

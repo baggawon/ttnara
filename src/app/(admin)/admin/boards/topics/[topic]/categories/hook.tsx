@@ -2,6 +2,7 @@
 
 import type { category } from "@prisma/client";
 import type { topicCategoriesDeleteProps } from "@/app/api/admin_di2u3k2j/topics/categories/delete";
+import type { topicCategoriesUpdateProps } from "@/app/api/admin_di2u3k2j/topics/categories/update";
 import type {
   TopicCategoriesListResponse,
   TopicCategoriesReadProps,
@@ -11,7 +12,7 @@ import type {
   TopicsReadProps,
   TopicWithPoint,
 } from "@/app/api/admin_di2u3k2j/topics/read";
-import ConfirmDialog from "@/components/1_atoms/ConfirmDialog";
+import CascadeDeleteDialog from "@/components/1_atoms/CascadeDeleteDialog";
 import type { CustomColumDef } from "@/components/2_molecules/Table/DataTable";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -22,8 +23,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { adminTopicCategoriesGet, adminTopicsGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
-import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
-import { useRouter } from "next/navigation";
+import { ApiRoute, QueryKey } from "@/helpers/types";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -84,7 +84,15 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
     setPagination(newProps);
   };
 
-  const router = useRouter();
+  // Add/edit happen in an in-page sheet modal rather than a separate route.
+  // `editingCategory` is null for create, a row for edit.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<category | null>(null);
+
+  // Home card-type boards sync their categories from an external source, so the
+  // admin must not edit/add/delete them by hand.
+  const isHomeCardBoard =
+    topicsData?.topics?.[0]?.fullview_on_homepage === true;
 
   const columns: CustomColumDef<category>[] = setDefaultColumn([
     {
@@ -123,24 +131,39 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
             <Button
               type="button"
               className="!p-2 !h-fit"
-              onClick={() =>
-                router.push(
-                  `${AdminAppRoute.Boards}/${topic_id}/categories/${categoriesData?.categories[props.row.index].id}`
-                )
-              }
+              disabled={isHomeCardBoard}
+              onClick={() => openEdit(props.row.index)}
             >
               수정
             </Button>
 
-            <ConfirmDialog
-              title="카테고리 삭제"
-              description="카테고리를 삭제하시려면 확인을 눌러주세요."
-              onConfirm={() => deleteCategory(props.row.index)}
-            >
-              <Button type="button" className="!p-2 !h-fit" variant="outline">
+            {isHomeCardBoard ? (
+              <Button
+                type="button"
+                className="!p-2 !h-fit"
+                variant="outline"
+                disabled
+              >
                 삭제
               </Button>
-            </ConfirmDialog>
+            ) : (
+              <CascadeDeleteDialog
+                itemLabel="카테고리"
+                itemName={categoriesData?.categories[props.row.index].name ?? ""}
+                cascadeDescription={
+                  "이 카테고리를 삭제하면 하위 게시글, 댓글, 추천까지 모두 영구 삭제되며 복구할 수 없습니다.\n비활성화를 권장합니다."
+                }
+                deactivateDisabled={
+                  !categoriesData?.categories[props.row.index].is_active
+                }
+                onDeactivate={() => deactivateCategory(props.row.index)}
+                onDelete={() => deleteCategory(props.row.index)}
+              >
+                <Button type="button" className="!p-2 !h-fit" variant="outline">
+                  삭제
+                </Button>
+              </CascadeDeleteDialog>
+            )}
           </div>
         );
       },
@@ -163,14 +186,14 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
   const [isWorking, setIsWorking] = useState(false);
 
   const deleteCategory = async (index: number) => {
-    if (!topicsData) return;
+    if (!categoriesData) return;
     if (isWorking) return;
     setIsWorking(true);
     try {
       const { isSuccess, hasMessage } =
         await postJson<topicCategoriesDeleteProps>(
           ApiRoute.adminTopicCategoriesDelete,
-          { deleteCategoryId: topicsData.topics[index].id }
+          { deleteCategoryId: categoriesData.categories[index].id }
         );
       if (hasMessage) {
         toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
@@ -186,8 +209,41 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
     setIsWorking(false);
   };
 
+  const deactivateCategory = async (index: number) => {
+    if (!categoriesData) return;
+    if (isWorking) return;
+    setIsWorking(true);
+    try {
+      const category = categoriesData.categories[index];
+      const { isSuccess, hasMessage } =
+        await postJson<topicCategoriesUpdateProps>(
+          ApiRoute.adminTopicCategoriesUpdate,
+          { ...category, is_active: false }
+        );
+      if (hasMessage) {
+        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
+      }
+      if (isSuccess)
+        refreshCache(queryClient, `${QueryKey.topics}${QueryKey.categories}`);
+    } catch (error) {
+      toast({ id: ToastData.unknown, type: "error" });
+    }
+    setIsWorking(false);
+  };
+
   const newCreateTopic = () => {
-    router.push(`${AdminAppRoute.Boards}/${topic_id}/categories/0`);
+    setEditingCategory(null);
+    setSheetOpen(true);
+  };
+
+  const openEdit = (index: number) => {
+    if (!categoriesData) return;
+    setEditingCategory(categoriesData.categories[index]);
+    setSheetOpen(true);
+  };
+
+  const onCategorySaved = () => {
+    refreshCache(queryClient, `${QueryKey.topics}${QueryKey.categories}`);
   };
 
   return {
@@ -198,5 +254,12 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
     categoriesData,
     newCreateTopic,
     isWorking,
+    isHomeCardBoard,
+    topic_id,
+    sheetOpen,
+    setSheetOpen,
+    editingCategory,
+    openEdit,
+    onCategorySaved,
   };
 };

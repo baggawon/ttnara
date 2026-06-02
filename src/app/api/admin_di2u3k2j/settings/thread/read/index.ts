@@ -13,7 +13,7 @@ export const GET = async (queryParams: ThreadGenaralSettingsReadProps) => {
     await requestValidator([RequestValidator.Admin], queryParams);
 
     const threadGeneralSettings = await handleConnect((prisma) =>
-      prisma.thread_setting.findFirst()
+      prisma.thread_setting.findFirst({ orderBy: { id: "asc" } })
     );
 
     if (!threadGeneralSettings) throw ToastData.unknown;

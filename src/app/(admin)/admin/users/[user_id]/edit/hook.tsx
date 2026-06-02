@@ -134,6 +134,11 @@ export const useAdminUserEditHook = (user_id: string) => {
       }
       if (isSuccess) {
         refreshCache(queryClient, QueryKey.user);
+        // Also invalidate the list query. refreshCache matches on the substring
+        // `"user":`, which does NOT match the list key `[{"users":{...}}]` (the
+        // trailing `s` breaks the match), so the list would otherwise keep
+        // showing the pre-edit row on return.
+        refreshCache(queryClient, QueryKey.users);
         goBackList();
       }
     },

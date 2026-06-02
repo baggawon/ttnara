@@ -74,10 +74,17 @@ export const useAdminRanksAutoCreateHook = () => {
         });
       }
 
-      // Send all ranks in a single batch operation
-      await postJson(ApiRoute.adminRanksBatchCreate, {
+      // Send all ranks in a single batch operation. postJson resolves (does not
+      // throw) on a server { result: false }, so branch on isSuccess explicitly —
+      // otherwise a swallowed server failure is reported to the admin as success.
+      const { isSuccess } = await postJson(ApiRoute.adminRanksBatchCreate, {
         ranks: allRanks,
       });
+
+      if (!isSuccess) {
+        toast({ id: ToastData.rankBatchCreate, type: "error" });
+        return;
+      }
 
       toast({
         id: ToastData.rankBatchCreate,

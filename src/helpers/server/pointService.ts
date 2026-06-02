@@ -20,18 +20,22 @@ interface AwardPointsArgs {
   note?: string;
 }
 
-const writePointEntry = async (args: AwardPointsArgs): Promise<void> => {
-  if (args.amount === 0) return;
+// Returns true only when the increment + history row both committed. The tx
+// callback returns a `true` sentinel because handleConnect swallows errors and
+// returns undefined — without the sentinel a swallowed failure is
+// indistinguishable from a successful run (both would resolve to undefined).
+const writePointEntry = async (args: AwardPointsArgs): Promise<boolean> => {
+  if (args.amount === 0) return true;
 
-  await handleConnect((prisma) =>
+  const ok = await handleConnect((prisma) =>
     prisma.$transaction(async (tx) => {
+      // profile.update throws P2025 if the uid has no profile row, aborting the
+      // transaction; handleConnect then returns undefined and `ok` stays falsy.
       const profile = await tx.profile.update({
         where: { uid: args.uid },
         data: { point: { increment: args.amount } },
         select: { point: true },
       });
-
-      if (!profile) return;
 
       await tx.point_history.create({
         data: {
@@ -49,8 +53,12 @@ const writePointEntry = async (args: AwardPointsArgs): Promise<void> => {
           note: args.note ?? null,
         },
       });
+
+      return true as const;
     })
   );
+
+  return ok === true;
 };
 
 export async function awardPoints(args: AwardPointsArgs): Promise<void> {
@@ -236,14 +244,16 @@ export async function spendPoints(args: {
   return result ?? { ok: false, reason: "db_error", balance: 0 };
 }
 
+// Returns false when the adjustment did not persist (e.g. unknown uid) so the
+// admin route can surface a real error instead of a false success.
 export async function adjustPoints(args: {
   uid: string;
   amount: number;
   admin_uid: string;
   note?: string;
-}): Promise<void> {
-  if (args.amount === 0) return;
-  await writePointEntry({
+}): Promise<boolean> {
+  if (args.amount === 0) return true;
+  return writePointEntry({
     uid: args.uid,
     amount: args.amount,
     kind: PointKind.adjust,

@@ -28,7 +28,10 @@ export default function RanksBatchEditForm() {
           일괄 수정
         </Button>
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <SheetHeader>
           <SheetTitle>일괄 수정</SheetTitle>
         </SheetHeader>

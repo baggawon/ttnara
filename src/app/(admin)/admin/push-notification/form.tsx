@@ -129,7 +129,11 @@ const TemplateSheetForm = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="overflow-y-auto">
+      <SheetContent
+        className="overflow-y-auto"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <SheetHeader>
           <SheetTitle>{isEdit ? "템플릿 수정" : "템플릿 추가"}</SheetTitle>
         </SheetHeader>

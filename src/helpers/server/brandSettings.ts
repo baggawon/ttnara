@@ -46,6 +46,7 @@ export const getBrandSettings = cache(async (): Promise<BrandSettings> => {
   try {
     const row = await handleConnect((prisma) =>
       prisma.general_setting.findFirst({
+        orderBy: { id: "asc" },
         select: {
           site_name: true,
           site_title: true,

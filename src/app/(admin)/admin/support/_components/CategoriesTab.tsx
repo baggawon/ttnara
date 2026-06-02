@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,15 +24,12 @@ export default function CategoriesTab() {
     methods,
     categoriesData,
     isLoading,
-    selectedIds,
     isCreateSheetOpen,
     setIsCreateSheetOpen,
     isEditSheetOpen,
     setIsEditSheetOpen,
     editingCategory,
     updatePagination,
-    handleDelete,
-    deleteMutation,
   } = useAdminSupportQnaCategoriesHook();
 
   return (
@@ -109,17 +106,6 @@ export default function CategoriesTab() {
               >
                 <Plus className="w-4 h-4 sm:mr-1.5" />
                 <span className="hidden sm:inline">카테고리 추가</span>
-              </Button>
-              <Button
-                onClick={handleDelete}
-                variant="destructive"
-                size="sm"
-                aria-label="선택 삭제"
-                disabled={selectedIds.length === 0 || deleteMutation.isPending}
-              >
-                <Trash2 className="w-4 h-4 sm:mr-1.5" />
-                <span className="hidden sm:inline">선택 삭제 </span>
-                <span>({selectedIds.length})</span>
               </Button>
             </div>
           </div>

@@ -12,13 +12,13 @@ export const GET = async (queryParams: LevelReadProps) => {
     await requestValidator([RequestValidator.Admin], queryParams);
 
     let levelSettings = await handleConnect((prisma) =>
-      prisma.level_setting.findFirst()
+      prisma.level_setting.findFirst({ orderBy: { id: "asc" } })
     );
 
     if (levelSettings === null) {
       await handleConnect((prisma) => prisma.level_setting.create({}));
       levelSettings = await handleConnect((prisma) =>
-        prisma.level_setting.findFirst()
+        prisma.level_setting.findFirst({ orderBy: { id: "asc" } })
       );
     }
 

@@ -12,13 +12,13 @@ export const GET = async (queryParams: TetherSettingsReadProps) => {
     await requestValidator([RequestValidator.Admin], queryParams);
 
     let tetherSettings = await handleConnect((prisma) =>
-      prisma.tether_setting.findFirst()
+      prisma.tether_setting.findFirst({ orderBy: { id: "asc" } })
     );
 
     if (!tetherSettings) {
       await handleConnect((prisma) => prisma.tether_setting.create({}));
       tetherSettings = await handleConnect((prisma) =>
-        prisma.tether_setting.findFirst()
+        prisma.tether_setting.findFirst({ orderBy: { id: "asc" } })
       );
     }
 

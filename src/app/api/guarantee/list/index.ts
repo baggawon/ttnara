@@ -38,11 +38,12 @@ export const GET = async () => {
       ])
     );
 
+    // handleConnect swallows DB errors and returns undefined. On the success
+    // path Promise.all always resolves to a truthy 3-tuple (even when tables are
+    // empty), so a falsy `result` uniquely signals a swallowed error — surface
+    // it as a failure instead of masquerading as "no companies".
     if (!result) {
-      return {
-        result: true,
-        data: { public_hero_image_url: null, items: [], regions: [] },
-      };
+      return { result: false, message: "보증업체 정보를 불러올 수 없습니다." };
     }
 
     const [rows, setting, regions] = result;

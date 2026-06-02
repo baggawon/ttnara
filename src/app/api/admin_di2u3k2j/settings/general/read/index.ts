@@ -23,7 +23,7 @@ export const GET = async (queryParams: GeneralReadProps) => {
     await requestValidator([RequestValidator.Admin], queryParams);
 
     const generalSettings = await handleConnect((prisma) =>
-      prisma.general_setting.findFirst()
+      prisma.general_setting.findFirst({ orderBy: { id: "asc" } })
     );
 
     if (!generalSettings) throw ToastData.unknown;

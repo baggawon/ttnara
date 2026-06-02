@@ -33,12 +33,15 @@ export const POST = async (json: pointAdjustProps) => {
       throw new Error("admin required");
     }
 
-    await adjustPoints({
+    const adjusted = await adjustPoints({
       uid: json.target_uid,
       amount: json.amount,
       admin_uid: adminUid,
       note: json.note,
     });
+    if (!adjusted) {
+      throw new Error("포인트 조정에 실패했습니다. 대상 회원을 확인해주세요.");
+    }
 
     return { result: true };
   } catch (error) {

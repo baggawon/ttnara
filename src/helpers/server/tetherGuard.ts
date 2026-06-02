@@ -5,7 +5,10 @@ import { AppRoute } from "@/helpers/types";
 
 const getUseTetherBoard = cache(async (): Promise<boolean> => {
   const settings = await handleConnect((prisma) =>
-    prisma.tether_setting.findFirst({ select: { use_tether_board: true } })
+    prisma.tether_setting.findFirst({
+      select: { use_tether_board: true },
+      orderBy: { id: "asc" },
+    })
   );
   return settings ? settings.use_tether_board : true;
 });

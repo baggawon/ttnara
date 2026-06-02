@@ -52,8 +52,13 @@ export const POST = async (json: TetherCategoryUpdateProps) => {
             where: {
               id: json.id,
             },
+            // Strip is_active from edits: (de)activation is owned by the
+            // delete/restore routes, which run duplicate + parent-conflict
+            // checks. Letting a plain update toggle is_active would re-activate
+            // a soft-deleted category straight past those guards (e.g. two
+            // active rows with the same parent_id + name).
             data: {
-              ...removeColumnsFromObject(json, ["id"]),
+              ...removeColumnsFromObject(json, ["id", "is_active"]),
             },
           })
     );

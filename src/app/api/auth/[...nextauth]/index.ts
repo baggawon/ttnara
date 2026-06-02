@@ -130,7 +130,7 @@ export const authOptions: NextAuthOptions = {
             const hashedPassword = await bcrypt.hash(password, 10);
 
             const userSettings = await handleConnect((prisma) =>
-              prisma.user_setting.findFirst()
+              prisma.user_setting.findFirst({ orderBy: { id: "asc" } })
             );
 
             if (userSettings) {

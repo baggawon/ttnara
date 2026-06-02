@@ -16,6 +16,7 @@ export interface HomeVisibility {
 export const getHomeVisibility = cache(async (): Promise<HomeVisibility> => {
   const row = await handleConnect((prisma) =>
     prisma.general_setting.findFirst({
+      orderBy: { id: "asc" },
       select: {
         show_seo: true,
         show_price_calc: true,

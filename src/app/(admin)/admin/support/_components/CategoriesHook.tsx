@@ -7,8 +7,8 @@ import type {
 } from "@/app/api/admin_di2u3k2j/support/qna-categories/read";
 import type { CustomColumDef } from "@/components/2_molecules/Table/DataTable";
 
+import CascadeDeleteDialog from "@/components/1_atoms/CascadeDeleteDialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 
 import { postJson, refreshCache } from "@/helpers/common";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
@@ -16,7 +16,7 @@ import { adminSupportQnaCategoriesGet } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
 import { ApiRoute, QueryKey } from "@/helpers/types";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 import dayjs from "dayjs";
@@ -24,7 +24,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { forEach, getBoolean } from "@/helpers/basic";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 
 dayjs.extend(utc);
@@ -48,18 +48,7 @@ type PaginationProps = {
   search?: string;
 };
 
-const deleteCategories = async (ids: number[]) => {
-  const result = await postJson(ApiRoute.adminSupportQnaCategoriesDelete, {
-    ids,
-  });
-  if (!result.isSuccess) {
-    throw new Error("Failed to delete categories");
-  }
-  return result;
-};
-
 export const useAdminSupportQnaCategoriesHook = () => {
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(
@@ -84,24 +73,50 @@ export const useAdminSupportQnaCategoriesHook = () => {
   const isLoading = status === "pending" || categoriesData === null;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isWorking, setIsWorking] = useState(false);
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteCategories,
-    onSuccess: (data) => {
-      toast({
-        id: data?.hasMessage ?? ToastData.supportQnaCategoryDelete,
-        type: "success",
-      });
-      setSelectedIds([]);
-      refreshCache(queryClient, QueryKey.adminSupportQnaCategories);
-    },
-    onError: () => {
-      toast({
-        id: ToastData.supportQnaCategoryDeleteFailed,
-        type: "error",
-      });
-    },
-  });
+  const deactivateCategory = async (cat: CategoryRow) => {
+    if (isWorking) return;
+    setIsWorking(true);
+    try {
+      const { isSuccess, hasMessage } = await postJson(
+        ApiRoute.adminSupportQnaCategoriesUpdate,
+        {
+          id: cat.id,
+          name: cat.name,
+          display_order: cat.display_order,
+          is_active: false,
+        }
+      );
+      if (hasMessage) {
+        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
+      }
+      if (isSuccess)
+        refreshCache(queryClient, QueryKey.adminSupportQnaCategories);
+    } catch (error) {
+      toast({ id: ToastData.supportQnaCategoryUpdateFailed, type: "error" });
+    }
+    setIsWorking(false);
+  };
+
+  const deleteCategory = async (cat: CategoryRow) => {
+    if (isWorking) return;
+    setIsWorking(true);
+    try {
+      const { isSuccess, hasMessage } = await postJson(
+        ApiRoute.adminSupportQnaCategoriesDelete,
+        { ids: [cat.id] }
+      );
+      if (hasMessage) {
+        toast({ id: hasMessage, type: isSuccess ? "success" : "error" });
+      }
+      if (isSuccess)
+        refreshCache(queryClient, QueryKey.adminSupportQnaCategories);
+    } catch (error) {
+      toast({ id: ToastData.supportQnaCategoryDeleteFailed, type: "error" });
+    }
+    setIsWorking(false);
+  };
 
   const methods = useForm<AdminSupportQnaCategoriesMethods>({
     defaultValues: {
@@ -130,75 +145,12 @@ export const useAdminSupportQnaCategoriesHook = () => {
     setPagination(next);
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const allIds = categoriesData?.categories?.map((c) => c.id) ?? [];
-      setSelectedIds(allIds);
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const handleSelectItem = (id: number, checked: boolean) => {
-    if (checked) setSelectedIds((prev) => [...prev, id]);
-    else setSelectedIds((prev) => prev.filter((s) => s !== id));
-  };
-
   const handleEdit = (cat: CategoryRow) => {
     setEditingCategory(cat);
     setIsEditSheetOpen(true);
   };
 
-  const handleDelete = () => {
-    if (selectedIds.length === 0) {
-      toast({ id: ToastData.supportQnaCategoryDeleteFailed, type: "error" });
-      return;
-    }
-    const totalQnas =
-      categoriesData?.categories
-        ?.filter((c) => selectedIds.includes(c.id))
-        .reduce((acc, c) => acc + (c._count?.qnas ?? 0), 0) ?? 0;
-    const msg =
-      totalQnas > 0
-        ? `선택한 ${selectedIds.length}개 카테고리에 속한 ${totalQnas}개 QnA도 함께 삭제됩니다. 계속하시겠습니까?`
-        : `선택한 ${selectedIds.length}개의 카테고리를 삭제하시겠습니까?`;
-    if (confirm(msg)) deleteMutation.mutate(selectedIds);
-  };
-
-  const allSelected = useMemo(() => {
-    const cats = categoriesData?.categories ?? [];
-    return cats.length > 0 && cats.every((c) => selectedIds.includes(c.id));
-  }, [selectedIds, categoriesData?.categories]);
-
-  const someSelected = useMemo(
-    () => selectedIds.length > 0 && !allSelected,
-    [selectedIds.length, allSelected]
-  );
-
   const columns: CustomColumDef<CategoryRow>[] = setDefaultColumn([
-    {
-      id: "select",
-      header: () => (
-        <Checkbox
-          checked={allSelected ? true : someSelected ? "indeterminate" : false}
-          onCheckedChange={handleSelectAll}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={selectedIds.includes(row.original.id)}
-          onCheckedChange={(checked) =>
-            handleSelectItem(row.original.id, !!checked)
-          }
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-      headerClassName: "!max-w-[40px]",
-      cellClassName: "!max-w-[40px]",
-    },
     {
       accessorKey: "name",
       headerTitle: "이름",
@@ -234,19 +186,42 @@ export const useAdminSupportQnaCategoriesHook = () => {
     },
     {
       accessorKey: "control",
-      headerClassName: "!max-w-[80px]",
-      cellClassName: "!max-w-[80px]",
+      headerClassName: "!max-w-[140px]",
+      cellClassName: "!max-w-[140px]",
       headerTitle: "작업",
-      cell: ({ row }) => (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => handleEdit(row.original as CategoryRow)}
-        >
-          수정
-        </Button>
-      ),
+      cell: ({ row }) => {
+        const cat = row.original as CategoryRow;
+        const qnaCount = cat._count?.qnas ?? 0;
+        return (
+          <div className="flex justify-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => handleEdit(cat)}
+            >
+              수정
+            </Button>
+            <CascadeDeleteDialog
+              itemLabel="카테고리"
+              itemName={cat.name}
+              cascadeDescription={
+                (qnaCount > 0
+                  ? `이 카테고리를 삭제하면 소속된 ${qnaCount}개의 QnA도 함께 영구 삭제되며 복구할 수 없습니다.`
+                  : "이 카테고리를 삭제하면 복구할 수 없습니다.") +
+                "\n비활성화를 권장합니다."
+              }
+              deactivateDisabled={!cat.is_active}
+              onDeactivate={() => deactivateCategory(cat)}
+              onDelete={() => deleteCategory(cat)}
+            >
+              <Button type="button" size="sm" variant="outline">
+                삭제
+              </Button>
+            </CascadeDeleteDialog>
+          </div>
+        );
+      },
     },
   ]);
 
@@ -255,14 +230,11 @@ export const useAdminSupportQnaCategoriesHook = () => {
     methods,
     categoriesData,
     isLoading,
-    selectedIds,
     isCreateSheetOpen,
     setIsCreateSheetOpen,
     isEditSheetOpen,
     setIsEditSheetOpen,
     editingCategory,
     updatePagination,
-    handleDelete,
-    deleteMutation,
   };
 };

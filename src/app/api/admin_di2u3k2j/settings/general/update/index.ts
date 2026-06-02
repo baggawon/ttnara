@@ -53,10 +53,24 @@ export const POST = async (json: generalUpdateProps) => {
 
     const data = pickAllowed(json);
 
+    // The settings row is a singleton, but no DB constraint enforces that and a
+    // historic check-then-create race may have left duplicate rows. Always write
+    // the canonical (lowest-id) row so the write hits the same row every reader
+    // returns (all reads use `orderBy: { id: "asc" }`); otherwise an unordered
+    // findFirst() could return a different row after the update and the admin UI
+    // would appear to "revert" the saved value.
+    const canonical = await handleConnect((prisma) =>
+      prisma.general_setting.findFirst({
+        orderBy: { id: "asc" },
+        select: { id: true },
+      })
+    );
+    if (!canonical) throw ToastData.unknown;
+
     const updateResult = await handleConnect((prisma) =>
       prisma.general_setting.update({
         where: {
-          id: json.id,
+          id: canonical.id,
         },
         data,
       })

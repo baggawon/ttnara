@@ -17,7 +17,10 @@ export const POST = async (json: P2pPauseProps) => {
     await requestValidator([RequestValidator.Admin], json);
 
     const setting = await handleConnect((prisma) =>
-      prisma.general_setting.findFirst({ select: { id: true } })
+      prisma.general_setting.findFirst({
+        orderBy: { id: "asc" },
+        select: { id: true },
+      })
     );
     if (!setting) throw ToastData.unknown;
 

@@ -12,13 +12,13 @@ export const GET = async (queryParams: UserReadProps) => {
     await requestValidator([RequestValidator.Admin], queryParams);
 
     let userSettings = await handleConnect((prisma) =>
-      prisma.user_setting.findFirst()
+      prisma.user_setting.findFirst({ orderBy: { id: "asc" } })
     );
 
     if (userSettings === null) {
       await handleConnect((prisma) => prisma.user_setting.create({}));
       userSettings = await handleConnect((prisma) =>
-        prisma.user_setting.findFirst()
+        prisma.user_setting.findFirst({ orderBy: { id: "asc" } })
       );
     }
 

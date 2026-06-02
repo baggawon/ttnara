@@ -63,17 +63,28 @@ export const POST = async (json: FeaturedPostDeleteProps) => {
     if (!deleted) throw ToastData.unknown;
 
     if (attachedMedia.length > 0) {
-      const toDelete = map(
-        attachedMedia,
-        (m) => `https://${m.aws_cloud_front_url}`
-      );
-      const results = await deleteMultipleFilesFromS3(toDelete);
-      if (results.failed.length > 0) throw ToastData.unknown;
+      // Remove the polymorphic media_upload rows first so the DB is fully
+      // consistent with the now-deleted thread, then clean S3 as a best-effort
+      // last step. S3 failures are logged rather than thrown: the thread is
+      // already gone, so throwing here would report a false error AND (as the
+      // previous ordering did) skip the media_upload cleanup, leaving orphaned
+      // rows pointing at a deleted thread. Leftover S3 objects are harmless.
       await handleConnect((prisma) =>
         prisma.media_upload.deleteMany({
           where: { id: { in: attachedMedia.map((m) => m.id) } },
         })
       );
+      const toDelete = map(
+        attachedMedia,
+        (m) => `https://${m.aws_cloud_front_url}`
+      );
+      const results = await deleteMultipleFilesFromS3(toDelete);
+      if (results.failed.length > 0) {
+        console.log(
+          "featured post delete: S3 cleanup partial failure",
+          results.failed
+        );
+      }
     }
 
     await appCache.refreshCache(CacheKey.Topics);

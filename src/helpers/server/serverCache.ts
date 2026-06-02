@@ -196,60 +196,60 @@ class AppCache {
       switch (key) {
         case "generalSettings":
           let generalSettings = await handleConnect((prisma) =>
-            prisma.general_setting.findFirst()
+            prisma.general_setting.findFirst({ orderBy: { id: "asc" } })
           );
           if (generalSettings === null) {
             await handleConnect((prisma) => prisma.general_setting.create({}));
             generalSettings = await handleConnect((prisma) =>
-              prisma.general_setting.findFirst()
+              prisma.general_setting.findFirst({ orderBy: { id: "asc" } })
             );
           }
           this.cache.set("generalSettings", generalSettings);
           break;
         case "levelSettings":
           let levelSettings = await handleConnect((prisma) =>
-            prisma.level_setting.findFirst()
+            prisma.level_setting.findFirst({ orderBy: { id: "asc" } })
           );
           if (levelSettings === null) {
             await handleConnect((prisma) => prisma.level_setting.create({}));
             levelSettings = await handleConnect((prisma) =>
-              prisma.level_setting.findFirst()
+              prisma.level_setting.findFirst({ orderBy: { id: "asc" } })
             );
           }
           this.cache.set("levelSettings", levelSettings);
           break;
         case "userSettings":
           let userSettings = await handleConnect((prisma) =>
-            prisma.user_setting.findFirst()
+            prisma.user_setting.findFirst({ orderBy: { id: "asc" } })
           );
           if (userSettings === null) {
             await handleConnect((prisma) => prisma.user_setting.create({}));
             userSettings = await handleConnect((prisma) =>
-              prisma.user_setting.findFirst()
+              prisma.user_setting.findFirst({ orderBy: { id: "asc" } })
             );
           }
           this.cache.set("userSettings", userSettings);
           break;
         case "threadGeneralSettings":
           let threadGeneralSettings = await handleConnect((prisma) =>
-            prisma.thread_setting.findFirst()
+            prisma.thread_setting.findFirst({ orderBy: { id: "asc" } })
           );
           if (threadGeneralSettings === null) {
             await handleConnect((prisma) => prisma.thread_setting.create({}));
             threadGeneralSettings = await handleConnect((prisma) =>
-              prisma.thread_setting.findFirst()
+              prisma.thread_setting.findFirst({ orderBy: { id: "asc" } })
             );
           }
           this.cache.set("threadGeneralSettings", threadGeneralSettings);
           break;
         case "tetherSettings":
           let tetherSettings = await handleConnect((prisma) =>
-            prisma.tether_setting.findFirst()
+            prisma.tether_setting.findFirst({ orderBy: { id: "asc" } })
           );
           if (tetherSettings === null) {
             await handleConnect((prisma) => prisma.tether_setting.create({}));
             tetherSettings = await handleConnect((prisma) =>
-              prisma.tether_setting.findFirst()
+              prisma.tether_setting.findFirst({ orderBy: { id: "asc" } })
             );
           }
           this.cache.set("tetherSettings", tetherSettings);

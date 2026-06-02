@@ -16,7 +16,7 @@ export const POST = async (json: threadGeneralSettingsUpdateProps) => {
     if (typeof json?.id !== "number" || json?.id === 0) throw ToastData.unknown;
 
     await requestValidator([RequestValidator.Admin], json);
-    const { id, ...data } = json;
+    const { id: _ignoredId, ...data } = json;
     // The thumbnail URL is signed on read; strip the signature so an editor
     // round-trip never persists an expiring CloudFront signature.
     if (data.default_thumbnail_url) {
@@ -24,10 +24,22 @@ export const POST = async (json: threadGeneralSettingsUpdateProps) => {
         data.default_thumbnail_url
       );
     }
+    // Singleton row with no DB-enforced uniqueness: always write the canonical
+    // (lowest-id) row so the write hits the same row every reader returns (all
+    // reads use `orderBy: { id: "asc" }`), otherwise the saved value can appear
+    // to "revert" when an unordered findFirst() later returns a duplicate row.
+    const canonical = await handleConnect((prisma) =>
+      prisma.thread_setting.findFirst({
+        orderBy: { id: "asc" },
+        select: { id: true },
+      })
+    );
+    if (!canonical) throw ToastData.unknown;
+
     const updateResult = await handleConnect((prisma) =>
       prisma.thread_setting.update({
         where: {
-          id,
+          id: canonical.id,
         },
         data,
       })

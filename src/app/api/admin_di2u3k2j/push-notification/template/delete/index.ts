@@ -13,11 +13,14 @@ export const POST = async (json: PushTemplateDeleteProps) => {
   try {
     await requestValidator([RequestValidator.Admin], json);
 
-    await handleConnect((prisma) =>
+    // handleConnect swallows DB errors and returns undefined; null-check so a
+    // failed delete is reported as an error instead of a false success.
+    const deleted = await handleConnect((prisma) =>
       prisma.push_template.deleteMany({
         where: { id: { in: json.ids } },
       })
     );
+    if (!deleted) throw ToastData.pushTemplateDeleteFailed;
 
     return {
       result: true,

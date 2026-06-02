@@ -16,6 +16,33 @@ export const POST = async (json: topicCategoriesUpdateProps) => {
 
     await requestValidator([RequestValidator.Admin], json);
 
+    // Home card-type boards sync their categories from an external source, so
+    // manual create/edit is disallowed. On create the owning topic comes from
+    // the payload; on update it's resolved from the existing category so a
+    // forged topic_id can't bypass the guard.
+    const topicId =
+      json.id === 0
+        ? json.topic_id
+        : (
+            await handleConnect((prisma) =>
+              prisma.category.findUnique({
+                where: { id: json.id },
+                select: { topic_id: true },
+              })
+            )
+          )?.topic_id;
+    if (typeof topicId === "number") {
+      const topic = await handleConnect((prisma) =>
+        prisma.topic.findUnique({
+          where: { id: topicId },
+          select: { fullview_on_homepage: true },
+        })
+      );
+      if (topic?.fullview_on_homepage) {
+        throw ToastData.adminTopicCategoryHomeLocked;
+      }
+    }
+
     const updateResult = await handleConnect((prisma) =>
       json.id === 0
         ? prisma.category.create({

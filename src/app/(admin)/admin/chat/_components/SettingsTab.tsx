@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 
+import { useQueryClient } from "@tanstack/react-query";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import { adminChatSettingsGet } from "@/helpers/get";
-import { postJson } from "@/helpers/common";
+import { postJson, refreshCache } from "@/helpers/common";
 import { ApiRoute, QueryKey } from "@/helpers/types";
 import { ToastData } from "@/helpers/toastData";
 
@@ -45,6 +46,7 @@ const numberFields: Array<{
 
 export default function SettingsTab() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data } = useGetQuery<ChatSetting | null, undefined>(
     { queryKey: [QueryKey.chatSettings] },
     adminChatSettingsGet,
@@ -75,6 +77,11 @@ export default function SettingsTab() {
       id: res?.isSuccess ? ToastData.chatSettingsUpdate : ToastData.unknown,
       type: res?.isSuccess ? "success" : "error",
     });
+    // Invalidate the cached chatSettings query so other consumers / a fresh
+    // remount read the saved values instead of the pre-save cache. The current
+    // form intentionally keeps the just-saved state (it's the source of truth
+    // here), so we don't re-seed it from the refetch.
+    if (res?.isSuccess) refreshCache(queryClient, QueryKey.chatSettings);
   };
 
   return (

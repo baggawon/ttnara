@@ -137,6 +137,7 @@ export enum ToastData {
   chatSettingsUpdate = "chatSettingsUpdate",
   chatTopicSave = "chatTopicSave",
   chatTopicDelete = "chatTopicDelete",
+  adminTopicCategoryHomeLocked = "adminTopicCategoryHomeLocked",
   chatNoticeSave = "chatNoticeSave",
   chatNoticeDelete = "chatNoticeDelete",
   chatBannedWordAdd = "chatBannedWordAdd",
@@ -1193,6 +1194,12 @@ export const toastData: { [key: string]: any } = {
   },
   supportQnaCategoryDeleteFailed: {
     error: { title: "카테고리 삭제에 실패했습니다.", description: "" },
+  },
+  adminTopicCategoryHomeLocked: {
+    error: {
+      title: "메인 홈 카드형 게시판은 카테고리를 직접 수정할 수 없습니다.",
+      description: "카테고리는 외부 소스에서 자동으로 동기화됩니다.",
+    },
   },
   supportQnaCreate: {
     success: { title: "QnA가 생성되었습니다.", description: "" },

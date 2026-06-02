@@ -1,5 +1,4 @@
 import { Prisma, type profile, type user, type kyc } from "@prisma/client";
-import { forEach } from "@/helpers/basic";
 import { handleConnect } from "@/helpers/server/prisma";
 import {
   paginationManager,
@@ -38,46 +37,46 @@ async function getUsersWithPagination(
   let created_at: Prisma.SortOrder = Prisma.SortOrder.desc;
   if (queryParams?.order === "asc") created_at = Prisma.SortOrder.asc;
   const where: Prisma.userWhereInput = {};
+  // Each independent filter is its own OR-group ANDed together. Using a single
+  // shared `where.OR` (the previous approach) made the admin filter and the
+  // search clobber each other: a second `where.profile =` dropped the first,
+  // and search mutated the is_admin OR clauses in place (ANDing the term into
+  // them) instead of standing as its own constraint.
+  const and: Prisma.userWhereInput[] = [];
 
   if (typeof queryParams.is_active === "boolean")
     where.is_active = queryParams.is_active;
 
   if (queryParams.is_admin === true) {
-    if (!where.OR) where.OR = [];
-    where.OR.push({ is_superuser: true });
-    where.OR.push({ profile: { is_app_admin: true } });
+    and.push({
+      OR: [{ is_superuser: true }, { profile: { is_app_admin: true } }],
+    });
   }
   if (queryParams.is_admin === false) {
-    if (!where.OR) where.OR = [];
-    where.OR.push({ is_superuser: false });
-    where.OR.push({ profile: { is_app_admin: false } });
+    and.push({
+      OR: [{ is_superuser: false }, { profile: { is_app_admin: false } }],
+    });
   }
 
+  // Merge profile-level constraints into one relation filter instead of
+  // overwriting, so user_level and auth_level can both apply.
+  const profileFilter: Prisma.profileWhereInput = {};
   if (typeof queryParams.user_level === "number")
-    where.profile = { user_level: queryParams.user_level };
-
+    profileFilter.user_level = queryParams.user_level;
   if (typeof queryParams.auth_level === "number")
-    where.profile = { auth_level: queryParams.auth_level };
+    profileFilter.auth_level = queryParams.auth_level;
+  if (Object.keys(profileFilter).length > 0) where.profile = profileFilter;
 
   if (queryParams.search) {
-    if (!where.OR) {
-      where.OR = [];
-      where.OR.push({ username: { startsWith: queryParams.search } });
-      where.OR.push({
-        profile: { displayname: { startsWith: queryParams.search } },
-      });
-    } else {
-      forEach(where.OR, (value, index) => {
-        if (Object.keys(value).includes("is_superuser"))
-          where.OR![index].username = { startsWith: queryParams.search };
-
-        if (Object.keys(value).includes("profile"))
-          where.OR![index].profile!.displayname = {
-            startsWith: queryParams.search,
-          };
-      });
-    }
+    and.push({
+      OR: [
+        { username: { startsWith: queryParams.search } },
+        { profile: { displayname: { startsWith: queryParams.search } } },
+      ],
+    });
   }
+
+  if (and.length > 0) where.AND = and;
 
   const manager = paginationManager(queryParams);
   const { page, pageSize } = manager.getPageInfo();

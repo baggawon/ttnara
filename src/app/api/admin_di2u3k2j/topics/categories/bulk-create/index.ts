@@ -5,6 +5,7 @@ import {
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
+import { getSpecialTopic } from "@/helpers/server/specialBoard";
 
 export interface TopicCategoriesBulkCreateProps {
   topic_id: number;
@@ -27,6 +28,17 @@ export const POST = async (json: TopicCategoriesBulkCreateProps) => {
     }
 
     await requestValidator([RequestValidator.Admin], json);
+
+    // bulk-create is the sanctioned auto-create path for the externally-synced
+    // home card-type board ONLY — it's the one route allowed to write that
+    // board's categories (the per-row update/delete routes deliberately lock
+    // `fullview_on_homepage` boards out). Scope it to that single topic so it
+    // can't be pointed at arbitrary boards; regular boards manage categories
+    // one at a time through the guarded update route.
+    const special = await getSpecialTopic();
+    if (!special || json.topic_id !== special.id) {
+      throw ToastData.unknown;
+    }
 
     // Sanitize and dedupe the incoming list. Names ride the same VarChar(100)
     // limit as the underlying column.
