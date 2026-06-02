@@ -149,7 +149,9 @@ export const useAdminTopicCategoriesHook = (topic_id: number) => {
             ) : (
               <CascadeDeleteDialog
                 itemLabel="카테고리"
-                itemName={categoriesData?.categories[props.row.index].name ?? ""}
+                itemName={
+                  categoriesData?.categories[props.row.index].name ?? ""
+                }
                 cascadeDescription={
                   "이 카테고리를 삭제하면 하위 게시글, 댓글, 추천까지 모두 영구 삭제되며 복구할 수 없습니다.\n비활성화를 권장합니다."
                 }
