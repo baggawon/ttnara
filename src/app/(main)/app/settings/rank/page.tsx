@@ -68,6 +68,17 @@ export default function Page() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Trophy className="w-4 h-4" />
               <span>{displayname ? `${displayname}님 ` : ""}총 거래횟수</span>
+              {user?.current_board_rank_image && (
+                <span className="flex items-center gap-1 text-xs">
+                  <RankBadge
+                    badgeName={user.current_board_rank_image}
+                    className="!w-5 !h-5"
+                  />
+                  <span className="font-medium text-foreground">
+                    {user.current_board_rank_name ?? "게시판 등급"}
+                  </span>
+                </span>
+              )}
             </div>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-3xl sm:text-4xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300">

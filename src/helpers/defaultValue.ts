@@ -27,6 +27,7 @@ import {
   type UserForControl,
 } from "@/helpers/types";
 import type { RankCreateProps } from "@/app/api/admin_di2u3k2j/ranks/create";
+import type { BoardRankCreateProps } from "@/app/api/admin_di2u3k2j/board_ranks/create";
 
 export const userDefault = (data?: Partial<UserForControl>): UserForControl => {
   const created_at = new Date();
@@ -385,6 +386,20 @@ export const tradeRankCreateDefault = (
     name: "기본",
     rank_level: 1,
     min_trade_count: 0,
+    description: null,
+    badge_image: null,
+    is_active: true,
+    ...data,
+  };
+};
+
+export const boardRankCreateDefault = (
+  data?: Partial<BoardRankCreateProps>
+): BoardRankCreateProps => {
+  return {
+    name: "기본",
+    rank_level: 1,
+    min_point: 0,
     description: null,
     badge_image: null,
     is_active: true,

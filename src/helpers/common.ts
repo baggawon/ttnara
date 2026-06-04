@@ -1064,3 +1064,20 @@ export const getBoardPosterDisplayname = (
   if (viewerIsMod) return `관리자(${displayname})`;
   return "관리자";
 };
+
+/**
+ * Whether a board poster's identity is masked as 관리자 (moderator/admin).
+ * Board rank badges are suppressed for masked posters so a moderator's
+ * standing isn't revealed alongside the 관리자 label. Mirrors the
+ * `posterIsMod` branch of getBoardPosterDisplayname.
+ */
+export const isBoardPosterMasked = (
+  profile:
+    | { is_app_admin?: boolean | null; auth_level?: number | null }
+    | null
+    | undefined,
+  topicLevelModerator: number | null | undefined
+) => {
+  const modLevel = topicLevelModerator ?? Number.MAX_SAFE_INTEGER;
+  return !!profile?.is_app_admin || (profile?.auth_level ?? 0) >= modLevel;
+};

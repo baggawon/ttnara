@@ -213,7 +213,7 @@ export default function RankBadgesPage() {
           onClick={() => router.push(AdminAppRoute.Ranks)}
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
-          등급 관리로
+          거래 등급 관리로
         </Button>
       </div>
 

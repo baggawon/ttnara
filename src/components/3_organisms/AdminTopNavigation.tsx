@@ -51,27 +51,38 @@ interface NavMenu {
 const buildNavigationMenus = (hasFullviewTopic: boolean): NavMenu[] => [
   { title: "대시보드", href: AdminAppRoute.Dashboard },
   {
-    title: "시스템 관리",
+    title: "시스템",
     children: [
       { title: "설정", href: AdminAppRoute.General },
+      { title: "메뉴", href: AdminAppRoute.Navigation },
       { title: "사용자", href: AdminAppRoute.Users },
-      { title: "등급", href: AdminAppRoute.Ranks },
-      { title: "협력사 배너", href: AdminAppRoute.Partners, disable: false },
-      { title: "공식보증업체", href: AdminAppRoute.Guarantee, disable: false },
-      { title: "팝업", href: AdminAppRoute.Popup, disable: false },
-      { title: "푸시 알림", href: AdminAppRoute.PushNotification },
-      { title: "거래 시스템 제어", href: AdminAppRoute.SystemControl },
-      { title: "메뉴 관리", href: AdminAppRoute.Navigation },
       { title: "고객센터", href: AdminAppRoute.Support },
       { title: "이메일 양식", href: AdminAppRoute.EmailTemplates },
+      { title: "팝업", href: AdminAppRoute.Popup, disable: false },
+      { title: "푸시 알림", href: AdminAppRoute.PushNotification },
+    ],
+  },
+  {
+    title: "광고",
+    children: [
+      { title: "협력사 배너", href: AdminAppRoute.Partners, disable: false },
+      { title: "공식보증업체", href: AdminAppRoute.Guarantee, disable: false },
     ],
   },
   {
     title: "게시판",
     children: [
-      { title: "개별 관리", href: AdminAppRoute.Boards },
-      { title: "기본 설정", href: AdminAppRoute.GeneralBoard },
-      { title: "거래 게시판", href: AdminAppRoute.TetherBoard },
+      { title: "개별 설정", href: AdminAppRoute.Boards },
+      { title: "공통 설정", href: AdminAppRoute.GeneralBoard },
+      { title: "게시판 등급", href: AdminAppRoute.BoardRanks },
+    ],
+  },
+  {
+    title: "거래 게시판",
+    children: [
+      { title: "거래 시스템 제어", href: AdminAppRoute.SystemControl },
+      { title: "P2P거래 게시판", href: AdminAppRoute.TetherBoard },
+      { title: "거래 등급", href: AdminAppRoute.Ranks },
     ],
   },
   {
@@ -88,20 +99,6 @@ const buildNavigationMenus = (hasFullviewTopic: boolean): NavMenu[] => [
     ],
   },
   { title: "채팅", href: AdminAppRoute.Chat },
-  {
-    title: "로그",
-    disable: true,
-    children: [
-      { title: "보안", href: AdminAppRoute.Secret, disable: true },
-      { title: "접속 기록", href: AdminAppRoute.ConnectHistory, disable: true },
-      {
-        title: "관리자 기록",
-        href: AdminAppRoute.ActionHistory,
-        disable: true,
-      },
-    ],
-  },
-  { title: "개발팀 안내사항", href: AdminAppRoute.DevBoard, disable: true },
 ];
 
 export function AdminTopNavigation({

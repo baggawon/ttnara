@@ -22,8 +22,7 @@ import {
 } from "@/helpers/get";
 import { setDefaultColumn } from "@/helpers/makeComponent";
 import { ToastData } from "@/helpers/toastData";
-import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
-import { useRouter } from "next/navigation";
+import { ApiRoute, QueryKey } from "@/helpers/types";
 import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 
@@ -63,8 +62,9 @@ const deleteQnas = async (ids: number[]) => {
 };
 
 export const useAdminSupportQnaHook = () => {
-  const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingQnaId, setEditingQnaId] = useState<number | null>(null);
 
   const [pagination, setPagination] = useState<SupportQnaReadProps>({
     page: 1,
@@ -154,12 +154,16 @@ export const useAdminSupportQnaHook = () => {
   };
 
   const handleEdit = (id: number) => {
-    router.push(`${AdminAppRoute.Support}/qna/${id}`);
+    setEditingQnaId(id);
+    setSheetOpen(true);
   };
 
   const handleCreate = () => {
-    router.push(`${AdminAppRoute.Support}/qna/create`);
+    setEditingQnaId(null);
+    setSheetOpen(true);
   };
+
+  const closeSheet = () => setSheetOpen(false);
 
   const handleDelete = () => {
     if (selectedIds.length === 0) {
@@ -272,5 +276,8 @@ export const useAdminSupportQnaHook = () => {
     handleCreate,
     handleDelete,
     deleteMutation,
+    sheetOpen,
+    editingQnaId,
+    closeSheet,
   };
 };

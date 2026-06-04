@@ -5,6 +5,7 @@ import { ToastData } from "@/helpers/toastData";
 import type { UserSettings } from "@/app/api/signup/read";
 import type { level_setting } from "@prisma/client";
 import type { RanksListResponse } from "@/app/api/admin_di2u3k2j/ranks/read";
+import type { BoardRanksListResponse } from "@/app/api/admin_di2u3k2j/board_ranks/read";
 
 export const validNumber = ({
   value,
@@ -880,6 +881,28 @@ export const validateMinTradeCount = (
   const isLowerThanHigher = higherRanks.every(
     (rank) => value < rank.min_trade_count
   );
+
+  return isHigherThanLower && isLowerThanHigher;
+};
+
+export const validateMinPoint = (
+  value: number,
+  rank_level: number,
+  ranksData: BoardRanksListResponse | null
+) => {
+  if (!ranksData?.ranks) return true;
+
+  const lowerRanks = ranksData.ranks.filter(
+    (rank) => rank.rank_level < rank_level
+  );
+
+  const higherRanks = ranksData.ranks.filter(
+    (rank) => rank.rank_level > rank_level
+  );
+
+  const isHigherThanLower = lowerRanks.every((rank) => value > rank.min_point);
+
+  const isLowerThanHigher = higherRanks.every((rank) => value < rank.min_point);
 
   return isHigherThanLower && isLowerThanHigher;
 };

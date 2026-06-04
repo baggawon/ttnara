@@ -34,7 +34,15 @@ export interface CommentWithProfile extends comment {
 }
 
 export interface SimpleProfile extends Pick<user, "username"> {
-  profile: Pick<profile, "displayname" | "is_app_admin" | "auth_level"> | null;
+  profile: Pick<
+    profile,
+    | "displayname"
+    | "is_app_admin"
+    | "auth_level"
+    | "current_board_rank_level"
+    | "current_board_rank_name"
+    | "current_board_rank_image"
+  > | null;
 }
 
 export interface ThreadListResponse {
@@ -67,6 +75,9 @@ export const threadInclude = {
           displayname: true,
           is_app_admin: true,
           auth_level: true,
+          current_board_rank_level: true,
+          current_board_rank_name: true,
+          current_board_rank_image: true,
         },
       },
     },
@@ -81,6 +92,9 @@ export const threadInclude = {
               displayname: true,
               is_app_admin: true,
               auth_level: true,
+              current_board_rank_level: true,
+              current_board_rank_name: true,
+              current_board_rank_image: true,
             },
           },
         },
@@ -100,6 +114,24 @@ export const threadDetailInclude = {
       vote_type: true,
     },
   },
+};
+
+// The stored current_board_rank_image is an unsigned CloudFront URL; sign it
+// before sending so the board-rank badge renders (mirrors how tethers/read
+// signs current_rank_image). Mutates the (ephemeral) query result in place.
+const signBoardBadge = (
+  profile: { current_board_rank_image?: string | null } | null | undefined
+) => {
+  if (profile?.current_board_rank_image) {
+    profile.current_board_rank_image = signStoredCloudFrontUrl(
+      profile.current_board_rank_image
+    );
+  }
+};
+
+export const signThreadAuthorBoardBadges = (thread: any) => {
+  signBoardBadge(thread?.author?.profile);
+  for (const c of thread?.comments ?? []) signBoardBadge(c?.author?.profile);
 };
 
 async function getTopicThreadsWithPagination(
@@ -296,6 +328,9 @@ async function getTopicThreadsWithPagination(
     ...t,
     images: [] as { aws_cloud_front_url: string }[],
   }));
+
+  // Sign the board-rank badge URL on each thread + comment author profile.
+  threadsWithImages.forEach((t) => signThreadAuthorBoardBadges(t));
 
   if (use_thumbnail && threadsWithImages.length > 0) {
     const threadIds = threadsWithImages.map((t) => t.id);

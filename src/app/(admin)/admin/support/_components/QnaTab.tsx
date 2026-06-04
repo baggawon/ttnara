@@ -16,6 +16,7 @@ import {
 import { DataTable } from "@/components/2_molecules/Table/DataTable";
 
 import { useAdminSupportQnaHook } from "./QnaHook";
+import QnaSheet from "./QnaSheet";
 
 export default function QnaTab() {
   const {
@@ -29,6 +30,9 @@ export default function QnaTab() {
     handleCreate,
     handleDelete,
     deleteMutation,
+    sheetOpen,
+    editingQnaId,
+    closeSheet,
   } = useAdminSupportQnaHook();
 
   return (
@@ -148,6 +152,8 @@ export default function QnaTab() {
           )}
         </CardContent>
       </Card>
+
+      <QnaSheet isOpen={sheetOpen} onClose={closeSheet} qnaId={editingQnaId} />
     </>
   );
 }

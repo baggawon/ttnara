@@ -26,6 +26,9 @@ export interface RankSummaryResponse {
     current_rank_level: number;
     current_rank_name: string | null;
     current_rank_image: string | null;
+    current_board_rank_level: number;
+    current_board_rank_name: string | null;
+    current_board_rank_image: string | null;
     displayname: string;
   };
   periodCounts: {
@@ -89,6 +92,9 @@ export const GET = async (queryParams: any) => {
                 current_rank_level: true,
                 current_rank_name: true,
                 current_rank_image: true,
+                current_board_rank_level: true,
+                current_board_rank_name: true,
+                current_board_rank_image: true,
               },
             },
           },
@@ -115,6 +121,11 @@ export const GET = async (queryParams: any) => {
         current_rank_level: user.profile?.current_rank_level ?? 1,
         current_rank_name: user.profile?.current_rank_name ?? null,
         current_rank_image: signBadge(user.profile?.current_rank_image ?? null),
+        current_board_rank_level: user.profile?.current_board_rank_level ?? 1,
+        current_board_rank_name: user.profile?.current_board_rank_name ?? null,
+        current_board_rank_image: signBadge(
+          user.profile?.current_board_rank_image ?? null
+        ),
         displayname: user.profile?.displayname ?? "",
       },
       periodCounts: { today, week, month },

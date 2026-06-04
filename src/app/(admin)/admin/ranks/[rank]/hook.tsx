@@ -6,8 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { postFormData, postJson, refreshCache } from "@/helpers/common";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ToastData } from "@/helpers/toastData";
-import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
-import { useRouter } from "next/navigation";
+import { ApiRoute, QueryKey } from "@/helpers/types";
 import { useForm } from "react-hook-form";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import { adminRanksGet } from "@/helpers/get";
@@ -19,9 +18,10 @@ import { validateMinTradeCount } from "@/helpers/validate";
 import { useEffect, useState } from "react";
 import type { RankBadgeUploadResult } from "@/app/api/admin_di2u3k2j/rank_badges/upload";
 
-export const useAdminRanksEditHook = (rankId: number) => {
-  const router = useRouter();
-
+export const useAdminRanksEditHook = (
+  rankId: number | null,
+  onSuccess?: () => void
+) => {
   // Fetch existing ranks
   const { data: ranksData } = useGetQuery<RanksListResponse, RanksReadProps>(
     {
@@ -36,16 +36,12 @@ export const useAdminRanksEditHook = (rankId: number) => {
 
   const methods = useForm<RanksUpdateProps>();
 
-  // Set form default values when data is loaded
+  // Set form default values when data is loaded / the edited rank changes.
   useEffect(() => {
     if (currentRank) {
       methods.reset(currentRank);
     }
   }, [currentRank, methods]);
-
-  const goBack = () => {
-    router.push(AdminAppRoute.Ranks);
-  };
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -64,7 +60,7 @@ export const useAdminRanksEditHook = (rankId: number) => {
       }
       if (isSuccess) {
         refreshCache(queryClient, QueryKey.ranks);
-        goBack();
+        onSuccess?.();
       }
     },
     onError: () => {
@@ -139,7 +135,6 @@ export const useAdminRanksEditHook = (rankId: number) => {
 
   return {
     methods,
-    goBack,
     submit,
     currentRank,
     uploadBadge,

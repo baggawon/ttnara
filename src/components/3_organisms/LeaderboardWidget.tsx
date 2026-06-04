@@ -107,7 +107,21 @@ const LeaderboardTable = ({ period }: { period: string }) => {
                 prev_position={entry.prev_position}
               />
             </TableCell>
-            <TableCell className="font-medium">{entry.displayname}</TableCell>
+            <TableCell className="font-medium">
+              <span className="flex items-center gap-1.5">
+                {entry.board_rank_image && (
+                  <DisplayRank
+                    rank_level={entry.board_rank_level}
+                    rank_image={entry.board_rank_image}
+                    rank_name={
+                      entry.board_rank_name ?? `Lv.${entry.board_rank_level}`
+                    }
+                    className="w-6 h-6 shrink-0"
+                  />
+                )}
+                <span className="truncate">{entry.displayname}</span>
+              </span>
+            </TableCell>
             <TableCell className="text-center">
               <DisplayRank
                 rank_level={entry.rank_level}

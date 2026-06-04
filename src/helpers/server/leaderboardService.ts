@@ -20,6 +20,9 @@ export interface LeaderboardEntry {
   displayname: string;
   rank_level: number;
   rank_image: string | null;
+  board_rank_level: number;
+  board_rank_name: string | null;
+  board_rank_image: string | null;
   ranking_point: number;
   trade_count: number;
   trade_rate: number;
@@ -259,6 +262,9 @@ export async function fetchLeaderboardFromDB(
                 displayname: true,
                 current_rank_level: true,
                 current_rank_image: true,
+                current_board_rank_level: true,
+                current_board_rank_name: true,
+                current_board_rank_image: true,
               },
             },
           },
@@ -271,11 +277,17 @@ export async function fetchLeaderboardFromDB(
 
   return (entries as any[]).map((entry: any, index: number) => {
     const stored = entry.user?.profile?.current_rank_image ?? null;
+    const boardStored = entry.user?.profile?.current_board_rank_image ?? null;
     return {
       uid: entry.uid,
       displayname: entry.user?.profile?.displayname ?? "",
       rank_level: entry.rank_level,
       rank_image: stored ? signStoredCloudFrontUrl(stored) : null,
+      board_rank_level: entry.user?.profile?.current_board_rank_level ?? 1,
+      board_rank_name: entry.user?.profile?.current_board_rank_name ?? null,
+      board_rank_image: boardStored
+        ? signStoredCloudFrontUrl(boardStored)
+        : null,
       ranking_point: Number(entry.ranking_point),
       trade_count: entry.trade_count,
       trade_rate: Number(entry.trade_rate),

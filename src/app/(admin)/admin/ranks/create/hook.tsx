@@ -7,8 +7,7 @@ import { postJson, refreshCache } from "@/helpers/common";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tradeRankCreateDefault } from "@/helpers/defaultValue";
 import { ToastData } from "@/helpers/toastData";
-import { AdminAppRoute, ApiRoute, QueryKey } from "@/helpers/types";
-import { useRouter } from "next/navigation";
+import { ApiRoute, QueryKey } from "@/helpers/types";
 import { useForm } from "react-hook-form";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import { adminRanksGet } from "@/helpers/get";
@@ -18,9 +17,7 @@ import type {
 } from "@/app/api/admin_di2u3k2j/ranks/read";
 import { validateMinTradeCount } from "@/helpers/validate";
 
-export const useAdminRanksCreateHook = () => {
-  const router = useRouter();
-
+export const useAdminRanksCreateHook = (onSuccess?: () => void) => {
   // Fetch existing ranks
   const { data: ranksData } = useGetQuery<RanksListResponse, RanksReadProps>(
     {
@@ -35,10 +32,6 @@ export const useAdminRanksCreateHook = () => {
     defaultValues: tradeRankCreateDefault(),
     reValidateMode: "onSubmit",
   });
-
-  const goBack = () => {
-    router.push(AdminAppRoute.Ranks);
-  };
 
   const { toast } = useToast();
 
@@ -58,7 +51,8 @@ export const useAdminRanksCreateHook = () => {
       }
       if (isSuccess) {
         refreshCache(queryClient, QueryKey.ranks);
-        goBack();
+        methods.reset(tradeRankCreateDefault());
+        onSuccess?.();
       }
     },
     onError: () => {
@@ -83,7 +77,6 @@ export const useAdminRanksCreateHook = () => {
 
   return {
     methods,
-    goBack,
     submit,
     isSubmitting: submitMutation.isPending,
   };

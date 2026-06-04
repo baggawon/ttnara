@@ -89,7 +89,6 @@ export enum ToastData {
   rankDelete = "rankDelete",
   rankMinTradeCount = "rankMinTradeCount",
   rankBatchCreate = "rankBatchCreate",
-  rankBatchEdit = "rankBatchEdit",
   rankNotFound = "rankNotFound",
   rankBadgeUpload = "rankBadgeUpload",
   rankBadgeDelete = "rankBadgeDelete",
@@ -821,16 +820,6 @@ export const toastData: { [key: string]: any } = {
     error: {
       title: "등급 자동 생성에 실패하였습니다.",
       description: "다시 시도해주세요.",
-    },
-  },
-  rankBatchEdit: {
-    success: {
-      title: "등급가 일괄 수정되었습니다.",
-      description: "",
-    },
-    error: {
-      title: "등급 일괄 수정에 실패하였습니다.",
-      description: "",
     },
   },
   rankBadgeUpload: {

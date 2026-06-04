@@ -6,7 +6,8 @@ import { Input } from "@/components/2_molecules/Input/FormInput";
 import SelectInput from "@/components/2_molecules/Input/Select";
 import { Button } from "@/components/ui/button";
 import { DataTableSSR } from "@/components/2_molecules/Table/DataTableSSR";
-import RanksBatchEditForm from "./form";
+import RankCreateSheet from "./RankCreateSheet";
+import RankEditSheet from "./RankEditSheet";
 import { RankMobileList } from "./_components/RankMobileList";
 import { useRouter } from "next/navigation";
 import { AdminAppRoute } from "@/helpers/types";
@@ -19,10 +20,11 @@ export default function Ranks() {
     methods,
     ranksData,
     updatePagination,
-    newCreateRank,
     autoCreateRank,
     deleteRank,
     resetSearch,
+    editRankId,
+    setEditRankId,
   } = useAdminRanksHook();
 
   const handlePageChange = (index: number) => {
@@ -32,7 +34,7 @@ export default function Ranks() {
 
   return (
     <section className="w-full flex flex-col gap-4">
-      <h2 className="text-2xl font-bold tracking-tight">등급 관리</h2>
+      <h2 className="text-2xl font-bold tracking-tight">거래 등급 관리</h2>
       <FormProvider {...methods}>
         {/* Filters: wrap on mobile, single row on tablet+. */}
         <div className="flex flex-wrap items-end gap-2">
@@ -80,10 +82,7 @@ export default function Ranks() {
 
         {/* Action row — separate so it wraps independently on tighter screens. */}
         <div className="flex flex-wrap items-center gap-2">
-          <RanksBatchEditForm />
-          <Button type="button" onClick={newCreateRank} className="!w-fit">
-            생성
-          </Button>
+          <RankCreateSheet />
           <Button type="button" onClick={autoCreateRank} className="!w-fit">
             등급 자동 생성
           </Button>
@@ -104,6 +103,7 @@ export default function Ranks() {
           pagination={ranksData?.pagination}
           onPageChange={handlePageChange}
           onDelete={deleteRank}
+          onEdit={setEditRankId}
         />
 
         {/* Desktop: full DataTable. Hidden below lg. */}
@@ -115,6 +115,11 @@ export default function Ranks() {
             pagination={ranksData?.pagination}
           />
         </div>
+
+        <RankEditSheet
+          rankId={editRankId}
+          onClose={() => setEditRankId(null)}
+        />
       </FormProvider>
     </section>
   );

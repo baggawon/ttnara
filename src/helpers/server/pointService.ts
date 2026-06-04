@@ -5,6 +5,7 @@ import {
   PointAction,
   REFUND_WINDOW_HOURS,
 } from "@/helpers/pointSystem";
+import { updateUserBoardRank } from "@/helpers/server/boardRankEvaluator";
 
 interface AwardPointsArgs {
   uid: string;
@@ -36,6 +37,9 @@ const writePointEntry = async (args: AwardPointsArgs): Promise<boolean> => {
         data: { point: { increment: args.amount } },
         select: { point: true },
       });
+
+      // Board rank tracks current balance — re-evaluate on every change.
+      await updateUserBoardRank(tx, args.uid, profile.point);
 
       await tx.point_history.create({
         data: {
@@ -100,6 +104,7 @@ export async function applyTopicPoints(
       data: { point: { increment: args.amount } },
       select: { point: true },
     });
+    await updateUserBoardRank(tx, args.uid, profile.point);
     await tx.point_history.create({
       data: {
         uid: args.uid,
@@ -135,6 +140,7 @@ export async function applyTopicPoints(
     where: { uid: args.uid },
     select: { point: true },
   });
+  await updateUserBoardRank(tx, args.uid, profile?.point ?? 0);
   await tx.point_history.create({
     data: {
       uid: args.uid,
@@ -223,6 +229,8 @@ export async function spendPoints(args: {
           balance: 0,
         };
       }
+
+      await updateUserBoardRank(tx, args.uid, profile.point);
 
       await tx.point_history.create({
         data: {

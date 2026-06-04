@@ -1,5 +1,6 @@
 import {
   threadDetailInclude,
+  signThreadAuthorBoardBadges,
   type ThreadWithProfile,
 } from "@/app/api/threads/read";
 
@@ -128,6 +129,9 @@ async function getThread(
     if (thread.content) {
       thread.content = signCloudFrontUrlsInHtml(thread.content);
     }
+
+    // Sign the board-rank badge URL on the post author + comment authors.
+    signThreadAuthorBoardBadges(thread);
 
     return { ...thread, images: [] };
   } catch (error) {

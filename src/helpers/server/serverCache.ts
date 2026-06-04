@@ -20,6 +20,7 @@ export enum CacheKey {
   TetherCategories = "tetherCategories",
   Tether = "tether",
   TradeRanks = "tradeRanks",
+  BoardRanks = "boardRanks",
   Partners = "partners",
   Popups = "popups",
   Support = "support",

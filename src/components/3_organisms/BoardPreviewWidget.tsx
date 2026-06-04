@@ -16,6 +16,7 @@ import Link from "next/link";
 import dayjs from "dayjs";
 import { ThreadBadges } from "@/components/1_atoms/ThreadBadges";
 import { getBoardPosterDisplayname } from "@/helpers/common";
+import { BoardRankIcon } from "@/components/1_atoms/BoardRankIcon";
 import type { Session } from "next-auth";
 
 const DISPLAY_COUNT = 4;
@@ -74,6 +75,17 @@ const ThreadRow = ({
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5 min-w-0">
+          <BoardRankIcon
+            profile={{
+              current_board_rank_level: thread.current_board_rank_level,
+              current_board_rank_name: thread.current_board_rank_name,
+              current_board_rank_image: thread.current_board_rank_image,
+              is_app_admin: thread.is_app_admin,
+              auth_level: thread.auth_level,
+            }}
+            topicLevelModerator={topicLevelModerator}
+            className="w-4 h-4 shrink-0"
+          />
           <span className="text-[11px] text-muted-foreground truncate">
             {displayname}
           </span>

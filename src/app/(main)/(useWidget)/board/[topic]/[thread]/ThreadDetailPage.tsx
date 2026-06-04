@@ -2,6 +2,7 @@
 
 import type { ThreadWithProfile } from "@/app/api/threads/read";
 import { ThreadBadges } from "@/components/1_atoms/ThreadBadges";
+import { BoardRankIcon } from "@/components/1_atoms/BoardRankIcon";
 import { Button } from "@/components/ui/button";
 import {
   User,
@@ -362,6 +363,13 @@ export const ThreadDetailPage = ({
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" />
+                {!currentThread?.is_secret && (
+                  <BoardRankIcon
+                    profile={currentThread?.author?.profile}
+                    topicLevelModerator={topicSettings?.level_moderator}
+                    className="w-5 h-5 shrink-0"
+                  />
+                )}
                 <span className="font-medium text-foreground">
                   {authorName}
                 </span>
@@ -521,31 +529,44 @@ export const ThreadDetailPage = ({
                     (session as any)?.user?.displayname;
                 return (
                   <li
-                    className="group flex items-baseline gap-2 px-3 py-2 hover:bg-muted/50 transition-colors"
+                    className="group flex items-start gap-3 px-3 py-2 hover:bg-muted/50 transition-colors"
                     key={`comment*&*${comment.id}`}
                   >
-                    <span className="text-xs font-semibold text-foreground shrink-0">
-                      {commenterName}
-                    </span>
-                    {currentThread?.is_secret && (isAppAdmin || isAuthor) && (
-                      <span className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded shrink-0">
-                        {getBoardPosterDisplayname(
-                          comment.author?.profile,
-                          topicSettings?.level_moderator,
-                          session?.user
+                    {/* Fixed-width author column so every comment's content
+                        starts at the same x regardless of nickname length. */}
+                    <div className="flex flex-col gap-0.5 w-[110px] sm:w-[150px] shrink-0">
+                      <span className="flex items-center gap-1 min-w-0">
+                        {!currentThread?.is_secret && (
+                          <BoardRankIcon
+                            profile={comment.author?.profile}
+                            topicLevelModerator={topicSettings?.level_moderator}
+                            className="w-4"
+                          />
                         )}
+                        <span className="text-xs font-semibold text-foreground truncate min-w-0">
+                          {commenterName}
+                        </span>
                       </span>
-                    )}
-                    <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
-                      {dayjs(comment.created_at)
-                        .tz("Asia/Seoul")
-                        .format("MM-DD HH:mm")}
-                    </span>
+                      {currentThread?.is_secret && (isAppAdmin || isAuthor) && (
+                        <span className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded truncate">
+                          {getBoardPosterDisplayname(
+                            comment.author?.profile,
+                            topicSettings?.level_moderator,
+                            session?.user
+                          )}
+                        </span>
+                      )}
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        {dayjs(comment.created_at)
+                          .tz("Asia/Seoul")
+                          .format("MM-DD HH:mm")}
+                      </span>
+                    </div>
                     <div
                       dangerouslySetInnerHTML={{
                         __html: comment.content ?? "",
                       }}
-                      className="text-sm flex-1 min-w-0 break-words [&>p]:m-0 [&_*]:inline"
+                      className="text-sm flex-1 min-w-0 break-words [&>p]:m-0 pt-0.5"
                     />
                     {canDelete && (
                       <ConfirmDialog

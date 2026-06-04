@@ -393,6 +393,32 @@ export const adminRankBadgesGet = async (
   return null;
 };
 
+export const adminBoardRanksGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminBoardRanksRead, {
+    query,
+  });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const adminBoardRankBadgesGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminBoardRankBadgesList, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
 export const threadGet = async (
   router: AppRouterInstance,
   queryClient: QueryClient,

@@ -69,6 +69,7 @@ export const useAdminRanksHook = () => {
   };
 
   const router = useRouter();
+  const [editRankId, setEditRankId] = useState<number | null>(null);
 
   const columns: CustomColumDef<trade_rank>[] = setDefaultColumn([
     {
@@ -90,6 +91,18 @@ export const useAdminRanksHook = () => {
     {
       accessorKey: "badge_image",
       headerTitle: "배지 이미지",
+      cell: (props) => {
+        const url = props.getValue() as string | null;
+        if (!url) return <span className="text-muted-foreground">-</span>;
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt="badge"
+            className="w-8 h-8 rounded object-contain"
+          />
+        );
+      },
     },
     {
       accessorKey: "is_active",
@@ -135,9 +148,7 @@ export const useAdminRanksHook = () => {
               type="button"
               className="!p-2 !h-fit"
               onClick={() =>
-                router.push(
-                  `${AdminAppRoute.Ranks}/${ranksData?.ranks[props.row.index].id}`
-                )
+                setEditRankId(ranksData?.ranks[props.row.index].id ?? null)
               }
             >
               수정
@@ -196,10 +207,6 @@ export const useAdminRanksHook = () => {
     setIsWorking(false);
   };
 
-  const newCreateRank = () => {
-    router.push(`${AdminAppRoute.Ranks}/create`);
-  };
-
   const autoCreateRank = () => {
     router.push(`${AdminAppRoute.Ranks}/auto`);
   };
@@ -221,97 +228,10 @@ export const useAdminRanksHook = () => {
     methods,
     updatePagination,
     ranksData,
-    newCreateRank,
     autoCreateRank,
     deleteRank,
     resetSearch,
-  };
-};
-
-interface RanksBatchEditForm {
-  rangeStart: number;
-  rangeEnd: number;
-  name?: string;
-  badgeImageUrl?: string;
-  description?: string;
-}
-
-interface RanksBatchEditRequest {
-  rangeStart: number;
-  rangeEnd: number;
-  updates: {
-    name?: string;
-    badge_image?: string;
-    description?: string;
-  };
-}
-
-export const useAdminRanksBatchEditHook = (onSuccess?: () => void) => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const methods = useForm<RanksBatchEditForm>({
-    defaultValues: {
-      rangeStart: 1,
-      rangeEnd: 2,
-      name: "",
-      badgeImageUrl: "",
-      description: "",
-    },
-  });
-
-  const onSubmit = async (data: RanksBatchEditForm) => {
-    if (data.rangeStart > data.rangeEnd) {
-      toast({
-        id: ToastData.unknown,
-        type: "error",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const request: RanksBatchEditRequest = {
-        rangeStart: data.rangeStart,
-        rangeEnd: data.rangeEnd,
-        updates: {
-          name: data.name || undefined,
-          badge_image: data.badgeImageUrl || undefined,
-          description: data.description || undefined,
-        },
-      };
-
-      const { isSuccess, hasMessage } = await postJson(
-        ApiRoute.adminRanksBatchEdit,
-        request
-      );
-
-      if (hasMessage) {
-        toast({
-          id: hasMessage,
-          type: isSuccess ? "success" : "error",
-        });
-      }
-
-      if (isSuccess) {
-        refreshCache(queryClient, QueryKey.ranks);
-        onSuccess?.();
-      }
-    } catch (error) {
-      toast({
-        id: ToastData.rankBatchEdit,
-        type: "error",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return {
-    methods,
-    onSubmit,
-    isLoading,
+    editRankId,
+    setEditRankId,
   };
 };

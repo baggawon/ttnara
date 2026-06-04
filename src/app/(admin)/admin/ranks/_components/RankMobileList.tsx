@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -10,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import ConfirmDialog from "@/components/1_atoms/ConfirmDialog";
-import { AdminAppRoute, type PaginationInfo } from "@/helpers/types";
+import type { PaginationInfo } from "@/helpers/types";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -20,6 +19,7 @@ interface Props {
   pagination?: PaginationInfo;
   onPageChange: (index: number) => void;
   onDelete: (index: number) => void;
+  onEdit: (id: number) => void;
 }
 
 export function RankMobileList({
@@ -27,8 +27,8 @@ export function RankMobileList({
   pagination,
   onPageChange,
   onDelete,
+  onEdit,
 }: Props) {
-  const router = useRouter();
   const list = ranks ?? [];
 
   return (
@@ -87,7 +87,7 @@ export function RankMobileList({
                 type="button"
                 size="sm"
                 className="flex-1"
-                onClick={() => router.push(`${AdminAppRoute.Ranks}/${rank.id}`)}
+                onClick={() => onEdit(rank.id)}
               >
                 수정
               </Button>

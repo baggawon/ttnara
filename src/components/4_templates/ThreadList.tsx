@@ -28,6 +28,7 @@ import {
   getColumnHeaderTitle,
   getBoardPosterDisplayname,
 } from "@/helpers/common";
+import { BoardRankIcon } from "@/components/1_atoms/BoardRankIcon";
 import {
   ToggleGroupInput,
   ToggleGroupItem,
@@ -234,17 +235,28 @@ export const ThreadList = ({
     {
       accessorKey: "displayname",
       headerTitle: "글쓴이",
-      headerClassName: "hidden lg:table-cell w-[100px]",
-      cellClassName: "hidden lg:table-cell w-[100px]",
+      headerClassName: "hidden lg:table-cell w-[160px]",
+      cellClassName: "hidden lg:table-cell w-[160px]",
       header: ({ column }) => getColumnHeaderTitle(column),
       cell: (props) =>
-        props.row.original.is_secret
-          ? "익명"
-          : getBoardPosterDisplayname(
-              props.row.original.author?.profile,
-              topicSettings?.level_moderator,
-              session?.user
-            ),
+        props.row.original.is_secret ? (
+          "익명"
+        ) : (
+          <span className="flex items-center gap-1 min-w-0">
+            <BoardRankIcon
+              profile={props.row.original.author?.profile}
+              topicLevelModerator={topicSettings?.level_moderator}
+              className="w-5"
+            />
+            <span className="truncate min-w-0">
+              {getBoardPosterDisplayname(
+                props.row.original.author?.profile,
+                topicSettings?.level_moderator,
+                session?.user
+              )}
+            </span>
+          </span>
+        ),
     },
     {
       accessorKey: "created_at",

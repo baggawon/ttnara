@@ -1,47 +1,47 @@
 "use client";
 
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { useAdminRanksEditHook } from "./hook";
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useAdminBoardRanksEditHook } from "@/app/(admin)/admin/board-ranks/[rank]/hook";
 import { FormProvider } from "react-hook-form";
 import {
   FormBuilder,
   FormInput,
+  InputType,
 } from "@/components/2_molecules/Input/FormInput";
+import { FormTextarea } from "@/components/2_molecules/Input/FormTextarea";
+import { SwitchInput } from "@/components/2_molecules/Input/SwitchInput";
 import { Button } from "@/components/ui/button";
 import Form from "@/components/1_atoms/Form";
-import { SwitchInput } from "@/components/2_molecules/Input/SwitchInput";
-import { FormTextarea } from "@/components/2_molecules/Input/FormTextarea";
-import { InputType } from "@/components/2_molecules/Input/FormInput";
 import { validateNumber, validateRankName } from "@/helpers/validate";
-import { use, useRef } from "react";
+import { useRef } from "react";
 import Image from "next/image";
-import { ImagePlus, Upload, X } from "lucide-react";
 import Link from "next/link";
+import { ImagePlus, Upload, X } from "lucide-react";
 import { AdminAppRoute } from "@/helpers/types";
 import ConfirmDialog from "@/components/1_atoms/ConfirmDialog";
 
-export default function RanksEditPage({
-  params,
+export default function BoardRankEditSheet({
+  rankId,
+  onClose,
 }: {
-  params: Promise<{ rank: string }>;
+  rankId: number | null;
+  onClose: () => void;
 }) {
-  const resolvedParams = use(params);
-  const rankId = parseInt(resolvedParams.rank);
   const {
     methods,
-    goBack,
     submit,
     currentRank,
     uploadBadge,
     unsetBadge,
     isUploadingBadge,
-  } = useAdminRanksEditHook(rankId);
+    isSubmitting,
+  } = useAdminBoardRanksEditHook(rankId, onClose);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const badgeUrl = currentRank?.badge_image ?? "";
@@ -55,14 +55,20 @@ export default function RanksEditPage({
   };
 
   return (
-    <FormProvider {...methods}>
-      <Form onSubmit={submit}>
-        <section className="w-full flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>등급 수정</CardTitle>
-            </CardHeader>
-            <CardContent className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+    <Sheet open={rankId !== null} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        // Only the Cancel/X buttons may close — suppress click-outside and ESC
+        // dismissals so admins don't lose in-progress input.
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        className="overflow-y-auto"
+      >
+        <SheetHeader>
+          <SheetTitle>등급 수정</SheetTitle>
+        </SheetHeader>
+        <div className="mt-4">
+          <FormProvider {...methods}>
+            <Form onSubmit={submit} className="space-y-4">
               <FormInput name="name" label="이름" validate={validateRankName} />
               <FormInput
                 name="rank_level"
@@ -72,9 +78,9 @@ export default function RanksEditPage({
                 validate={(value) => validateNumber({ value, min: 1 })}
               />
               <FormInput
-                name="min_trade_count"
+                name="min_point"
                 type={InputType.number}
-                label="최소 거래 횟수"
+                label="최소 포인트"
                 min={0}
                 validate={(value) => validateNumber({ value, positive: true })}
               />
@@ -130,7 +136,7 @@ export default function RanksEditPage({
                 <p className="text-xs text-muted-foreground">
                   PNG / JPG / WebP / SVG, 최대 2MB.{" "}
                   <Link
-                    href={AdminAppRoute.RankBadges}
+                    href={AdminAppRoute.BoardRankBadges}
                     className="underline hover:text-foreground"
                   >
                     배지 이미지 관리
@@ -150,18 +156,20 @@ export default function RanksEditPage({
                   <SwitchInput name="is_active" />
                 </div>
               </FormBuilder>
-            </CardContent>
-            <CardFooter>
-              <div className="flex justify-between w-full gap-2">
-                <Button type="button" onClick={goBack} variant="outline">
-                  목록으로
+              <div className="flex justify-end gap-2">
+                <SheetClose asChild>
+                  <Button type="button" variant="outline">
+                    취소
+                  </Button>
+                </SheetClose>
+                <Button type="submit" disabled={isSubmitting}>
+                  저장
                 </Button>
-                <Button type="submit">저장</Button>
               </div>
-            </CardFooter>
-          </Card>
-        </section>
-      </Form>
-    </FormProvider>
+            </Form>
+          </FormProvider>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
