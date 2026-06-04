@@ -89,6 +89,9 @@ model profile {
   current_rank_level      Int      @default(1)
   current_rank_name       String?
   current_rank_image      String?
+  current_board_rank_level Int     @default(1)
+  current_board_rank_name  String?
+  current_board_rank_image String?
   created_at              DateTime @default(now())
   updated_at              DateTime @updatedAt
 
@@ -713,6 +716,35 @@ model trade_rank {
 }
 
 model rank_badge_image {
+  id                  Int      @id @default(autoincrement())
+  name                String?  @db.VarChar(100) // Optional admin label
+  aws_url             String   @db.Text
+  aws_cloud_front_url String   @db.Text
+  mime_type           String   @db.VarChar(50)
+  size_bytes          Int
+  assigned_min_rank   Int? // null = unassigned
+  assigned_max_rank   Int? // null = unassigned; equal to assigned_min_rank for single-rank assignments
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@index([assigned_min_rank, assigned_max_rank])
+}
+
+model board_rank {
+  id          Int      @id @default(autoincrement())
+  rank_level  Int      @unique // 1, 2, 3, etc.
+  name        String?  @db.VarChar(50)
+  min_point   Int // Minimum board points (profile.point) required to reach this rank
+  description String?  @db.Text
+  badge_image String? // Stored aws_cloud_front_url of the assigned board_rank_badge_image, or null
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  is_active   Boolean  @default(true)
+
+  @@index([rank_level])
+}
+
+model board_rank_badge_image {
   id                  Int      @id @default(autoincrement())
   name                String?  @db.VarChar(100) // Optional admin label
   aws_url             String   @db.Text

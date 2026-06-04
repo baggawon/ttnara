@@ -1,6 +1,7 @@
 import { handleConnect } from "@/helpers/server/prisma";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
 import { forEach } from "@/helpers/basic";
+import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
 
 export interface BoardPreviewThread {
   id: number;
@@ -12,6 +13,9 @@ export interface BoardPreviewThread {
   displayname: string;
   is_app_admin: boolean;
   auth_level: number;
+  current_board_rank_level: number;
+  current_board_rank_name: string | null;
+  current_board_rank_image: string | null;
 }
 
 export interface BoardPreviewTopic {
@@ -94,6 +98,9 @@ export const GET = async () => {
                       displayname: true,
                       is_app_admin: true,
                       auth_level: true,
+                      current_board_rank_level: true,
+                      current_board_rank_name: true,
+                      current_board_rank_image: true,
                     },
                   },
                 },
@@ -117,6 +124,16 @@ export const GET = async () => {
             displayname: t.author?.profile?.displayname ?? "",
             is_app_admin: t.author?.profile?.is_app_admin ?? false,
             auth_level: t.author?.profile?.auth_level ?? 0,
+            current_board_rank_level:
+              t.author?.profile?.current_board_rank_level ?? 1,
+            current_board_rank_name:
+              t.author?.profile?.current_board_rank_name ?? null,
+            current_board_rank_image: t.author?.profile
+              ?.current_board_rank_image
+              ? signStoredCloudFrontUrl(
+                  t.author.profile.current_board_rank_image
+                )
+              : null,
           })),
         };
       })
