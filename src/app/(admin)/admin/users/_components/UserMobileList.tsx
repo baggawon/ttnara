@@ -68,8 +68,13 @@ export function UserMobileList({ users, pagination, onPageChange }: Props) {
                   {dayjs(user.created_at).tz("Asia/Seoul").format("YYYY-MM-DD")}
                 </Row>
                 <Row k="KYC">{kycLabel(user.profile?.kyc_id)}</Row>
-                <Row k="등급">{user.profile?.current_rank_level ?? "-"}</Row>
-                <Row k="시스템레벨">{user.profile?.auth_level ?? "-"}</Row>
+                <Row k="거래 등급">
+                  {user.profile?.current_rank_level ?? "-"}
+                </Row>
+                <Row k="게시판 등급">
+                  {user.profile?.current_board_rank_level ?? "-"}
+                </Row>
+                <Row k="권한레벨">{user.profile?.auth_level ?? "-"}</Row>
                 {hasWarranty && (
                   <Row k="보증금">
                     {(

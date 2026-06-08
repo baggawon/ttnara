@@ -47,7 +47,7 @@ export default function AdminUsersListForm() {
             name="search"
             className="w-full"
             inputClassName="w-full"
-            placeholder="사용자/닉네임 검색"
+            placeholder="사용자/닉네임/이메일 검색"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 updatePagination();
@@ -58,7 +58,7 @@ export default function AdminUsersListForm() {
         <SelectInput
           name="auth_level"
           items={[
-            { value: "all", label: "시스템레벨 전체" },
+            { value: "all", label: "권한레벨 전체" },
             ...map(levelData?.max_system_level ?? 10, (index) => ({
               value: String(index + 1),
               label: String(index + 1),
@@ -67,10 +67,35 @@ export default function AdminUsersListForm() {
           buttonClassName="!w-fit"
         />
         <SelectInput
-          name="order"
+          name="sort"
           items={[
-            { value: "desc", label: "최신 가입순" },
-            { value: "asc", label: "오래된 가입순" },
+            { value: "created_desc", label: "최신 가입순" },
+            { value: "created_asc", label: "오래된 가입순" },
+            { value: "deposit_desc", label: "보증금 높은순" },
+            { value: "deposit_asc", label: "보증금 낮은순" },
+            { value: "rank_desc", label: "거래등급 높은순" },
+            { value: "rank_asc", label: "거래등급 낮은순" },
+            { value: "board_rank_desc", label: "게시판등급 높은순" },
+            { value: "board_rank_asc", label: "게시판등급 낮은순" },
+          ]}
+          buttonClassName="!w-fit"
+        />
+        <SelectInput
+          name="kyc"
+          items={[
+            { value: "all", label: "KYC 전체" },
+            { value: "verified", label: "인증완료" },
+            { value: "simulation", label: "시뮬레이션" },
+            { value: "unregistered", label: "미등록" },
+          ]}
+          buttonClassName="!w-fit"
+        />
+        <SelectInput
+          name="has_warranty"
+          items={[
+            { value: "all", label: "전체 회원" },
+            { value: "yes", label: "보증회원만" },
+            { value: "no", label: "일반회원만" },
           ]}
           buttonClassName="!w-fit"
         />
@@ -118,6 +143,8 @@ export default function AdminUsersListForm() {
                   email: user.profile?.email || "-",
                   created_at: user.created_at,
                   current_rank_level: user.profile?.current_rank_level,
+                  current_board_rank_level:
+                    user.profile?.current_board_rank_level,
                   auth_level: user.profile?.auth_level,
                   is_admin: user.profile?.is_app_admin ? "Yes" : "No",
                   is_active: user.is_active ? "Yes" : "No",
@@ -137,6 +164,24 @@ export default function AdminUsersListForm() {
           }}
           pagination={usersData?.pagination}
         />
+        <div className="flex justify-end items-center gap-2 mt-2 text-sm text-muted-foreground">
+          <span>페이지당</span>
+          <SelectInput
+            name="pageSize"
+            items={[
+              { value: "10", label: "10개" },
+              { value: "25", label: "25개" },
+              { value: "50", label: "50개" },
+              { value: "100", label: "100개" },
+            ]}
+            buttonClassName="!w-fit"
+            onChange={(value) => {
+              methods.setValue("pageSize", String(value));
+              methods.setValue("page", "1");
+              updatePagination();
+            }}
+          />
+        </div>
       </div>
     </FormProvider>
   );

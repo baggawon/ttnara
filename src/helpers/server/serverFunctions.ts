@@ -230,7 +230,10 @@ export const checkUserStatus = (user: {
   if (!user.is_active) return ToastData.inactive;
 };
 
-export const paginationManager = (queryParams: any) => {
+export const paginationManager = (
+  queryParams: any,
+  options?: { pageSize?: number }
+) => {
   const page = queryParams.page ?? 1;
   let pageSize = 10;
   let paginationSize = PAGINAGION_SIZE;
@@ -244,6 +247,12 @@ export const paginationManager = (queryParams: any) => {
     if (topics[queryParams.topic_url].thread_page_nav_size) {
       paginationSize = topics[queryParams.topic_url].thread_page_nav_size;
     }
+  }
+
+  // Explicit caller override (e.g. an admin "items per page" picker). Applied
+  // last so it wins over the default; callers are expected to validate it.
+  if (typeof options?.pageSize === "number" && options.pageSize > 0) {
+    pageSize = options.pageSize;
   }
 
   let totalCount = 0;

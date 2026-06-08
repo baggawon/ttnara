@@ -29,7 +29,9 @@ export interface AdminUsersMethods {
   pageSize: string;
   is_active: string;
   is_admin: string;
-  order: string;
+  has_warranty: string;
+  kyc: string;
+  sort: string;
   user_level: string;
   auth_level: string;
   search: string;
@@ -37,15 +39,9 @@ export interface AdminUsersMethods {
   viewUserData?: UserForAdmin;
 }
 
-type PaginationProps = {
+type PaginationProps = Omit<UsersReadProps, "page" | "pageSize"> & {
   page: number;
   pageSize: number;
-  is_active?: boolean;
-  is_admin?: boolean;
-  order?: "asc" | "desc";
-  user_level?: number;
-  auth_level?: number;
-  search?: string;
 };
 
 export const useAdminUsersListHook = () => {
@@ -87,7 +83,15 @@ export const useAdminUsersListHook = () => {
         prevProps.is_admin === "all"
           ? undefined
           : getYesOrNo(prevProps.is_admin),
-      order: prevProps.order === "asc" ? ("asc" as "asc" | "desc") : undefined,
+      has_warranty:
+        prevProps.has_warranty === "all"
+          ? undefined
+          : getYesOrNo(prevProps.has_warranty),
+      kyc:
+        prevProps.kyc === "all"
+          ? undefined
+          : (prevProps.kyc as PaginationProps["kyc"]),
+      sort: (prevProps.sort || "created_desc") as PaginationProps["sort"],
       user_level:
         prevProps.user_level === "all"
           ? undefined
@@ -105,6 +109,9 @@ export const useAdminUsersListHook = () => {
     setPagination(newProps);
   };
 
+  // Sorting/hiding are disabled per column: the table is server-paginated, so
+  // the old per-column Asc/Desc/Hide header menu was a no-op and misleading.
+  // Sorting now lives in the top "정렬" filter instead.
   const columns: CustomColumDef<UserForAdmin>[] = setDefaultColumn([
     {
       accessorKey: "username",
@@ -135,7 +142,13 @@ export const useAdminUsersListHook = () => {
       accessorKey: "current_rank_level",
       headerClassName: "!max-w-[40px]",
       cellClassName: "!max-w-[40px]",
-      headerTitle: "등급",
+      headerTitle: "거래 등급",
+    },
+    {
+      accessorKey: "current_board_rank_level",
+      headerClassName: "!max-w-[40px]",
+      cellClassName: "!max-w-[40px]",
+      headerTitle: "게시판 등급",
     },
     {
       accessorKey: "has_warranty",
@@ -153,7 +166,7 @@ export const useAdminUsersListHook = () => {
       accessorKey: "auth_level",
       headerClassName: "!max-w-[40px]",
       cellClassName: "!max-w-[40px]",
-      headerTitle: "시스템레벨",
+      headerTitle: "권한레벨",
     },
     {
       accessorKey: "is_admin",
@@ -203,6 +216,10 @@ export const useAdminUsersListHook = () => {
       },
     },
   ]);
+  forEach(columns, (column) => {
+    column.enableSorting = false;
+    column.enableHiding = false;
+  });
 
   const methods = useForm<AdminUsersMethods>({
     defaultValues: {
@@ -210,7 +227,9 @@ export const useAdminUsersListHook = () => {
       pageSize: "10",
       is_active: "all",
       is_admin: "all",
-      order: "desc",
+      has_warranty: "all",
+      kyc: "all",
+      sort: "created_desc",
       user_level: "all",
       auth_level: "all",
       search: "",

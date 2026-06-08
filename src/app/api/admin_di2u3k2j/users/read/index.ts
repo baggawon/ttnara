@@ -19,12 +19,26 @@ export interface UsersListResponse {
   pagination: PaginationInfo;
 }
 
+export type UsersSortOption =
+  | "created_desc"
+  | "created_asc"
+  | "deposit_desc"
+  | "deposit_asc"
+  | "rank_desc"
+  | "rank_asc"
+  | "board_rank_desc"
+  | "board_rank_asc";
+
+export type UsersKycFilter = "verified" | "simulation" | "unregistered";
+
 export interface UsersReadProps {
   page: number;
   pageSize: number;
   is_active?: boolean;
   is_admin?: boolean;
-  order?: "asc" | "desc";
+  has_warranty?: boolean;
+  kyc?: UsersKycFilter;
+  sort?: UsersSortOption;
   user_level?: number;
   auth_level?: number;
   search?: string;
@@ -33,9 +47,40 @@ export interface UsersReadProps {
 async function getUsersWithPagination(
   queryParams: any
 ): Promise<UsersListResponse> {
-  // 정렬 순서
-  let created_at: Prisma.SortOrder = Prisma.SortOrder.desc;
-  if (queryParams?.order === "asc") created_at = Prisma.SortOrder.asc;
+  // 정렬 기준 — single orderBy so the sort is never ambiguous. Rank/deposit
+  // sorts order by the to-one `profile` relation's scalar.
+  let orderBy: Prisma.userOrderByWithRelationInput;
+  switch (queryParams?.sort) {
+    case "created_asc":
+      orderBy = { created_at: Prisma.SortOrder.asc };
+      break;
+    case "deposit_desc":
+      orderBy = { profile: { warranty_deposit_amount: Prisma.SortOrder.desc } };
+      break;
+    case "deposit_asc":
+      orderBy = { profile: { warranty_deposit_amount: Prisma.SortOrder.asc } };
+      break;
+    case "rank_desc":
+      orderBy = { profile: { current_rank_level: Prisma.SortOrder.desc } };
+      break;
+    case "rank_asc":
+      orderBy = { profile: { current_rank_level: Prisma.SortOrder.asc } };
+      break;
+    case "board_rank_desc":
+      orderBy = {
+        profile: { current_board_rank_level: Prisma.SortOrder.desc },
+      };
+      break;
+    case "board_rank_asc":
+      orderBy = {
+        profile: { current_board_rank_level: Prisma.SortOrder.asc },
+      };
+      break;
+    case "created_desc":
+    default:
+      orderBy = { created_at: Prisma.SortOrder.desc };
+      break;
+  }
   const where: Prisma.userWhereInput = {};
   // Each independent filter is its own OR-group ANDed together. Using a single
   // shared `where.OR` (the previous approach) made the admin filter and the
@@ -59,26 +104,47 @@ async function getUsersWithPagination(
   }
 
   // Merge profile-level constraints into one relation filter instead of
-  // overwriting, so user_level and auth_level can both apply.
+  // overwriting, so user_level, auth_level and has_warranty can all apply.
   const profileFilter: Prisma.profileWhereInput = {};
   if (typeof queryParams.user_level === "number")
     profileFilter.user_level = queryParams.user_level;
   if (typeof queryParams.auth_level === "number")
     profileFilter.auth_level = queryParams.auth_level;
+  if (typeof queryParams.has_warranty === "boolean")
+    profileFilter.has_warranty = queryParams.has_warranty;
   if (Object.keys(profileFilter).length > 0) where.profile = profileFilter;
+
+  // KYC 3-state: kyc_id is null (미등록), "0" (시뮬레이션) or numeric > 0
+  // (인증완료). 인증완료 excludes both null and "0".
+  if (queryParams.kyc === "verified") {
+    and.push({ profile: { kyc_id: { not: null } } });
+    and.push({ profile: { kyc_id: { not: "0" } } });
+  }
+  if (queryParams.kyc === "simulation") and.push({ profile: { kyc_id: "0" } });
+  if (queryParams.kyc === "unregistered")
+    and.push({ profile: { kyc_id: null } });
 
   if (queryParams.search) {
     and.push({
       OR: [
         { username: { startsWith: queryParams.search } },
         { profile: { displayname: { startsWith: queryParams.search } } },
+        { profile: { email: { startsWith: queryParams.search } } },
       ],
     });
   }
 
   if (and.length > 0) where.AND = and;
 
-  const manager = paginationManager(queryParams);
+  // Whitelist the admin-selectable page sizes; fall back to 10 for anything else.
+  const ALLOWED_PAGE_SIZES = [10, 25, 50, 100];
+  const requestedPageSize = ALLOWED_PAGE_SIZES.includes(queryParams.pageSize)
+    ? queryParams.pageSize
+    : 10;
+
+  const manager = paginationManager(queryParams, {
+    pageSize: requestedPageSize,
+  });
   const { page, pageSize } = manager.getPageInfo();
 
   const result = await handleConnect((prisma) =>
@@ -88,7 +154,7 @@ async function getUsersWithPagination(
       }),
       prisma.user.findMany({
         where,
-        orderBy: { created_at },
+        orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
         omit: {
