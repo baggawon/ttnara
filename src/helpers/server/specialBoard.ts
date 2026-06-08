@@ -5,9 +5,11 @@ import type { category, thread } from "@prisma/client";
 import { handleConnect } from "@/helpers/server/prisma";
 import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
 
-// Activity ranking weights. View count is cheap to earn so it gets weight 1;
-// a comment is a much stronger signal of engagement (× 5), and a net upvote is
-// stronger still (× 3 per net vote since up/down both count toward intent).
+// Recent-activity ranking weights. We score engagement from the last
+// ACTIVITY_WINDOW_DAYS: each comment is a strong signal (× 5) and each net
+// upvote stronger still per vote (× 3, since up/down both count toward intent).
+// Views are a lifetime counter with no per-view log, so they can't be windowed
+// — they're used only as a tiebreaker when the recent-activity score ties.
 const COMMENT_WEIGHT = 5;
 const VOTE_WEIGHT = 3;
 const ACTIVITY_WINDOW_DAYS = 7;
@@ -109,13 +111,13 @@ type ThreadRow = thread & {
 
 const toCard = (
   t: ThreadRow,
-  thumbnailMap: Map<number, string>
+  thumbnailMap: Map<number, string>,
+  // Engagement from the last ACTIVITY_WINDOW_DAYS (comments + net votes); drives
+  // home-widget ranking. Passed in (computed per-thread upstream); 0 for
+  // featured cards where it's unused.
+  activity_score: number
 ): SpecialBoardCard => {
   const comment_count = t._count.comments;
-  const activity_score =
-    t.views +
-    comment_count * COMMENT_WEIGHT +
-    (t.upvotes - t.downvotes) * VOTE_WEIGHT;
   // Prefer the admin-authored `description` when set; otherwise derive from
   // content as a fallback so older posts still get a readable preview.
   const description = (t.description?.trim() || buildExcerpt(t.content)) ?? "";
@@ -211,49 +213,94 @@ export const getSpecialBoardHomeData = cache(
           take: 10,
           ...threadCardSelect,
         }),
+        // The full eligible pool — no creation-date filter, so an older post
+        // that is currently active can still rank. Ordered newest-first and
+        // capped at a generous ceiling for an admin-authored board.
         prisma.thread.findMany({
           where: {
             topic_id: topic.id,
             is_blocked: false,
             is_secret: false,
-            created_at: { gte: since },
           },
-          // Initial cap so we don't pull a year of admin posts when ranking;
-          // 200 within 7d is a comfortable ceiling for an admin-authored board.
-          take: 200,
+          orderBy: { created_at: "desc" },
+          take: 500,
           ...threadCardSelect,
         }),
       ])
     );
     if (!rows) return { topic, featured: [], today: [], byCategory: [] };
-    const [featuredRows, windowRows] = rows;
+    const [featuredRows, poolRows] = rows;
+
+    // Recent-engagement signals for ranking: comments and net votes from the
+    // last ACTIVITY_WINDOW_DAYS, both timestamped at the event level. Grouped
+    // in two queries (not per-thread) to avoid an N+1 over the pool.
+    const poolIds = poolRows.map((t: ThreadRow) => t.id);
+    const activity = poolIds.length
+      ? await handleConnect((prisma) =>
+          Promise.all([
+            prisma.comment.groupBy({
+              by: ["thread_id"],
+              where: { thread_id: { in: poolIds }, created_at: { gte: since } },
+              _count: { _all: true },
+            }),
+            prisma.thread_vote.groupBy({
+              by: ["thread_id", "vote_type"],
+              where: { thread_id: { in: poolIds }, created_at: { gte: since } },
+              _count: { _all: true },
+            }),
+          ])
+        )
+      : undefined;
+    const commentWindow = activity?.[0] ?? [];
+    const voteWindow = activity?.[1] ?? [];
+
+    const commentsIn7d = new Map<number, number>();
+    for (const row of commentWindow) {
+      commentsIn7d.set(row.thread_id, row._count._all);
+    }
+    const netVotesIn7d = new Map<number, number>();
+    for (const row of voteWindow) {
+      const delta = row.vote_type === "up" ? row._count._all : -row._count._all;
+      netVotesIn7d.set(
+        row.thread_id,
+        (netVotesIn7d.get(row.thread_id) ?? 0) + delta
+      );
+    }
+    const recentScore = (t: ThreadRow): number =>
+      (commentsIn7d.get(t.id) ?? 0) * COMMENT_WEIGHT +
+      (netVotesIn7d.get(t.id) ?? 0) * VOTE_WEIGHT;
 
     const uniqueThreads = Array.from(
       new Map(
-        [...featuredRows, ...windowRows].map((t: ThreadRow) => [t.id, t])
+        [...featuredRows, ...poolRows].map((t: ThreadRow) => [t.id, t])
       ).values()
     );
     const thumbnailMap = await resolveThumbnails(uniqueThreads);
 
     const featured = featuredRows.map((t: ThreadRow) =>
-      toCard(t, thumbnailMap)
+      toCard(t, thumbnailMap, recentScore(t))
     );
-    const windowCards = windowRows
-      .map((t: ThreadRow) => toCard(t, thumbnailMap))
-      .sort(
-        (a: SpecialBoardCard, b: SpecialBoardCard) =>
-          b.activity_score - a.activity_score
-      );
+    // Rank by recent activity, then fall back through lifetime views and
+    // finally recency, so ties — including the common all-zero-activity case —
+    // still resolve to a stable, sensible order.
+    const poolCards = poolRows
+      .map((t: ThreadRow) => toCard(t, thumbnailMap, recentScore(t)))
+      .sort((a: SpecialBoardCard, b: SpecialBoardCard) => {
+        if (b.activity_score !== a.activity_score)
+          return b.activity_score - a.activity_score;
+        if (b.views !== a.views) return b.views - a.views;
+        return b.created_at.getTime() - a.created_at.getTime();
+      });
 
-    const today = windowCards.slice(0, 3);
+    const today = poolCards.slice(0, 3);
 
     // Always emit one slot per topic category so the section keeps a stable
-    // shape on the home block — categories with no qualifying post in the
-    // window get `card: null` and render a placeholder client-side.
+    // shape on the home block — categories with no post at all get `card: null`
+    // and render a placeholder client-side.
     const byCategory: SpecialBoardHomeData["byCategory"] = [];
     const seen = new Set<number>();
     for (const cat of topic.categories) {
-      const top = windowCards.find(
+      const top = poolCards.find(
         (c: SpecialBoardCard) => c.category?.id === cat.id && !seen.has(c.id)
       );
       if (top) seen.add(top.id);

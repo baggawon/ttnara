@@ -243,7 +243,7 @@ const ThreadCard = ({
               variant="default"
               className="absolute top-2 right-2 text-[11px] bg-rose-500 hover:bg-rose-500 text-white"
             >
-              인기
+              PICK
             </Badge>
           )}
         </Link>
@@ -262,7 +262,7 @@ const ThreadCard = ({
                 variant="default"
                 className="text-[11px] bg-rose-500 hover:bg-rose-500 text-white"
               >
-                인기
+                PICK
               </Badge>
             )}
           </div>
