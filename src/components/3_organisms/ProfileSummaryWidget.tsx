@@ -96,32 +96,34 @@ export default function ProfileSummaryWidget() {
           />
         </div>
 
-        {/* Attendance entry point */}
-        <Link href={AppRoute.Attendance} className="block">
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-3 transition hover:bg-primary/10">
-            <div className="flex min-w-0 items-center gap-2">
-              <CalendarCheck className="h-5 w-5 shrink-0 text-primary" />
-              <div className="flex min-w-0 flex-col">
-                <span className="text-sm font-semibold">출석체크</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {attendance.checkedToday
-                    ? "오늘 출석 완료"
-                    : "오늘 출석 체크하기"}
+        {/* Attendance entry point — hidden when attendance is disabled in admin */}
+        {attendance.enabled && (
+          <Link href={AppRoute.Attendance} className="block">
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-3 transition hover:bg-primary/10">
+              <div className="flex min-w-0 items-center gap-2">
+                <CalendarCheck className="h-5 w-5 shrink-0 text-primary" />
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-sm font-semibold">출석체크</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {attendance.checkedToday
+                      ? "오늘 출석 완료"
+                      : "오늘 출석 체크하기"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className="rounded-md bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
+                  {attendance.checkedToday ? "완료" : "출석"}
                 </span>
+                {!attendance.checkedToday && attendance.dailyPoints > 0 && (
+                  <span className="text-xs font-bold text-primary">
+                    +{attendance.dailyPoints}P
+                  </span>
+                )}
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <span className="rounded-md bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
-                {attendance.checkedToday ? "완료" : "출석"}
-              </span>
-              {!attendance.checkedToday && attendance.dailyPoints > 0 && (
-                <span className="text-xs font-bold text-primary">
-                  +{attendance.dailyPoints}P
-                </span>
-              )}
-            </div>
-          </div>
-        </Link>
+          </Link>
+        )}
       </CardContent>
     </Card>
   );
