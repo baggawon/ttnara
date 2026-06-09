@@ -2,6 +2,7 @@
 
 import { PartnerBanners } from "@/components/1_atoms/PartnerBanners";
 import PriceWidget from "@/components/1_atoms/PriceWidget";
+import ProfileSummaryWidget from "@/components/3_organisms/ProfileSummaryWidget";
 import CalculatorWidget, {
   type CalculatorWidgetRef,
 } from "@/components/2_molecules/CalculatorWidget";
@@ -36,6 +37,7 @@ export const RightWidgets = ({
   });
   return (
     <section className="min-w-[240px] max-w-[240px] h-fit hidden flex-col xl:flex gap-3 sticky top-4 mt-4">
+      <ProfileSummaryWidget />
       {showPriceCalc && <CalculatorWidget calculatorRef={calculatorRef} />}
       {showPriceTicker && <PriceWidget calculatorRef={calculatorRef} />}
       <PartnerBanners variant="sidebar" />

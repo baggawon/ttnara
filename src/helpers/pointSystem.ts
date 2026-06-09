@@ -18,6 +18,9 @@ export enum PointAction {
   // refund (anti-farming on quick self-delete)
   thread_delete_refund = "thread_delete_refund",
   comment_delete_refund = "comment_delete_refund",
+  // earn (daily attendance)
+  daily_checkin = "daily_checkin",
+  attendance_streak_bonus = "attendance_streak_bonus",
 }
 
 export const POINT_ACTION_LABEL: Record<string, string> = {
@@ -30,6 +33,8 @@ export const POINT_ACTION_LABEL: Record<string, string> = {
   [PointAction.admin_deduct]: "관리자 차감",
   [PointAction.thread_delete_refund]: "게시글 삭제 회수",
   [PointAction.comment_delete_refund]: "댓글 삭제 회수",
+  [PointAction.daily_checkin]: "출석체크",
+  [PointAction.attendance_streak_bonus]: "출석 연속 보너스",
 };
 
 export const POINT_KIND_LABEL: Record<string, string> = {

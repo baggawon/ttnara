@@ -156,6 +156,66 @@ export async function applyTopicPoints(
   return { ok: true, balance: profile?.point ?? 0, applied: args.amount };
 }
 
+/**
+ * Award daily-attendance points inside an existing transaction so the point
+ * grant is atomic with the attendance_record insert. Writes a base
+ * `daily_checkin` history row plus a separate `attendance_streak_bonus` row
+ * when a milestone bonus applies. Returns the resulting balance.
+ */
+export async function applyAttendancePoints(
+  tx: Prisma.TransactionClient,
+  args: {
+    uid: string;
+    base_points: number;
+    bonus_points: number;
+    ref_id?: number;
+  }
+): Promise<number> {
+  const total = args.base_points + args.bonus_points;
+
+  // profile.update throws P2025 if the uid has no profile row, aborting the tx.
+  const profile = await tx.profile.update({
+    where: { uid: args.uid },
+    data: { point: { increment: total } },
+    select: { point: true },
+  });
+
+  await updateUserBoardRank(tx, args.uid, profile.point);
+
+  // balance after the base award (history rows are written in award order).
+  const balanceAfterBase = profile.point - args.bonus_points;
+
+  if (args.base_points !== 0) {
+    await tx.point_history.create({
+      data: {
+        uid: args.uid,
+        amount: args.base_points,
+        balance: balanceAfterBase,
+        kind: PointKind.earn,
+        action: PointAction.daily_checkin,
+        ref_type: "attendance",
+        ref_id: args.ref_id ?? null,
+      },
+    });
+  }
+
+  if (args.bonus_points !== 0) {
+    await tx.point_history.create({
+      data: {
+        uid: args.uid,
+        amount: args.bonus_points,
+        balance: profile.point,
+        kind: PointKind.earn,
+        action: PointAction.attendance_streak_bonus,
+        ref_type: "attendance",
+        ref_id: args.ref_id ?? null,
+      },
+    });
+  }
+
+  return profile.point;
+}
+
 export async function getBalance(uid: string): Promise<number> {
   const profile = await handleConnect((prisma) =>
     prisma.profile.findUnique({ where: { uid }, select: { point: true } })

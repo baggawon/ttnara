@@ -30,6 +30,7 @@ const TOP_SEED: Array<{
       { label: "테더뉴스", url: "/board/tether_news" },
       { label: "정보공유", url: "/board/tips" },
       { label: "익명게시판", url: "/board/anon" },
+      { label: "출석체크", url: "/attendance" },
     ],
   },
   { label: "거래신고", url: "/board/trade_report" },

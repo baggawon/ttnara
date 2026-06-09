@@ -27,6 +27,7 @@ export enum CacheKey {
   LeaderboardTotal = "leaderboardTotal",
   LeaderboardDaily = "leaderboardDaily",
   LeaderboardWeekly = "leaderboardWeekly",
+  AttendanceSetting = "attendanceSetting",
 }
 
 export interface SupportCacheLinkCard {
@@ -104,6 +105,7 @@ class AppCache {
         this.refreshCache(CacheKey.LeaderboardTotal),
         this.refreshCache(CacheKey.LeaderboardDaily),
         this.refreshCache(CacheKey.LeaderboardWeekly),
+        this.refreshCache(CacheKey.AttendanceSetting),
       ]);
 
       return true;
@@ -410,6 +412,20 @@ class AppCache {
           );
           break;
         }
+        case "attendanceSetting":
+          let attendanceSetting = await handleConnect((prisma) =>
+            prisma.attendance_setting.findFirst({ orderBy: { id: "asc" } })
+          );
+          if (attendanceSetting === null) {
+            await handleConnect((prisma) =>
+              prisma.attendance_setting.create({ data: {} })
+            );
+            attendanceSetting = await handleConnect((prisma) =>
+              prisma.attendance_setting.findFirst({ orderBy: { id: "asc" } })
+            );
+          }
+          this.cache.set("attendanceSetting", attendanceSetting);
+          break;
       }
     } catch (error) {
       console.error(`Failed to refresh cache for ${key}:`, error);

@@ -75,6 +75,7 @@ const buildNavigationMenus = (hasFullviewTopic: boolean): NavMenu[] => [
       { title: "개별 설정", href: AdminAppRoute.Boards },
       { title: "공통 설정", href: AdminAppRoute.GeneralBoard },
       { title: "게시판 등급", href: AdminAppRoute.BoardRanks },
+      { title: "출석체크", href: AdminAppRoute.Attendance },
     ],
   },
   {

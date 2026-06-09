@@ -407,6 +407,54 @@ export const adminBoardRanksGet = async (
   return null;
 };
 
+export const attendanceGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.attendanceRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const profileSummaryGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.profileSummary, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const adminAttendanceStreaksGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminAttendanceStreaksRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
+export const adminAttendanceSettingGet = async (
+  router: AppRouterInstance,
+  queryClient: QueryClient,
+  query?: any
+) => {
+  const { hasData } = await get(ApiRoute.adminAttendanceSettingRead, { query });
+
+  if (hasData) return hasData;
+
+  return null;
+};
+
 export const adminBoardRankBadgesGet = async (
   router: AppRouterInstance,
   queryClient: QueryClient,

@@ -62,6 +62,7 @@ model user {
   point_histories     point_history[]
   board_activities    board_activity[]
   push_histories_sent push_history[]      @relation("PushHistorySentBy")
+  attendance_records  attendance_record[]
 
   @@index([id, created_at(sort: Desc)])
 }
@@ -441,6 +442,44 @@ model security_setting {
 model point_setting {
   id                   Int @id @default(autoincrement())
   points_per_day_login Int @default(100)
+}
+
+model attendance_setting {
+  id           Int      @id @default(autoincrement())
+  is_enabled   Boolean  @default(true)
+  daily_points Int      @default(10)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+model attendance_streak {
+  id           Int      @id @default(autoincrement())
+  day_count    Int      @unique
+  bonus_points Int      @default(0)
+  label        String?  @db.VarChar(100)
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@index([day_count])
+}
+
+model attendance_record {
+  id              Int      @id @default(autoincrement())
+  uid             String
+  user            user     @relation(fields: [uid], references: [id], onDelete: Cascade)
+  kst_date        String   @db.VarChar(10)
+  consecutive_day Int
+  cycle_position  Int
+  base_points     Int
+  bonus_points    Int      @default(0)
+  comment         String   @db.Text
+  comment_format  String   @default("html") @db.VarChar(10)
+  created_at      DateTime @default(now())
+
+  @@unique([uid, kst_date])
+  @@index([kst_date])
+  @@index([uid, kst_date])
 }
 
 model point_history {
