@@ -30,6 +30,7 @@ const ALLOWED_FIELDS = [
   "show_seo",
   "show_price_calc",
   "show_price_ticker",
+  "show_profile_widget",
 ] as const satisfies readonly (keyof general_setting)[];
 
 const pickAllowed = (

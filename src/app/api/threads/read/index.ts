@@ -78,6 +78,11 @@ export const threadInclude = {
           current_board_rank_level: true,
           current_board_rank_name: true,
           current_board_rank_image: true,
+          // Also selected so the forum can show the *trade* rank badge when the
+          // admin sets rank_icon_source = "trade" (see signThreadAuthorBoardBadges).
+          current_rank_level: true,
+          current_rank_name: true,
+          current_rank_image: true,
         },
       },
     },
@@ -95,6 +100,9 @@ export const threadInclude = {
               current_board_rank_level: true,
               current_board_rank_name: true,
               current_board_rank_image: true,
+              current_rank_level: true,
+              current_rank_name: true,
+              current_rank_image: true,
             },
           },
         },
@@ -116,22 +124,46 @@ export const threadDetailInclude = {
   },
 };
 
-// The stored current_board_rank_image is an unsigned CloudFront URL; sign it
-// before sending so the board-rank badge renders (mirrors how tethers/read
-// signs current_rank_image). Mutates the (ephemeral) query result in place.
-const signBoardBadge = (
-  profile: { current_board_rank_image?: string | null } | null | undefined
-) => {
-  if (profile?.current_board_rank_image) {
+// Resolve the rank badge shown beside a poster's nickname. The forum renders
+// `current_board_rank_image` (see BoardRankIcon), so we rewrite that field in
+// place to reflect the admin-chosen source before signing it:
+//   - "board": leave the board-rank fields as-is (default)
+//   - "trade": overwrite the board-rank fields with the trade-rank values
+//   - "none":  blank the image so no badge renders
+// The stored CloudFront URL is unsigned; sign it on the way out (mirrors
+// tethers/read). Mutates the (ephemeral) query result in place.
+type RankIconSource = "board" | "trade" | "none";
+
+const applyAuthorRankBadge = (profile: any, source: RankIconSource) => {
+  if (!profile) return;
+  if (source === "none") {
+    profile.current_board_rank_image = null;
+    profile.current_board_rank_name = null;
+  } else if (source === "trade") {
+    profile.current_board_rank_level = profile.current_rank_level ?? null;
+    profile.current_board_rank_name = profile.current_rank_name ?? null;
+    profile.current_board_rank_image = profile.current_rank_image ?? null;
+  }
+  if (profile.current_board_rank_image) {
     profile.current_board_rank_image = signStoredCloudFrontUrl(
       profile.current_board_rank_image
     );
   }
+  // Don't leak the raw trade-rank fields to the client; the forum only reads
+  // the board-rank fields (now holding the resolved source).
+  delete profile.current_rank_level;
+  delete profile.current_rank_name;
+  delete profile.current_rank_image;
 };
 
 export const signThreadAuthorBoardBadges = (thread: any) => {
-  signBoardBadge(thread?.author?.profile);
-  for (const c of thread?.comments ?? []) signBoardBadge(c?.author?.profile);
+  const settings = appCache.getByKey(CacheKey.ThreadGeneralSettings) as
+    | { rank_icon_source?: string | null }
+    | undefined;
+  const source = (settings?.rank_icon_source as RankIconSource) ?? "board";
+  applyAuthorRankBadge(thread?.author?.profile, source);
+  for (const c of thread?.comments ?? [])
+    applyAuthorRankBadge(c?.author?.profile, source);
 };
 
 async function getTopicThreadsWithPagination(

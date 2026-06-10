@@ -119,6 +119,7 @@ export const generalDefault = (
     show_seo: false,
     show_price_calc: true,
     show_price_ticker: true,
+    show_profile_widget: true,
     general_manager_id: null,
     user_logs_delete_days: 1,
     admin_logs_delete_days: 1,
@@ -188,6 +189,7 @@ export const threadSettingDefault = (
     thread_disable_delete: 0,
     default_topic_id: null,
     default_thumbnail_url: null,
+    rank_icon_source: "board",
     ...data,
   };
 };

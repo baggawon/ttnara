@@ -331,6 +331,7 @@ model general_setting {
   show_seo                     Boolean @default(false)
   show_price_calc              Boolean @default(true)
   show_price_ticker            Boolean @default(true)
+  show_profile_widget          Boolean @default(true)
   general_manager_id           String? @unique
   user_logs_delete_days        Int     @default(0)
   admin_logs_delete_days       Int     @default(0)
@@ -428,6 +429,9 @@ model thread_setting {
   thread_disable_delete     Int     @default(1)
   default_topic_id          Int?
   default_thumbnail_url     String? @db.Text
+  // Which rank badge shows beside a poster's nickname in the forum:
+  // "board" (게시판 등급), "trade" (거래 등급), or "none" (hide icon).
+  rank_icon_source          String  @default("board") @db.VarChar(10)
 }
 
 model security_setting {
@@ -532,6 +536,9 @@ model chat_setting {
   spam_penalty_third     Int      @default(5)
   spam_penalty_last      Int      @default(30)
   chat_delete_hours      Int      @default(24)
+  // Which rank system's badge is shown beside chat names:
+  // "trade" (거래 등급), "board" (게시판 등급), or "none" (hide icon).
+  chat_rank_source       String   @default("trade") @db.VarChar(10)
   penalty_users          user[]   @relation("PenaltyUsers")
   banned_users           user[]   @relation("ChatBannedUsers")
   created_at             DateTime @default(now())

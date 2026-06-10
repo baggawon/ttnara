@@ -57,6 +57,7 @@ export const useChatSession = (enabled: boolean): ChatSessionResult => {
       spamFrequencySeconds: cfg.settings.spam_frequency_seconds,
       levelChat: cfg.settings.level_chat,
       levelModerator: cfg.settings.level_moderator,
+      rankSource: cfg.settings.rank_source,
     });
     if (
       (currentTopicId === 0 ||

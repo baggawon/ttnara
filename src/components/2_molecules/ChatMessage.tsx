@@ -37,6 +37,7 @@ const ChatMessageItemImpl = ({
   );
   const hideUser = useChatStore((s) => s.hideUser);
   const unhideUser = useChatStore((s) => s.unhideUser);
+  const rankSource = useChatStore((s) => s.chatSettings.rankSource);
 
   if (isHiddenUser) return null;
   if (message.is_hidden) return null;
@@ -53,10 +54,12 @@ const ChatMessageItemImpl = ({
 
   return (
     <div className="flex items-start gap-1.5 px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-800/50 group text-xs">
-      <RankBadge
-        badgeName={message.rank_image ?? "bronze.png"}
-        className="!w-4 !h-4 shrink-0 mt-0.5"
-      />
+      {rankSource !== "none" && (
+        <RankBadge
+          badgeName={message.rank_image ?? "bronze.png"}
+          className="!w-4 !h-4 shrink-0 mt-0.5"
+        />
+      )}
       <div className="flex-1 min-w-0 [overflow-wrap:anywhere]">
         {hasMenu ? (
           <DropdownMenu>

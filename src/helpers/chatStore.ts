@@ -118,6 +118,7 @@ interface ChatState {
     spamFrequencySeconds: number;
     levelChat: number;
     levelModerator: number;
+    rankSource: "trade" | "board" | "none";
   };
   setChatSettings: (settings: ChatState["chatSettings"]) => void;
 
@@ -250,6 +251,7 @@ export const useChatStore = create<ChatState>()(
         spamFrequencySeconds: 3,
         levelChat: 1,
         levelModerator: 5,
+        rankSource: "trade",
       },
       setChatSettings: (settings) => set({ chatSettings: settings }),
 

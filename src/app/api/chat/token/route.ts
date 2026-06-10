@@ -32,6 +32,8 @@ export const POST = async (_req: NextRequest): Promise<NextResponse> => {
             auth_level: true,
             current_rank_level: true,
             current_rank_image: true,
+            current_board_rank_level: true,
+            current_board_rank_image: true,
           },
         },
       },
@@ -42,30 +44,50 @@ export const POST = async (_req: NextRequest): Promise<NextResponse> => {
     return response.json({ result: false, message: ToastData.noAuth });
   }
 
-  // Refuse to mint a token for a banned user — saves the chat_server an
-  // immediate WS rejection round-trip.
-  const banned = await handleConnect((prisma) =>
+  // Read the chat singleton once: the banned-user check and the admin-chosen
+  // rank source (거래 등급 / 게시판 등급 / 표시 안 함) both live on it.
+  const setting = await handleConnect((prisma) =>
     prisma.chat_setting.findFirst({
-      select: { id: true },
-      where: { banned_users: { some: { id: user.id } } },
+      orderBy: { id: "asc" },
+      select: {
+        chat_rank_source: true,
+        banned_users: { where: { id: user.id }, select: { id: true } },
+      },
     })
   );
-  if (banned) {
+
+  // Refuse to mint a token for a banned user — saves the chat_server an
+  // immediate WS rejection round-trip.
+  if (setting?.banned_users.length) {
     return response.json({
       result: false,
       message: "채팅 이용이 제한되었습니다.",
     });
   }
 
+  // Pick which rank system the badge beside the name reflects. "none" sends a
+  // null image so the client renders no badge.
+  const rankSource = setting?.chat_rank_source ?? "trade";
+  const rank_level =
+    rankSource === "board"
+      ? (user.profile.current_board_rank_level ?? 1)
+      : (user.profile.current_rank_level ?? 1);
+  const rank_image =
+    rankSource === "board"
+      ? (user.profile.current_board_rank_image ?? null)
+      : rankSource === "none"
+        ? null
+        : (user.profile.current_rank_image ?? null);
+
   try {
     const { token, expiresAt } = signChatToken({
       sub: user.id,
       displayname: user.profile.displayname,
-      rank_level: user.profile.current_rank_level ?? 1,
+      rank_level,
       // Stored unsigned on purpose: the chat server persists this into
       // chat_message.rank_image and CloudFront-signs it fresh on every
       // broadcast / history send (a signature would expire if persisted).
-      rank_image: user.profile.current_rank_image ?? null,
+      rank_image,
       auth_level: user.profile.auth_level,
     });
     return response.json({

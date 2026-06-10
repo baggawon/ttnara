@@ -5,7 +5,8 @@ import { PartnerBanners } from "@/components/1_atoms/PartnerBanners";
 import { getHomeVisibility } from "@/helpers/server/homeVisibility";
 
 export default async function Layout(props: { children: ReactNode }) {
-  const { showPriceCalc, showPriceTicker } = await getHomeVisibility();
+  const { showPriceCalc, showPriceTicker, showProfileWidget } =
+    await getHomeVisibility();
   return (
     <>
       <div className="flex gap-4 w-full">
@@ -20,6 +21,7 @@ export default async function Layout(props: { children: ReactNode }) {
         <RightWidgets
           showPriceCalc={showPriceCalc}
           showPriceTicker={showPriceTicker}
+          showProfileWidget={showProfileWidget}
         />
       </div>
     </>

@@ -5,6 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,7 +33,17 @@ interface ChatSetting {
   spam_penalty_third: number;
   spam_penalty_last: number;
   chat_delete_hours: number;
+  chat_rank_source: "trade" | "board" | "none";
 }
+
+const rankSourceOptions: Array<{
+  value: ChatSetting["chat_rank_source"];
+  label: string;
+}> = [
+  { value: "trade", label: "거래 등급" },
+  { value: "board", label: "게시판 등급" },
+  { value: "none", label: "표시 안 함" },
+];
 
 const numberFields: Array<{
   key: keyof ChatSetting;
@@ -100,6 +117,31 @@ export default function SettingsTab() {
           <p className="text-xs text-muted-foreground">
             클라이언트가 WebSocket으로 접속할 주소. 비우면 채팅이
             비활성화됩니다.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">채팅 등급 아이콘</label>
+          <Select
+            value={form.chat_rank_source ?? "trade"}
+            onValueChange={(v) =>
+              update({ chat_rank_source: v as ChatSetting["chat_rank_source"] })
+            }
+          >
+            <SelectTrigger className="w-full sm:w-60">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {rankSourceOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            채팅 이름 옆에 표시할 등급 배지를 선택합니다. 변경 후 보내는
+            메시지부터 적용됩니다.
           </p>
         </div>
 

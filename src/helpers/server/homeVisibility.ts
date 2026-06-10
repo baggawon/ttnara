@@ -6,6 +6,7 @@ export interface HomeVisibility {
   showSeo: boolean;
   showPriceCalc: boolean;
   showPriceTicker: boolean;
+  showProfileWidget: boolean;
 }
 
 // Single cached read of the home-level visibility toggles on `general_setting`.
@@ -21,6 +22,7 @@ export const getHomeVisibility = cache(async (): Promise<HomeVisibility> => {
         show_seo: true,
         show_price_calc: true,
         show_price_ticker: true,
+        show_profile_widget: true,
       },
     })
   );
@@ -28,6 +30,7 @@ export const getHomeVisibility = cache(async (): Promise<HomeVisibility> => {
     showSeo: row?.show_seo ?? false,
     showPriceCalc: row?.show_price_calc ?? true,
     showPriceTicker: row?.show_price_ticker ?? true,
+    showProfileWidget: row?.show_profile_widget ?? true,
   };
 });
 

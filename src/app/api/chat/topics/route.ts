@@ -17,6 +17,7 @@ export interface ChatPublicConfig {
     spam_frequency_seconds: number;
     level_chat: number;
     level_moderator: number;
+    rank_source: "trade" | "board" | "none";
   };
 }
 
@@ -41,6 +42,7 @@ export const GET = async (_req: NextRequest): Promise<NextResponse> => {
           spam_frequency_seconds: true,
           level_chat: true,
           level_moderator: true,
+          chat_rank_source: true,
         },
       })
     ),
@@ -55,6 +57,8 @@ export const GET = async (_req: NextRequest): Promise<NextResponse> => {
       spam_frequency_seconds: setting?.spam_frequency_seconds ?? 3,
       level_chat: setting?.level_chat ?? 1,
       level_moderator: setting?.level_moderator ?? 5,
+      rank_source:
+        (setting?.chat_rank_source as "trade" | "board" | "none") ?? "trade",
     },
   };
 

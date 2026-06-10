@@ -13,11 +13,13 @@ import { useRef } from "react";
 interface RightWidgetsProps {
   showPriceCalc?: boolean;
   showPriceTicker?: boolean;
+  showProfileWidget?: boolean;
 }
 
 export const RightWidgets = ({
   showPriceCalc = true,
   showPriceTicker = true,
+  showProfileWidget = true,
 }: RightWidgetsProps = {}) => {
   const calculatorRef = useRef<CalculatorWidgetRef | null>(null);
   const pathname = usePathname();
@@ -37,7 +39,7 @@ export const RightWidgets = ({
   });
   return (
     <section className="min-w-[240px] max-w-[240px] h-fit hidden flex-col xl:flex gap-3 sticky top-4 mt-4">
-      <ProfileSummaryWidget />
+      {showProfileWidget && <ProfileSummaryWidget />}
       {showPriceCalc && <CalculatorWidget calculatorRef={calculatorRef} />}
       {showPriceTicker && <PriceWidget calculatorRef={calculatorRef} />}
       <PartnerBanners variant="sidebar" />

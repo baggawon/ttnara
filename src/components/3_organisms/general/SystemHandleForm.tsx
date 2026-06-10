@@ -60,6 +60,7 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
           show_seo: props.show_seo,
           show_price_calc: props.show_price_calc,
           show_price_ticker: props.show_price_ticker,
+          show_profile_widget: props.show_profile_widget,
         }
       );
       if (hasMessage) {
@@ -119,6 +120,14 @@ export const SystemHandleForm = ({ className }: { className?: string }) => {
             <CardDescription className="text-xs w-full">
               해제하면 우측 사이드 시세 위젯과 모바일 상단 시세 티커가 함께
               숨겨집니다.
+            </CardDescription>
+          </div>
+        </FormBuilder>
+        <FormBuilder name="show_profile_widget" label="프로필 위젯 표시">
+          <div className="w-full">
+            <SwitchInput name="show_profile_widget" />
+            <CardDescription className="text-xs w-full">
+              해제하면 우측 사이드의 프로필 위젯이 숨겨집니다.
             </CardDescription>
           </div>
         </FormBuilder>

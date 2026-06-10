@@ -210,6 +210,27 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
                   </CardDescription>
                 </div>
               </FormInput>
+              <FormBuilder
+                name="rank_icon_source"
+                label="닉네임 옆 등급 아이콘"
+              >
+                <div className="w-full flex flex-col gap-2">
+                  <SelectInput
+                    name="rank_icon_source"
+                    items={[
+                      { value: "board", label: "게시판 등급" },
+                      { value: "trade", label: "거래 등급" },
+                      { value: "none", label: "표시 안 함" },
+                    ]}
+                    buttonClassName="w-full"
+                    placeholder="선택"
+                  />
+                  <CardDescription className="text-xs w-full">
+                    게시판 목록·상세에서 닉네임 앞에 표시할 등급 배지를
+                    선택합니다.
+                  </CardDescription>
+                </div>
+              </FormBuilder>
             </CardContent>
           </Card>
           <Card className="mb-2">

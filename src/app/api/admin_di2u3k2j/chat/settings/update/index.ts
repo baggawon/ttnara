@@ -16,6 +16,7 @@ export interface ChatSettingsUpdateProps {
   spam_penalty_third?: number;
   spam_penalty_last?: number;
   chat_delete_hours?: number;
+  chat_rank_source?: "trade" | "board" | "none";
 }
 
 export const POST = async (json: ChatSettingsUpdateProps) => {
@@ -37,6 +38,7 @@ export const POST = async (json: ChatSettingsUpdateProps) => {
       spam_penalty_third: json.spam_penalty_third,
       spam_penalty_last: json.spam_penalty_last,
       chat_delete_hours: json.chat_delete_hours,
+      chat_rank_source: json.chat_rank_source,
     };
 
     const updated = existing

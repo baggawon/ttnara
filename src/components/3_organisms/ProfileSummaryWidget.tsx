@@ -96,7 +96,7 @@ export default function ProfileSummaryWidget() {
           />
         </div>
 
-        {/* Attendance entry point — hidden when attendance is disabled in admin */}
+        {/* Attendance entry point — only when attendance is enabled in admin */}
         {attendance.enabled && (
           <Link href={AppRoute.Attendance} className="block">
             <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-3 transition hover:bg-primary/10">
