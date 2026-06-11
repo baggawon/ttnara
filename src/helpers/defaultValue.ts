@@ -145,6 +145,8 @@ export const userSettingDefault = (
     default_auth_level: 1,
     default_user_level: 1,
     user_delete_days: 0,
+    show_trade_rank: true,
+    show_board_rank: true,
     ...data,
   };
 };

@@ -7,6 +7,7 @@ mod filters;
 mod helpers;
 mod pipeline;
 mod protocol;
+mod purge;
 mod registry;
 mod spam;
 mod state;
@@ -47,6 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cache = ConfigCache::new();
     cache.refresh(&db).await; // initial warm-up
     tokio::spawn(cache::run_refresher(db.clone(), cache.clone()));
+    tokio::spawn(purge::run_purge(db.clone(), cache.clone()));
 
     // Absent CloudFront env vars (local/MinIO dev) → no signer; rank-image
     // URLs pass through unsigned.

@@ -45,6 +45,12 @@ enum AdminEvent {
     Unmute {
         uid: String,
     },
+    /// Admin cleared a user's spam state (offence counter + active penalty)
+    /// without it being a mute/unmute. Lets a user the spam tracker has
+    /// throttled chat again immediately.
+    ForgiveSpam {
+        uid: String,
+    },
     Ban {
         uid: String,
     },
@@ -170,6 +176,12 @@ async fn apply_event(state: &AppState, event: AdminEvent) {
             state
                 .registry
                 .send_to_user(&uid, &ServerFrame::UserUnmuted { is_self: true });
+        }
+        AdminEvent::ForgiveSpam { uid } => {
+            // Spam throttling is enforced purely server-side in the tracker
+            // (no client mute frame is ever sent for it), so clearing the
+            // tracker is all that's needed — the user's next send is allowed.
+            state.spam.reset(&uid);
         }
         AdminEvent::Ban { uid } => {
             // Don't kick: the user stays connected (and sees the banned

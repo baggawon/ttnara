@@ -4,18 +4,34 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RankBadge } from "@/components/1_atoms/rank/RankBadge";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
-import { userGet } from "@/helpers/get";
+import { leaderboardUserGet, userGet } from "@/helpers/get";
 import { QueryKey, type UserAndSettings } from "@/helpers/types";
+import type { UserRankingResponse } from "@/app/api/leaderboard/user";
 import { useTetherEnabled } from "@/helpers/customHook/useTetherEnabled";
+import { useDisplaySettings } from "@/helpers/customHook/useDisplaySettings";
 import { isCuid } from "@paralleldrive/cuid2";
 import { ShieldCheck, ShieldAlert, Mail, MailCheck } from "lucide-react";
 import { cn } from "@/components/lib/utils";
 
 const ProfileHero = () => {
   const tetherEnabled = useTetherEnabled();
+  const { showTradeRank, showBoardRank } = useDisplaySettings();
   const { data: userData } = useGetQuery<UserAndSettings, undefined>(
     { queryKey: [QueryKey.account] },
     userGet,
+    undefined,
+    { silent: true }
+  );
+
+  const tradeRankVisible = tetherEnabled && showTradeRank;
+
+  const { data: rankingData } = useGetQuery<UserRankingResponse, undefined>(
+    {
+      queryKey: [QueryKey.leaderboardUser],
+      enabled: tradeRankVisible,
+      staleTime: 60000,
+    },
+    leaderboardUserGet,
     undefined,
     { silent: true }
   );
@@ -28,6 +44,9 @@ const ProfileHero = () => {
   const displayname = isPlaceholderName ? username : rawDisplayname;
 
   const point = profile?.point ?? 0;
+  const rankingTotal = rankingData?.total?.ranking_point ?? 0;
+  const boardRankImage = profile?.current_board_rank_image;
+  const boardRankName = profile?.current_board_rank_name;
   const kycVerified = !!profile?.kyc_id;
   const emailVerified = !!profile?.email_is_validated;
 
@@ -45,7 +64,7 @@ const ProfileHero = () => {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              {tetherEnabled && (
+              {tradeRankVisible && (
                 <Badge
                   variant="outline"
                   className="gap-1 bg-background/60 backdrop-blur"
@@ -57,13 +76,42 @@ const ProfileHero = () => {
                   <span>{profile?.current_rank_name ?? "브론즈"}</span>
                 </Badge>
               )}
-              <Badge
-                variant="outline"
-                className="gap-1 bg-background/60 backdrop-blur text-amber-700 dark:text-amber-400"
-              >
-                <span className="font-bold">P</span>
-                <span className="tabular-nums">{point.toLocaleString()}</span>
-              </Badge>
+              {tradeRankVisible && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 bg-background/60 backdrop-blur text-blue-700 dark:text-blue-400"
+                >
+                  <span className="font-bold">R</span>
+                  <span className="tabular-nums">
+                    {rankingTotal.toFixed(1)}
+                  </span>
+                </Badge>
+              )}
+              {showBoardRank && (boardRankImage || boardRankName) && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 bg-background/60 backdrop-blur"
+                >
+                  {boardRankImage && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={boardRankImage}
+                      alt={boardRankName || "board rank"}
+                      className="aspect-square w-3.5 shrink-0 object-contain"
+                    />
+                  )}
+                  {boardRankName && <span>{boardRankName}</span>}
+                </Badge>
+              )}
+              {showBoardRank && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 bg-background/60 backdrop-blur text-amber-700 dark:text-amber-400"
+                >
+                  <span className="font-bold">P</span>
+                  <span className="tabular-nums">{point.toLocaleString()}</span>
+                </Badge>
+              )}
               {tetherEnabled && (
                 <Badge
                   variant="outline"

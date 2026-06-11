@@ -51,6 +51,9 @@ export interface UserAndSettingsProfile
     | "current_rank_level"
     | "current_rank_name"
     | "current_rank_image"
+    | "current_board_rank_level"
+    | "current_board_rank_name"
+    | "current_board_rank_image"
     | "point"
   > {}
 
@@ -70,6 +73,7 @@ export enum ApiRoute {
   passwordUpdate = "/api/password/update",
   settingsRead = "/api/settings/read",
   settingsUpdate = "/api/settings/update",
+  displaySettingsRead = "/api/settings/display",
   alarmRead = "/api/alarm/read",
   alarmUpdate = "/api/alarm/update",
   pushUpdate = "/api/push/update",
@@ -218,6 +222,7 @@ export enum ApiRoute {
   adminChatBannedWordsDelete = "/api/admin_di2u3k2j/chat/banned-words/delete",
   adminChatModerationMute = "/api/admin_di2u3k2j/chat/moderation/mute",
   adminChatModerationUnmute = "/api/admin_di2u3k2j/chat/moderation/unmute",
+  adminChatModerationForgiveSpam = "/api/admin_di2u3k2j/chat/moderation/forgive-spam",
   adminChatModerationBan = "/api/admin_di2u3k2j/chat/moderation/ban",
   adminChatModerationUnban = "/api/admin_di2u3k2j/chat/moderation/unban",
   adminChatModerationHide = "/api/admin_di2u3k2j/chat/moderation/hide",
@@ -230,6 +235,7 @@ export enum ApiRoute {
   adminChatFixedMessagesUpdate = "/api/admin_di2u3k2j/chat/fixed-messages/update",
   adminChatFixedMessagesDelete = "/api/admin_di2u3k2j/chat/fixed-messages/delete",
   adminChatHistoryRead = "/api/admin_di2u3k2j/chat/history/read",
+  adminChatHistoryPurge = "/api/admin_di2u3k2j/chat/history/purge",
   adminChatTopicStats = "/api/admin_di2u3k2j/chat/topics/stats",
   chatTokenIssue = "/api/chat/token",
   chatTopicsRead = "/api/chat/topics",
@@ -270,6 +276,7 @@ export enum QueryKey {
   generalSettings = "generalSettings",
   threadSettings = "threadSettings",
   tetherSettings = "tetherSettings",
+  displaySettings = "displaySettings",
   adminTetherSettings = "adminTetherSettings",
   levelSettings = "levelSettings",
   userSettings = "userSettings",

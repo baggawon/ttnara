@@ -19,6 +19,7 @@ export type ChatAdminEvent =
   | { kind: "notices_changed" }
   | { kind: "mute"; uid: string; until: string }
   | { kind: "unmute"; uid: string }
+  | { kind: "forgive_spam"; uid: string }
   | { kind: "ban"; uid: string }
   | { kind: "unban"; uid: string }
   | { kind: "hide_message"; message_id: string; topic_id: number }

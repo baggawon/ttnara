@@ -371,12 +371,14 @@ model email_template {
 }
 
 model user_setting {
-  id                     Int @id @default(autoincrement())
-  min_displayname_length Int @default(4)
-  max_displayname_length Int @default(20)
-  default_auth_level     Int @default(1)
-  default_user_level     Int @default(1)
-  user_delete_days       Int @default(0)
+  id                     Int     @id @default(autoincrement())
+  min_displayname_length Int     @default(4)
+  max_displayname_length Int     @default(20)
+  default_auth_level     Int     @default(1)
+  default_user_level     Int     @default(1)
+  user_delete_days       Int     @default(0)
+  show_trade_rank        Boolean @default(true)
+  show_board_rank        Boolean @default(true)
 }
 
 model tether_setting {

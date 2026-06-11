@@ -19,7 +19,9 @@ export type ChatModerationAction =
   | "spam_warning"
   | "spam_penalty_1"
   | "spam_penalty_2"
-  | "spam_penalty_3";
+  | "spam_penalty_3"
+  | "forgive_spam"
+  | "history_purge";
 
 interface LogEntry {
   action: ChatModerationAction;

@@ -40,6 +40,9 @@ export const GET = async (queryParams: any) => {
               current_rank_level: true,
               current_rank_name: true,
               current_rank_image: true,
+              current_board_rank_level: true,
+              current_board_rank_name: true,
+              current_board_rank_image: true,
               point: true,
             },
           },
@@ -65,6 +68,15 @@ export const GET = async (queryParams: any) => {
         ...convertUserData.profile,
         current_rank_image: signStoredCloudFrontUrl(
           convertUserData.profile.current_rank_image
+        ),
+      };
+    }
+
+    if (convertUserData.profile?.current_board_rank_image) {
+      convertUserData.profile = {
+        ...convertUserData.profile,
+        current_board_rank_image: signStoredCloudFrontUrl(
+          convertUserData.profile.current_board_rank_image
         ),
       };
     }

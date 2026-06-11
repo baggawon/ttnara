@@ -5,7 +5,11 @@ import type { UserReadProps } from "@/app/api/admin_di2u3k2j/settings/user/read"
 import type { userUpdateProps } from "@/app/api/admin_di2u3k2j/settings/user/update";
 import clsx from "clsx";
 import Form from "@/components/1_atoms/Form";
-import { FormInput } from "@/components/2_molecules/Input/FormInput";
+import {
+  FormBuilder,
+  FormInput,
+} from "@/components/2_molecules/Input/FormInput";
+import { SwitchInput } from "@/components/2_molecules/Input/SwitchInput";
 import WithUseWatch from "@/components/2_molecules/WithUseWatch";
 import { Button } from "@/components/ui/button";
 import { CardDescription } from "@/components/ui/card";
@@ -141,6 +145,24 @@ export const UserHandleForm = ({ className }: { className?: string }) => {
             0으로 설정하면 무제한입니다.
           </CardDescription>
         </FormInput>
+        <FormBuilder name="show_trade_rank" label="거래 등급 표시">
+          <div className="w-full">
+            <SwitchInput name="show_trade_rank" />
+            <CardDescription className="text-xs w-full">
+              해제하면 마이페이지와 상단바의 거래 등급 아이콘과 랭킹 점수가
+              숨겨집니다.
+            </CardDescription>
+          </div>
+        </FormBuilder>
+        <FormBuilder name="show_board_rank" label="게시판 등급 표시">
+          <div className="w-full">
+            <SwitchInput name="show_board_rank" />
+            <CardDescription className="text-xs w-full">
+              해제하면 마이페이지와 상단바의 게시판 등급 아이콘과 포인트가
+              숨겨집니다.
+            </CardDescription>
+          </div>
+        </FormBuilder>
         <Button
           type="submit"
           className="w-fit col-span-1 sm:col-span-3"

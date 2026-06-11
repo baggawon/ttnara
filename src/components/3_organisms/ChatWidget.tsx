@@ -102,8 +102,15 @@ const ChatWidgetImpl = () => {
     currentTopicId
   );
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesResizeObserverRef = useRef<ResizeObserver | null>(null);
+  // Whether the view is pinned to the bottom. Starts true so the initial
+  // backfill lands at the bottom; flips false when the user scrolls up to read
+  // history (which suppresses auto-follow) and true again when they return.
+  const isPinnedToBottomRef = useRef(true);
+  // Topic we last auto-scrolled for. A change means "topic switch" → force a
+  // snap to the bottom even if the user had scrolled up in the previous topic.
+  const scrolledTopicRef = useRef<number | null>(null);
 
   // Mute modal
   const [muteTarget, setMuteTarget] = useState<string | null>(null);
@@ -112,16 +119,72 @@ const ChatWidgetImpl = () => {
   // Hidden-users management modal
   const [hiddenManagerOpen, setHiddenManagerOpen] = useState(false);
 
-  // Auto-scroll the messages list to the bottom on new messages. Use the
+  // Auto-scroll the messages list to the bottom on new messages. Scroll the
   // inner container's scrollTop directly — `scrollIntoView` would propagate
   // the scroll up to ancestors and yank the whole page.
   const currentMessagesLength = messages[currentTopicId]?.length;
   const currentSystemMessagesLength = systemMessages[currentTopicId]?.length;
+
+  // Track whether the user is sitting at the bottom. Once they scroll up to
+  // read history we stop auto-following until they come back down.
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    isPinnedToBottomRef.current = distanceFromBottom < 40;
+  }, []);
+
+  // Callback ref on the inner content wrapper. A ResizeObserver re-pins to the
+  // bottom whenever the content grows *after* we scroll — late web-font swaps
+  // or text reflow add a few pixels per row, which is exactly what used to
+  // leave the last message just out of view. A callback ref (re)attaches the
+  // observer as the chat area mounts/unmounts.
+  const setMessagesContentRef = useCallback((node: HTMLDivElement | null) => {
+    messagesResizeObserverRef.current?.disconnect();
+    if (!node) return;
+    const observer = new ResizeObserver(() => {
+      const container = messagesContainerRef.current;
+      if (container && isPinnedToBottomRef.current) {
+        container.scrollTop = container.scrollHeight;
+      }
+    });
+    observer.observe(node);
+    messagesResizeObserverRef.current = observer;
+  }, []);
+
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-  }, [currentMessagesLength, currentSystemMessagesLength]);
+
+    const isTopicChange = scrolledTopicRef.current !== currentTopicId;
+    scrolledTopicRef.current = currentTopicId;
+
+    // A topic switch always snaps to the bottom and re-pins; a live message
+    // only follows when the user is already pinned at the bottom.
+    if (isTopicChange) {
+      isPinnedToBottomRef.current = true;
+    } else if (!isPinnedToBottomRef.current) {
+      return;
+    }
+
+    // Defer past the next paint: scrollHeight isn't final until the browser
+    // has laid out the freshly-committed rows (font swap, text wrap). A double
+    // rAF measures the settled height, and we snap instantly so no animation
+    // races the still-growing content and lands short. The ResizeObserver
+    // above corrects any growth that lands even later.
+    let cancelled = false;
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        container.scrollTop = container.scrollHeight;
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [currentMessagesLength, currentSystemMessagesLength, currentTopicId]);
 
   const handleTopicSwitch = useCallback(
     (topicId: number) => {
@@ -333,27 +396,29 @@ const ChatWidgetImpl = () => {
             {/* Messages Area */}
             <div
               ref={messagesContainerRef}
+              onScroll={handleMessagesScroll}
               className="flex-1 overflow-y-auto overflow-x-hidden"
             >
-              {feedItems.map((item) =>
-                item.kind === "chat" ? (
-                  <ChatMessageItem
-                    key={item.data.id}
-                    message={item.data}
-                    isModerator={isModerator}
-                    currentUid={uid}
-                    onReport={handleReport}
-                    onMute={handleMuteRequest}
-                    onSetFixed={handleSetFixed}
-                  />
-                ) : (
-                  <ChatSystemMessageItem
-                    key={item.data.id}
-                    message={item.data}
-                  />
-                )
-              )}
-              <div ref={messagesEndRef} />
+              <div ref={setMessagesContentRef}>
+                {feedItems.map((item) =>
+                  item.kind === "chat" ? (
+                    <ChatMessageItem
+                      key={item.data.id}
+                      message={item.data}
+                      isModerator={isModerator}
+                      currentUid={uid}
+                      onReport={handleReport}
+                      onMute={handleMuteRequest}
+                      onSetFixed={handleSetFixed}
+                    />
+                  ) : (
+                    <ChatSystemMessageItem
+                      key={item.data.id}
+                      message={item.data}
+                    />
+                  )
+                )}
+              </div>
             </div>
 
             {/* Input Area */}

@@ -16,10 +16,10 @@ use uuid::Uuid;
 
 const SCHEMA: &str = "Platypus";
 
-/// Snapshot of `chat_setting` (single row). `level_moderator` /
-/// `chat_delete_hours` aren't read by the send path yet but are loaded so the
-/// admin event handler can pick them up without a second SELECT once we wire
-/// moderator-only features and the periodic purge.
+/// Snapshot of `chat_setting` (single row). `level_moderator` isn't read by the
+/// send path yet but is loaded so the admin event handler can pick it up without
+/// a second SELECT once we wire moderator-only features. `chat_delete_hours`
+/// drives the retention sweep in `purge::run_purge`.
 #[allow(dead_code)]
 #[derive(Debug, Clone, FromQueryResult)]
 pub struct ChatSettingsRow {
@@ -255,6 +255,24 @@ pub async fn insert_message(
         created_at: format_iso(now),
         is_hidden: None,
     })
+}
+
+/// Retention sweep: soft-deletes (hides) messages older than `hours` by setting
+/// `is_hidden = true`. The rows stay for admin history/audit but vanish from the
+/// live widget (the client drops `is_hidden` messages). Already-hidden rows are
+/// skipped so we don't churn `hidden_at`. Returns the number newly hidden.
+pub async fn soft_delete_old_messages(db: &DatabaseConnection, hours: i32) -> Result<u64, DbErr> {
+    let stmt = Statement::from_sql_and_values(
+        DatabaseBackend::Postgres,
+        &format!(
+            r#"UPDATE "{SCHEMA}"."chat_message"
+               SET "is_hidden" = true, "hidden_at" = NOW()
+               WHERE "is_hidden" = false
+                 AND "created_at" < NOW() - make_interval(hours => $1)"#
+        ),
+        [hours.into()],
+    );
+    Ok(db.execute(stmt).await?.rows_affected())
 }
 
 pub async fn latest_messages(

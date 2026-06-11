@@ -145,6 +145,8 @@ export enum ToastData {
   chatFixedMessageDelete = "chatFixedMessageDelete",
   chatModerationMute = "chatModerationMute",
   chatModerationUnmute = "chatModerationUnmute",
+  chatModerationForgiveSpam = "chatModerationForgiveSpam",
+  chatHistoryPurge = "chatHistoryPurge",
   chatModerationBan = "chatModerationBan",
   chatModerationUnban = "chatModerationUnban",
   chatModerationHide = "chatModerationHide",
@@ -1127,6 +1129,14 @@ export const toastData: { [key: string]: any } = {
   chatModerationUnmute: {
     success: { title: "뮤트가 해제되었습니다.", description: "" },
     error: { title: "뮤트 해제에 실패했습니다.", description: "" },
+  },
+  chatModerationForgiveSpam: {
+    success: { title: "도배 상태가 해제되었습니다.", description: "" },
+    error: { title: "도배 상태 해제에 실패했습니다.", description: "" },
+  },
+  chatHistoryPurge: {
+    success: { title: "오래된 메시지가 삭제되었습니다.", description: "" },
+    error: { title: "메시지 삭제에 실패했습니다.", description: "" },
   },
   chatModerationBan: {
     success: { title: "차단되었습니다.", description: "" },

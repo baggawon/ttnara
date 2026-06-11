@@ -60,6 +60,7 @@ import { NavPriceTicker } from "@/components/1_atoms/NavPriceTicker";
 import { UserStatsBadge } from "@/components/1_atoms/UserStatsBadge";
 import type { NavParentItem } from "@/helpers/server/navMenuRead";
 import { useTetherEnabled } from "@/helpers/customHook/useTetherEnabled";
+import { useDisplaySettings } from "@/helpers/customHook/useDisplaySettings";
 
 type ClientNavMenu = {
   title: string;
@@ -107,11 +108,13 @@ export function TopNavigation({
   );
 
   const tetherEnabled = useTetherEnabled();
+  const { showTradeRank, showBoardRank } = useDisplaySettings();
+  const showTradeStats = tetherEnabled && showTradeRank;
 
   const { data: rankingData } = useGetQuery<UserRankingResponse, undefined>(
     {
       queryKey: [QueryKey.leaderboardUser],
-      enabled: !!session?.user && tetherEnabled,
+      enabled: !!session?.user && showTradeStats,
       staleTime: 60000,
     },
     leaderboardUserGet,
@@ -358,13 +361,18 @@ export function TopNavigation({
               </div>
             ) : (
               <>
-                {tetherEnabled && (
+                {(showTradeStats || showBoardRank) && (
                   <UserStatsBadge
-                    rank_level={userData?.profile?.current_rank_level ?? 1}
+                    showTrade={showTradeStats}
+                    showBoard={showBoardRank}
                     rank_image={
                       userData?.profile?.current_rank_image ?? "bronze.png"
                     }
                     rank_name={userData?.profile?.current_rank_name ?? "브론즈"}
+                    board_rank_image={
+                      userData?.profile?.current_board_rank_image
+                    }
+                    board_rank_name={userData?.profile?.current_board_rank_name}
                     point={
                       userData?.profile?.point ?? session?.user?.point ?? 0
                     }
@@ -609,18 +617,23 @@ export function TopNavigation({
                         </>
                       ) : (
                         <>
-                          {tetherEnabled && (
+                          {(showTradeStats || showBoardRank) && (
                             <UserStatsBadge
                               variant="expanded"
-                              rank_level={
-                                userData?.profile?.current_rank_level ?? 1
-                              }
+                              showTrade={showTradeStats}
+                              showBoard={showBoardRank}
                               rank_image={
                                 userData?.profile?.current_rank_image ??
                                 "bronze.png"
                               }
                               rank_name={
                                 userData?.profile?.current_rank_name ?? "브론즈"
+                              }
+                              board_rank_image={
+                                userData?.profile?.current_board_rank_image
+                              }
+                              board_rank_name={
+                                userData?.profile?.current_board_rank_name
                               }
                               point={
                                 userData?.profile?.point ??
