@@ -153,4 +153,48 @@ impl SpamTracker {
     pub fn reset(&self, uid: &str) {
         self.inner.remove(uid);
     }
+
+    /// Point-in-time view of every user with live spam state — an active
+    /// penalty window and/or a remembered offence count. Mirrors the lapse
+    /// logic in `record()` (a user who hasn't sent since their memory window
+    /// expired still counts as clean) without mutating any entries.
+    pub fn snapshot(&self) -> Vec<SpamStateRow> {
+        let now = Utc::now();
+        let mut rows: Vec<SpamStateRow> = self
+            .inner
+            .iter()
+            .filter_map(|entry| {
+                let e = entry.value();
+                let remembered = e.offences > 0 && e.memory_until.is_some_and(|t| t > now);
+                let penalty_until = e.penalty_until.filter(|t| *t > now);
+                if !remembered && penalty_until.is_none() {
+                    return None;
+                }
+                Some(SpamStateRow {
+                    uid: entry.key().clone(),
+                    offences: e.offences,
+                    penalty_until,
+                    memory_until: e.memory_until,
+                })
+            })
+            .collect();
+        // Actively blocked users first, then by offence count.
+        rows.sort_by(|a, b| {
+            b.penalty_until
+                .is_some()
+                .cmp(&a.penalty_until.is_some())
+                .then(b.offences.cmp(&a.offences))
+                .then(a.uid.cmp(&b.uid))
+        });
+        rows
+    }
+}
+
+/// One user's spam state as reported to the admin panel.
+#[derive(Clone, Debug)]
+pub struct SpamStateRow {
+    pub uid: String,
+    pub offences: u32,
+    pub penalty_until: Option<DateTime<Utc>>,
+    pub memory_until: Option<DateTime<Utc>>,
 }

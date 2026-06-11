@@ -78,36 +78,10 @@ pub async fn admin_handler(
     State(state): State<AppState>,
     req: Request<Body>,
 ) -> impl IntoResponse {
-    let secret = match env::var("CHAT_INTERNAL_SECRET") {
-        Ok(s) if !s.is_empty() => s,
-        _ => {
-            warn!("CHAT_INTERNAL_SECRET unset; rejecting admin event");
-            return StatusCode::SERVICE_UNAVAILABLE.into_response();
-        }
-    };
-
-    let (parts, body) = req.into_parts();
-
-    let sig_hex = parts
-        .headers
-        .get(SIG_HEADER)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
-    let ts_str = parts
-        .headers
-        .get(TS_HEADER)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
-
-    let bytes = match to_bytes(body, MAX_BODY_BYTES).await {
+    let bytes = match authenticate(req).await {
         Ok(b) => b,
-        Err(_) => return StatusCode::PAYLOAD_TOO_LARGE.into_response(),
+        Err(status) => return status.into_response(),
     };
-
-    if !verify_signature(&secret, ts_str, &bytes, sig_hex) {
-        debug!("admin event signature rejected");
-        return StatusCode::UNAUTHORIZED.into_response();
-    }
 
     let event: AdminEvent = match serde_json::from_slice(&bytes) {
         Ok(e) => e,
@@ -119,6 +93,72 @@ pub async fn admin_handler(
 
     apply_event(&state, event).await;
     StatusCode::NO_CONTENT.into_response()
+}
+
+/// `GET /internal/spam-state` — dumps the SpamTracker for the admin panel's
+/// 스팸 유저 tab. Same HMAC scheme as `/internal/event`, signed over the
+/// (empty) request body.
+pub async fn spam_state_handler(
+    State(state): State<AppState>,
+    req: Request<Body>,
+) -> impl IntoResponse {
+    if let Err(status) = authenticate(req).await {
+        return status.into_response();
+    }
+
+    let users: Vec<serde_json::Value> = state
+        .spam
+        .snapshot()
+        .into_iter()
+        .map(|row| {
+            serde_json::json!({
+                "uid": row.uid,
+                "offences": row.offences,
+                "penalty_until": row.penalty_until.map(|t| t.to_rfc3339()),
+                "memory_until": row.memory_until.map(|t| t.to_rfc3339()),
+            })
+        })
+        .collect();
+
+    axum::Json(serde_json::json!({ "users": users })).into_response()
+}
+
+/// Shared HMAC gate for `/internal/*` routes. Returns the request body on
+/// success so POST handlers can parse it (GET bodies are simply empty).
+async fn authenticate(req: Request<Body>) -> Result<axum::body::Bytes, StatusCode> {
+    let secret = match env::var("CHAT_INTERNAL_SECRET") {
+        Ok(s) if !s.is_empty() => s,
+        _ => {
+            warn!("CHAT_INTERNAL_SECRET unset; rejecting internal request");
+            return Err(StatusCode::SERVICE_UNAVAILABLE);
+        }
+    };
+
+    let (parts, body) = req.into_parts();
+
+    let sig_hex = parts
+        .headers
+        .get(SIG_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+    let ts_str = parts
+        .headers
+        .get(TS_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+
+    let bytes = to_bytes(body, MAX_BODY_BYTES)
+        .await
+        .map_err(|_| StatusCode::PAYLOAD_TOO_LARGE)?;
+
+    if !verify_signature(&secret, &ts_str, &bytes, &sig_hex) {
+        debug!("internal request signature rejected");
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    Ok(bytes)
 }
 
 fn verify_signature(secret: &str, ts: &str, body: &[u8], sig_hex: &str) -> bool {

@@ -15,6 +15,7 @@ import HiddenTab from "./_components/HiddenTab";
 import ReportsTab from "./_components/ReportsTab";
 import FixedMessagesTab from "./_components/FixedMessagesTab";
 import HistoryTab from "./_components/HistoryTab";
+import SpamUsersTab from "./_components/SpamUsersTab";
 
 const tabs = [
   { id: "settings", label: "설정" },
@@ -23,6 +24,7 @@ const tabs = [
   { id: "banned-words", label: "금지어" },
   { id: "fixed", label: "고정 메시지" },
   { id: "history", label: "채팅 기록" },
+  { id: "spam", label: "스팸 유저" },
   { id: "muted", label: "뮤트 유저" },
   { id: "banned", label: "차단 유저" },
   { id: "hidden", label: "숨김 메시지" },
@@ -65,6 +67,7 @@ export default function ChatAdminPage() {
       {activeTab === "banned-words" && <BannedWordsTab />}
       {activeTab === "fixed" && <FixedMessagesTab />}
       {activeTab === "history" && <HistoryTab />}
+      {activeTab === "spam" && <SpamUsersTab />}
       {activeTab === "muted" && <MutedTab />}
       {activeTab === "banned" && <BannedTab />}
       {activeTab === "hidden" && <HiddenTab />}

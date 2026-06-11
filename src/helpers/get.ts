@@ -760,6 +760,14 @@ export const adminChatMutedUsersGet = async (
   return hasData ?? null;
 };
 
+export const adminChatSpamUsersGet = async (
+  _router: AppRouterInstance,
+  _queryClient: QueryClient
+) => {
+  const { hasData } = await get(ApiRoute.adminChatSpamUsers);
+  return hasData ?? null;
+};
+
 export const adminChatBannedUsersGet = async (
   _router: AppRouterInstance,
   _queryClient: QueryClient

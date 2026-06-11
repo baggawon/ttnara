@@ -69,6 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/ws", get(ws::ws_handler))
         .route("/internal/event", post(admin::admin_handler))
+        .route("/internal/spam-state", get(admin::spam_state_handler))
         .route("/healthz", get(|| async { "ok" }))
         .layer(TraceLayer::new_for_http())
         .with_state(state);

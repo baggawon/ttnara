@@ -137,22 +137,6 @@ export default function HistoryTab() {
     if (res?.isSuccess) refresh();
   };
 
-  // Clear a user's spam state (offence counter + active 도배 penalty) so they
-  // can chat again immediately. Spam is tracked per-user, not per-message, so
-  // this acts on the author's uid regardless of which message it's invoked on.
-  const forgiveSpam = async (uid: string) => {
-    const res = await postJson(ApiRoute.adminChatModerationForgiveSpam, {
-      uid,
-    });
-    toast({
-      id: res?.isSuccess
-        ? ToastData.chatModerationForgiveSpam
-        : ToastData.unknown,
-      type: res?.isSuccess ? "success" : "error",
-    });
-    if (res?.isSuccess) refresh();
-  };
-
   // Permanently delete every message older than the given number of hours.
   // Irreversible (hard delete), so it's gated behind a confirm.
   const purgeOld = async () => {
@@ -350,16 +334,6 @@ export default function HistoryTab() {
                         </span>
                       );
                     })}
-                    {m.mod_events.some((e) => e.action.startsWith("spam_")) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 px-2 text-[10px]"
-                        onClick={() => forgiveSpam(m.uid)}
-                      >
-                        도배 해제
-                      </Button>
-                    )}
                   </div>
                 )}
               </div>

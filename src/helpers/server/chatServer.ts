@@ -27,6 +27,66 @@ export type ChatAdminEvent =
   | { kind: "set_fixed"; topic_id: number; content: string }
   | { kind: "unset_fixed"; topic_id: number };
 
+export interface ChatSpamStateUser {
+  uid: string;
+  offences: number;
+  penalty_until: string | null;
+  memory_until: string | null;
+}
+
+/**
+ * Reads the chat_server's live SpamTracker (`GET /internal/spam-state`).
+ * Spam state is in-memory only, so this is the sole source of truth for
+ * "who is currently spam-locked". Returns `null` when the chat_server is
+ * unconfigured or unreachable so callers can distinguish "no spammers"
+ * from "couldn't ask".
+ */
+export const fetchChatSpamState = async (): Promise<
+  ChatSpamStateUser[] | null
+> => {
+  const baseUrl = process.env.CHAT_SERVER_INTERNAL_URL;
+  const secret = process.env.CHAT_INTERNAL_SECRET;
+
+  if (!baseUrl || !secret) {
+    console.warn(
+      "[chatServer] skipping spam-state fetch — CHAT_SERVER_INTERNAL_URL or CHAT_INTERNAL_SECRET unset"
+    );
+    return null;
+  }
+
+  // Same HMAC scheme as sendChatAdminEvent; a GET has no body, so the
+  // signature covers `${ts}.` only.
+  const ts = Math.floor(Date.now() / 1000).toString();
+  const signature = createHmac("sha256", secret)
+    .update(ts)
+    .update(".")
+    .digest("hex");
+
+  try {
+    const res = await fetch(
+      `${baseUrl.replace(/\/+$/, "")}/internal/spam-state`,
+      {
+        method: "GET",
+        headers: {
+          "X-Chat-Timestamp": ts,
+          "X-Chat-Signature": signature,
+        },
+        signal: AbortSignal.timeout(2000),
+        cache: "no-store",
+      }
+    );
+    if (!res.ok) {
+      console.warn(`[chatServer] spam-state fetch got ${res.status}`);
+      return null;
+    }
+    const json = (await res.json()) as { users?: ChatSpamStateUser[] };
+    return json.users ?? [];
+  } catch (err) {
+    console.warn("[chatServer] spam-state fetch failed:", err);
+    return null;
+  }
+};
+
 export const sendChatAdminEvent = async (
   event: ChatAdminEvent
 ): Promise<void> => {
