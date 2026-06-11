@@ -141,7 +141,9 @@ export default function HistoryTab() {
   // can chat again immediately. Spam is tracked per-user, not per-message, so
   // this acts on the author's uid regardless of which message it's invoked on.
   const forgiveSpam = async (uid: string) => {
-    const res = await postJson(ApiRoute.adminChatModerationForgiveSpam, { uid });
+    const res = await postJson(ApiRoute.adminChatModerationForgiveSpam, {
+      uid,
+    });
     toast({
       id: res?.isSuccess
         ? ToastData.chatModerationForgiveSpam
@@ -278,11 +280,7 @@ export default function HistoryTab() {
                 </span>
               </div>
             </div>
-            <Button
-              variant="destructive"
-              onClick={purgeOld}
-              disabled={purging}
-            >
+            <Button variant="destructive" onClick={purgeOld} disabled={purging}>
               {purging ? "삭제 중…" : "삭제"}
             </Button>
           </div>
