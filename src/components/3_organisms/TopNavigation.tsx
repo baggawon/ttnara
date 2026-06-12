@@ -60,7 +60,6 @@ import { NavPriceTicker } from "@/components/1_atoms/NavPriceTicker";
 import { UserStatsBadge } from "@/components/1_atoms/UserStatsBadge";
 import type { NavParentItem } from "@/helpers/server/navMenuRead";
 import { useTetherEnabled } from "@/helpers/customHook/useTetherEnabled";
-import { useDisplaySettings } from "@/helpers/customHook/useDisplaySettings";
 
 type ClientNavMenu = {
   title: string;
@@ -84,9 +83,13 @@ const toClientMenus = (items: NavParentItem[]): ClientNavMenu[] =>
 export function TopNavigation({
   menuItems,
   showPriceTicker = true,
+  showTradeRank = true,
+  showBoardRank = true,
 }: {
   menuItems: NavParentItem[];
   showPriceTicker?: boolean;
+  showTradeRank?: boolean;
+  showBoardRank?: boolean;
 }) {
   const { data: session } = useGetQuery<Session | null | undefined, undefined>(
     {
@@ -108,7 +111,6 @@ export function TopNavigation({
   );
 
   const tetherEnabled = useTetherEnabled();
-  const { showTradeRank, showBoardRank } = useDisplaySettings();
   const showTradeStats = tetherEnabled && showTradeRank;
 
   const { data: rankingData } = useGetQuery<UserRankingResponse, undefined>(

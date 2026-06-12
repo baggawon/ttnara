@@ -192,6 +192,7 @@ export const threadSettingDefault = (
     default_topic_id: null,
     default_thumbnail_url: null,
     rank_icon_source: "board",
+    admin_badge_image_url: null,
     ...data,
   };
 };

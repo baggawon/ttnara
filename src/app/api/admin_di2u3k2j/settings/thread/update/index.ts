@@ -17,11 +17,16 @@ export const POST = async (json: threadGeneralSettingsUpdateProps) => {
 
     await requestValidator([RequestValidator.Admin], json);
     const { id: _ignoredId, ...data } = json;
-    // The thumbnail URL is signed on read; strip the signature so an editor
+    // Image URLs are signed on read; strip the signature so an editor
     // round-trip never persists an expiring CloudFront signature.
     if (data.default_thumbnail_url) {
       data.default_thumbnail_url = stripCloudFrontSignatures(
         data.default_thumbnail_url
+      );
+    }
+    if (data.admin_badge_image_url) {
+      data.admin_badge_image_url = stripCloudFrontSignatures(
+        data.admin_badge_image_url
       );
     }
     // Singleton row with no DB-enforced uniqueness: always write the canonical

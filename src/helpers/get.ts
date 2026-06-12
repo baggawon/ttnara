@@ -293,18 +293,6 @@ export const tetherSettingsGet = async (
   return null;
 };
 
-export const displaySettingsGet = async (
-  router: AppRouterInstance,
-  queryClient: QueryClient,
-  query?: any
-) => {
-  const { hasData } = await get(ApiRoute.displaySettingsRead, { query });
-
-  if (hasData) return hasData;
-
-  return null;
-};
-
 export const adminNavListGet = async (
   router: AppRouterInstance,
   queryClient: QueryClient,

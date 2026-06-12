@@ -8,14 +8,18 @@ import { leaderboardUserGet, userGet } from "@/helpers/get";
 import { QueryKey, type UserAndSettings } from "@/helpers/types";
 import type { UserRankingResponse } from "@/app/api/leaderboard/user";
 import { useTetherEnabled } from "@/helpers/customHook/useTetherEnabled";
-import { useDisplaySettings } from "@/helpers/customHook/useDisplaySettings";
 import { isCuid } from "@paralleldrive/cuid2";
 import { ShieldCheck, ShieldAlert, Mail, MailCheck } from "lucide-react";
 import { cn } from "@/components/lib/utils";
 
-const ProfileHero = () => {
+const ProfileHero = ({
+  showTradeRank = true,
+  showBoardRank = true,
+}: {
+  showTradeRank?: boolean;
+  showBoardRank?: boolean;
+}) => {
   const tetherEnabled = useTetherEnabled();
-  const { showTradeRank, showBoardRank } = useDisplaySettings();
   const { data: userData } = useGetQuery<UserAndSettings, undefined>(
     { queryKey: [QueryKey.account] },
     userGet,

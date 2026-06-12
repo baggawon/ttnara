@@ -2,6 +2,7 @@ import { handleConnect } from "@/helpers/server/prisma";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
 import { forEach } from "@/helpers/basic";
 import { signStoredCloudFrontUrl } from "@/helpers/server/s3";
+import { getSignedAdminBadgeImage } from "@/app/api/threads/read";
 
 export interface BoardPreviewThread {
   id: number;
@@ -16,6 +17,7 @@ export interface BoardPreviewThread {
   current_board_rank_level: number;
   current_board_rank_name: string | null;
   current_board_rank_image: string | null;
+  admin_badge_image: string | null;
 }
 
 export interface BoardPreviewTopic {
@@ -71,6 +73,8 @@ export const GET = async () => {
       return a.url.localeCompare(b.url);
     });
     const limitedTopics = previewTopics.slice(0, MAX_PREVIEW_TOPICS);
+
+    const adminBadgeImage = getSignedAdminBadgeImage();
 
     // Fetch recent threads for preview topics
     const results = await Promise.all(
@@ -134,6 +138,7 @@ export const GET = async () => {
                   t.author.profile.current_board_rank_image
                 )
               : null,
+            admin_badge_image: adminBadgeImage,
           })),
         };
       })

@@ -34,9 +34,21 @@ import { ApiRoute } from "@/helpers/types";
 import { version } from "@/helpers/config";
 import type { MediaUploadResult } from "@/app/api/uploads/media";
 
-const DefaultThumbnailUploader = () => {
+const SettingImageUploader = ({
+  name,
+  label,
+  alt,
+  description,
+  previewClassName = "w-[80px] h-[60px]",
+}: {
+  name: "default_thumbnail_url" | "admin_badge_image_url";
+  label: string;
+  alt: string;
+  description: string;
+  previewClassName?: string;
+}) => {
   const { watch, setValue } = useFormContext<thread_setting>();
-  const url = watch("default_thumbnail_url") as string | null;
+  const url = watch(name) as string | null;
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -69,7 +81,7 @@ const DefaultThumbnailUploader = () => {
       }
       // Use the signed URL so the preview loads; the update endpoint strips
       // the signature before persisting.
-      setValue("default_thumbnail_url", json.data.url, {
+      setValue(name, json.data.url, {
         shouldDirty: true,
       });
     } catch {
@@ -81,18 +93,19 @@ const DefaultThumbnailUploader = () => {
 
   return (
     <div className="sm:col-span-2 flex flex-col gap-2">
-      <Label className="text-sm font-medium">기본 썸네일 이미지</Label>
+      <Label className="text-sm font-medium">{label}</Label>
       <div className="flex items-center gap-4">
-        <div className="w-[80px] h-[60px] border rounded-md flex items-center justify-center bg-neutral-50 overflow-hidden shrink-0">
+        <div
+          className={clsx(
+            "border rounded-md flex items-center justify-center bg-neutral-50 overflow-hidden shrink-0",
+            previewClassName
+          )}
+        >
           {uploading ? (
             <Loader2 className="w-4 h-4 animate-spin text-black/40" />
           ) : url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={url}
-              alt="기본 썸네일"
-              className="w-full h-full object-contain"
-            />
+            <img src={url} alt={alt} className="w-full h-full object-contain" />
           ) : (
             <span className="text-xs text-black/30">없음</span>
           )}
@@ -100,7 +113,7 @@ const DefaultThumbnailUploader = () => {
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <Label
-              htmlFor="default-thumbnail-input"
+              htmlFor={`${name}-input`}
               className={clsx(
                 buttonVariants({ variant: "outline", size: "sm" }),
                 "cursor-pointer w-fit",
@@ -110,7 +123,7 @@ const DefaultThumbnailUploader = () => {
               이미지 선택
               <input
                 ref={inputRef}
-                id="default-thumbnail-input"
+                id={`${name}-input`}
                 type="file"
                 accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
                 className="hidden"
@@ -123,18 +136,13 @@ const DefaultThumbnailUploader = () => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() =>
-                  setValue("default_thumbnail_url", null, { shouldDirty: true })
-                }
+                onClick={() => setValue(name, null, { shouldDirty: true })}
               >
                 <Trash2 className="w-3 h-3 mr-1" /> 제거
               </Button>
             )}
           </div>
-          <CardDescription className="text-xs">
-            게시판 목록에서 글에 이미지가 없을 때 표시되는 기본 썸네일입니다.
-            설정하지 않으면 빈 영역으로 표시됩니다.
-          </CardDescription>
+          <CardDescription className="text-xs">{description}</CardDescription>
         </div>
       </div>
     </div>
@@ -231,6 +239,13 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
                   </CardDescription>
                 </div>
               </FormBuilder>
+              <SettingImageUploader
+                name="admin_badge_image_url"
+                label="관리자 배지 이미지"
+                alt="관리자 배지"
+                description="게시판에서 관리자로 표시되는 작성자(관리자·게시판 관리자)의 닉네임 앞에 표시할 배지입니다. 설정하지 않으면 배지 없이 '관리자'로만 표시됩니다."
+                previewClassName="w-[60px] h-[60px]"
+              />
             </CardContent>
           </Card>
           <Card className="mb-2">
@@ -498,7 +513,12 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
                   <SwitchInput name="use_downvote" />
                 </div>
               </FormBuilder>
-              <DefaultThumbnailUploader />
+              <SettingImageUploader
+                name="default_thumbnail_url"
+                label="기본 썸네일 이미지"
+                alt="기본 썸네일"
+                description="게시판 목록에서 글에 이미지가 없을 때 표시되는 기본 썸네일입니다. 설정하지 않으면 빈 영역으로 표시됩니다."
+              />
             </CardContent>
           </Card>
           <Card className="mb-2">

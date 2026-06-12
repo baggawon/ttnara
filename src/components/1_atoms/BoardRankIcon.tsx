@@ -13,6 +13,7 @@ export interface BoardRankProfileFields {
   current_board_rank_level?: number | null;
   current_board_rank_name?: string | null;
   current_board_rank_image?: string | null;
+  admin_badge_image?: string | null;
   is_app_admin?: boolean | null;
   auth_level?: number | null;
 }
@@ -22,9 +23,13 @@ export interface BoardRankProfileFields {
  * Renders a square (1:1) `object-contain` icon so non-square source images
  * aren't stretched. `className` controls the size (defaults to 1.25rem).
  *
+ * Masked moderator/admin posters (the 관리자 label hides their standing)
+ * show the dedicated admin badge from board common settings instead of
+ * their rank badge.
+ *
  * Renders nothing when:
  *  - there is no profile,
- *  - the poster is a masked moderator/admin (their 관리자 label hides standing),
+ *  - the poster is masked and no admin badge is configured,
  *  - the user has no assigned board-rank image.
  */
 export const BoardRankIcon = ({
@@ -37,10 +42,12 @@ export const BoardRankIcon = ({
   className?: string;
 }) => {
   if (!profile) return null;
-  if (isBoardPosterMasked(profile, topicLevelModerator)) return null;
-  const image = profile.current_board_rank_image;
+  const masked = isBoardPosterMasked(profile, topicLevelModerator);
+  const image = masked
+    ? profile.admin_badge_image
+    : profile.current_board_rank_image;
   if (!image) return null;
-  const name = profile.current_board_rank_name ?? "";
+  const name = masked ? "관리자" : (profile.current_board_rank_name ?? "");
 
   const badge = (
     // eslint-disable-next-line @next/next/no-img-element

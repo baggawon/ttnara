@@ -114,6 +114,9 @@ export const FeaturedManager = ({
   // own `status` stays "success" across background refetches, so it can't
   // signal this on its own.
   const [manualRefreshing, setManualRefreshing] = useState(false);
+  // 1s tick that re-renders the cooldown countdown; only runs while a
+  // cooldown is actually pending.
+  const [now, setNow] = useState(() => Date.now());
 
   const { data, status } = useGetQuery<AmadoEventsReadResult, undefined>(
     {
@@ -125,6 +128,28 @@ export const FeaturedManager = ({
     { silent: true }
   );
   const isFetching = status === "pending";
+
+  // The server only re-pulls a forced refresh when the snapshot is older than
+  // force_cooldown_ms, so the button is locked until fetched_at + cooldown —
+  // derived from server data (not click time) so it can't drift from what the
+  // server would actually do, and it survives reloads and other admins'
+  // refreshes. No fetched_at (mock fallback) → no lock; let them retry.
+  const nextRefreshAt =
+    data?.fetched_at != null
+      ? dayjs(data.fetched_at).valueOf() + data.force_cooldown_ms
+      : null;
+  const cooldownMs = nextRefreshAt ? Math.max(0, nextRefreshAt - now) : 0;
+  const inCooldown = cooldownMs > 0;
+
+  useEffect(() => {
+    if (!inCooldown) return;
+    const timer = setInterval(() => setNow(Date.now()), 1_000);
+    return () => clearInterval(timer);
+  }, [inCooldown]);
+
+  const cooldownLabel = `${Math.floor(cooldownMs / 60_000)}:${String(
+    Math.floor((cooldownMs % 60_000) / 1_000)
+  ).padStart(2, "0")}`;
 
   const events = data?.events ?? [];
 
@@ -165,23 +190,27 @@ export const FeaturedManager = ({
     setPendingFeatured({});
   };
 
-  // Explicit 새로고침: force a refetch, then report the outcome via toast.
-  // `fetchQuery` resolves with the fresh payload (and updates the cache the
-  // card list reads from), so we can count items / detect failure inline.
-  // Kept separate from `refresh()` so the silent internal callers (toggle,
-  // save, category create) don't spawn toasts.
+  // Explicit 새로고침: force an upstream re-pull (bypasses the server's normal
+  // cache TTL), then report the outcome via toast. `fetchQuery` resolves with
+  // the fresh payload (and updates the cache the card list reads from), so we
+  // can count items / detect failure inline. Kept separate from `refresh()` so
+  // the silent internal callers (toggle, save, category create) don't spawn
+  // toasts — and don't burn the forced-refresh cooldown.
   const handleManualRefresh = async () => {
-    if (manualRefreshing) return;
+    if (manualRefreshing || inCooldown) return;
     setManualRefreshing(true);
     setPendingFeatured({});
     try {
       const result = await queryClient.fetchQuery<AmadoEventsReadResult | null>(
         {
           queryKey: [QueryKey.adminAmadoEvents],
-          queryFn: () => adminAmadoEventsGet(router, queryClient, undefined),
+          queryFn: () =>
+            adminAmadoEventsGet(router, queryClient, { force: true }),
           staleTime: 0,
         }
       );
+      // Restart the countdown from the response's fetched_at immediately.
+      setNow(Date.now());
       if (!result) {
         toast({ id: "이벤트를 불러오지 못했습니다.", type: "error" });
       } else if (result.fetched_at == null) {
@@ -277,7 +306,7 @@ export const FeaturedManager = ({
               variant="outline"
               size="sm"
               onClick={handleManualRefresh}
-              disabled={isFetching || manualRefreshing}
+              disabled={isFetching || manualRefreshing || inCooldown}
             >
               <RefreshCw
                 className={clsx(
@@ -285,7 +314,7 @@ export const FeaturedManager = ({
                   (isFetching || manualRefreshing) && "animate-spin"
                 )}
               />
-              새로고침
+              {inCooldown ? `${cooldownLabel} 후 가능` : "새로고침"}
             </Button>
           </div>
         </header>

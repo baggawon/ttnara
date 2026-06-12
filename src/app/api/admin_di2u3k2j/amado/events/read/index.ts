@@ -7,13 +7,18 @@ import {
   type AmadoEvent,
 } from "@/helpers/server/amado/mockEvents";
 import {
+  AMADO_FORCE_COOLDOWN_MS,
   getAmadoEvents,
   getAmadoEventsFetchedAt,
 } from "@/helpers/server/amado/amadoApi";
 import { handleConnect } from "@/helpers/server/prisma";
 import { getSpecialTopic } from "@/helpers/server/specialBoard";
 
-export interface AmadoEventsReadProps {}
+export interface AmadoEventsReadProps {
+  // Admin 새로고침: bypass the normal cache TTL and re-pull from Amado now.
+  // Still rate-limited server-side to one upstream pull per cooldown window.
+  force?: boolean;
+}
 
 // One existing post per event (the schema enforces this with a per-topic
 // unique on amado_event_id). `null` means the event hasn't been turned into a
@@ -40,19 +45,24 @@ export interface AmadoEventsReadResult {
   // bundled mock (cold-start fallback). Drives the "last synced" freshness
   // label in the admin manager.
   fetched_at: string | null;
+  // Server-enforced minimum gap between forced refreshes. The client derives
+  // the 새로고침 button's countdown from fetched_at + this, so the UI and the
+  // server cooldown can't drift apart.
+  force_cooldown_ms: number;
 }
 
 export const GET = async (queryParams: AmadoEventsReadProps) => {
   try {
     await requestValidator([RequestValidator.Admin], queryParams);
 
-    // Live fetch from the Amado API (cached ~1h in-process). Falls back to the
-    // bundled sample list only on a cold-start failure so the admin page and
-    // local dev still work when the upstream is unreachable.
+    // Live fetch from the Amado API (cached in-process; see amadoApi.ts for
+    // the TTL/cooldown split). Falls back to the bundled sample list only on a
+    // cold-start failure so the admin page and local dev still work when the
+    // upstream is unreachable.
     let events: AmadoEvent[];
     let liveOk = true;
     try {
-      events = await getAmadoEvents();
+      events = await getAmadoEvents(queryParams.force === true);
     } catch {
       events = MOCK_AMADO_EVENTS;
       liveOk = false;
@@ -188,6 +198,7 @@ export const GET = async (queryParams: AmadoEventsReadProps) => {
       data: {
         events: [...enriched, ...archived],
         fetched_at: fetchedAt ? new Date(fetchedAt).toISOString() : null,
+        force_cooldown_ms: AMADO_FORCE_COOLDOWN_MS,
       } as AmadoEventsReadResult,
     };
   } catch (error) {

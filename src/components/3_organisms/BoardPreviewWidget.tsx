@@ -80,6 +80,7 @@ const ThreadRow = ({
               current_board_rank_level: thread.current_board_rank_level,
               current_board_rank_name: thread.current_board_rank_name,
               current_board_rank_image: thread.current_board_rank_image,
+              admin_badge_image: thread.admin_badge_image,
               is_app_admin: thread.is_app_admin,
               auth_level: thread.auth_level,
             }}

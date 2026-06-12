@@ -10,7 +10,14 @@ const AMADO_API_BASE = (
   "https://slfuvmwvijcvfjemu7prs6lwu40pebry.lambda-url.ap-northeast-2.on.aws"
 ).replace(/\/$/, "");
 
-const CACHE_TTL_MS = Number(process.env.AMADO_CACHE_TTL_MS ?? 60 * 60 * 1000);
+const CACHE_TTL_MS = Number(process.env.AMADO_CACHE_TTL_MS ?? 10 * 60 * 1000);
+// Floor for forced (admin 새로고침) refreshes. A force bypasses the normal TTL
+// but still serves the cached snapshot when it's younger than this, so manual
+// refreshes can't hammer the upstream Lambda — enforced here (not just in the
+// UI) so it holds across admins, tabs, and reloads.
+export const AMADO_FORCE_COOLDOWN_MS = Number(
+  process.env.AMADO_FORCE_COOLDOWN_MS ?? 5 * 60 * 1000
+);
 const REQUEST_TIMEOUT_MS = 10_000;
 const MARKETS_PAGE_LIMIT = 100;
 // Safety bound on cursor paging — ~2-3 pages cover the full event list today.
@@ -159,11 +166,14 @@ interface CacheEntry {
 let cache: CacheEntry | null = null;
 let inflight: Promise<AmadoEvent[]> | null = null;
 
-// Live event list, cached in-process for ~1h. Concurrent callers share one
-// refresh; a transient upstream failure serves the last-good snapshot rather
-// than throwing (the caller falls back to the bundled mock only on a cold miss).
-export const getAmadoEvents = async (): Promise<AmadoEvent[]> => {
-  if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) {
+// Live event list, cached in-process. Normal reads refetch after CACHE_TTL_MS;
+// `force` (admin 새로고침) refetches immediately, bounded only by the shorter
+// AMADO_FORCE_COOLDOWN_MS. Concurrent callers share one refresh; a transient
+// upstream failure serves the last-good snapshot rather than throwing (the
+// caller falls back to the bundled mock only on a cold miss).
+export const getAmadoEvents = async (force = false): Promise<AmadoEvent[]> => {
+  const ttl = force ? AMADO_FORCE_COOLDOWN_MS : CACHE_TTL_MS;
+  if (cache && Date.now() - cache.fetchedAt < ttl) {
     return cache.data;
   }
   if (inflight) return inflight;
@@ -183,8 +193,8 @@ export const getAmadoEvents = async (): Promise<AmadoEvent[]> => {
 };
 
 // Epoch ms of the last successful upstream pull, or null if the cache is cold.
-// This is the real freshness signal — `getAmadoEvents()` may serve this same
-// snapshot for up to CACHE_TTL_MS, so an admin "refresh" won't move it until
-// the server cache expires.
+// This is the real freshness signal — it only moves when the upstream is
+// actually re-fetched, so it also anchors the manual-refresh cooldown
+// (next force allowed at fetchedAt + AMADO_FORCE_COOLDOWN_MS).
 export const getAmadoEventsFetchedAt = (): number | null =>
   cache?.fetchedAt ?? null;

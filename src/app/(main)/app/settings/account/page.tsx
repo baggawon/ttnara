@@ -1,10 +1,15 @@
 import SettingsView from "@/app/(main)/app/settings/account/view";
 import ProfileHero from "@/app/(main)/app/settings/account/ProfileHero";
+import { getDisplaySettings } from "@/helpers/server/displaySettings";
 
-export default function Page() {
+export default async function Page() {
+  const { showTradeRank, showBoardRank } = await getDisplaySettings();
   return (
     <div className="space-y-6">
-      <ProfileHero />
+      <ProfileHero
+        showTradeRank={showTradeRank}
+        showBoardRank={showBoardRank}
+      />
       <SettingsView />
     </div>
   );

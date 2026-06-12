@@ -434,6 +434,9 @@ model thread_setting {
   // Which rank badge shows beside a poster's nickname in the forum:
   // "board" (게시판 등급), "trade" (거래 등급), or "none" (hide icon).
   rank_icon_source          String  @default("board") @db.VarChar(10)
+  // Badge shown beside the 관리자 label for masked admin/moderator posters,
+  // whose own rank badge is suppressed. Stored unsigned; signed on read.
+  admin_badge_image_url     String? @db.Text
 }
 
 model security_setting {

@@ -18,13 +18,16 @@ export const GET = async (queryParams: ThreadGenaralSettingsReadProps) => {
 
     if (!threadGeneralSettings) throw ToastData.unknown;
 
-    // Sign the stored (unsigned) default thumbnail URL so the admin form can
-    // preview it. The update endpoint strips the signature before persisting.
+    // Sign the stored (unsigned) image URLs so the admin form can preview
+    // them. The update endpoint strips the signatures before persisting.
     const data = {
       ...threadGeneralSettings,
       default_thumbnail_url: threadGeneralSettings.default_thumbnail_url
         ? signStoredCloudFrontUrl(threadGeneralSettings.default_thumbnail_url)
         : threadGeneralSettings.default_thumbnail_url,
+      admin_badge_image_url: threadGeneralSettings.admin_badge_image_url
+        ? signStoredCloudFrontUrl(threadGeneralSettings.admin_badge_image_url)
+        : threadGeneralSettings.admin_badge_image_url,
     };
 
     return {

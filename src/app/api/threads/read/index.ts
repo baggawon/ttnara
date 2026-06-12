@@ -34,15 +34,21 @@ export interface CommentWithProfile extends comment {
 }
 
 export interface SimpleProfile extends Pick<user, "username"> {
-  profile: Pick<
-    profile,
-    | "displayname"
-    | "is_app_admin"
-    | "auth_level"
-    | "current_board_rank_level"
-    | "current_board_rank_name"
-    | "current_board_rank_image"
-  > | null;
+  profile:
+    | (Pick<
+        profile,
+        | "displayname"
+        | "is_app_admin"
+        | "auth_level"
+        | "current_board_rank_level"
+        | "current_board_rank_name"
+        | "current_board_rank_image"
+      > & {
+        // Signed admin badge (thread_setting.admin_badge_image_url), shown by
+        // BoardRankIcon when the poster is masked as 관리자.
+        admin_badge_image?: string | null;
+      })
+    | null;
 }
 
 export interface ThreadListResponse {
@@ -134,7 +140,11 @@ export const threadDetailInclude = {
 // tethers/read). Mutates the (ephemeral) query result in place.
 type RankIconSource = "board" | "trade" | "none";
 
-const applyAuthorRankBadge = (profile: any, source: RankIconSource) => {
+const applyAuthorRankBadge = (
+  profile: any,
+  source: RankIconSource,
+  adminBadgeImage: string | null
+) => {
   if (!profile) return;
   if (source === "none") {
     profile.current_board_rank_image = null;
@@ -149,6 +159,10 @@ const applyAuthorRankBadge = (profile: any, source: RankIconSource) => {
       profile.current_board_rank_image
     );
   }
+  // The masked-poster (관리자) badge. Masking depends on the topic's
+  // level_moderator, which only the client applies, so attach it to every
+  // profile and let BoardRankIcon pick it when the poster is masked.
+  profile.admin_badge_image = adminBadgeImage;
   // Don't leak the raw trade-rank fields to the client; the forum only reads
   // the board-rank fields (now holding the resolved source).
   delete profile.current_rank_level;
@@ -156,14 +170,25 @@ const applyAuthorRankBadge = (profile: any, source: RankIconSource) => {
   delete profile.current_rank_image;
 };
 
+// Signs the stored admin badge URL from thread settings (or null when unset).
+export const getSignedAdminBadgeImage = () => {
+  const settings = appCache.getByKey(CacheKey.ThreadGeneralSettings) as
+    | { admin_badge_image_url?: string | null }
+    | undefined;
+  return settings?.admin_badge_image_url
+    ? signStoredCloudFrontUrl(settings.admin_badge_image_url)
+    : null;
+};
+
 export const signThreadAuthorBoardBadges = (thread: any) => {
   const settings = appCache.getByKey(CacheKey.ThreadGeneralSettings) as
     | { rank_icon_source?: string | null }
     | undefined;
   const source = (settings?.rank_icon_source as RankIconSource) ?? "board";
-  applyAuthorRankBadge(thread?.author?.profile, source);
+  const adminBadgeImage = getSignedAdminBadgeImage();
+  applyAuthorRankBadge(thread?.author?.profile, source, adminBadgeImage);
   for (const c of thread?.comments ?? [])
-    applyAuthorRankBadge(c?.author?.profile, source);
+    applyAuthorRankBadge(c?.author?.profile, source, adminBadgeImage);
 };
 
 async function getTopicThreadsWithPagination(
