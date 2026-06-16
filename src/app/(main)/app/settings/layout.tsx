@@ -28,7 +28,6 @@ const allSidebarNavItems = [
     title: "등급",
     href: AppRoute.RankSetting,
     icon: <Trophy />,
-    tetherOnly: true,
   },
   {
     title: "알림 내역",
@@ -47,7 +46,7 @@ const allSidebarNavItems = [
     tetherOnly: true,
   },
   {
-    title: "포인트",
+    title: "게시판 포인트",
     href: AppRoute.PointSetting,
     icon: <Coins />,
   },

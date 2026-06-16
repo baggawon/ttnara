@@ -81,7 +81,7 @@ export const LevelHandleForm = ({ className }: { className?: string }) => {
       >
         <FormInput
           name="max_system_level"
-          label="최대 시스템 레벨"
+          label="시스템 허용 최대 권한 레벨"
           inputClassName="flex flex-col gap-2"
           validate={validateMaxSystemLevel}
         >

@@ -247,7 +247,7 @@ export const BoardGeneralHandleForm = ({
               <FormInput
                 type={InputType.number}
                 name="level_read"
-                label="글 읽기 레벨"
+                label="글 읽기 권한 레벨"
                 required
                 min={0}
                 max={100}
@@ -256,7 +256,7 @@ export const BoardGeneralHandleForm = ({
               <FormInput
                 type={InputType.number}
                 name="level_create"
-                label="글 작성 레벨"
+                label="글 작성 권한 레벨"
                 required
                 min={1}
                 max={100}
@@ -265,7 +265,7 @@ export const BoardGeneralHandleForm = ({
               <FormInput
                 type={InputType.number}
                 name="level_comment"
-                label="댓글 작성 레벨"
+                label="댓글 작성 권한 레벨"
                 required
                 min={1}
                 max={100}
@@ -275,7 +275,7 @@ export const BoardGeneralHandleForm = ({
               <FormInput
                 type={InputType.number}
                 name="level_download"
-                label="파일 다운로드 레벨"
+                label="파일 다운로드 권한 레벨"
                 required
                 min={1}
                 max={100}
@@ -285,7 +285,7 @@ export const BoardGeneralHandleForm = ({
               <FormInput
                 type={InputType.number}
                 name="level_moderator"
-                label="게시판 관리자 레벨"
+                label="게시판 관리자 권한 레벨"
                 required
                 min={1}
                 max={100}

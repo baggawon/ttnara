@@ -189,7 +189,11 @@ const BoardPreviewWidget = ({
   );
 };
 
-export const BoardPreviewSection = () => {
+export const BoardPreviewSection = ({
+  standalone = false,
+}: {
+  standalone?: boolean;
+}) => {
   const queryClient = useQueryClient();
   const { data } = useGetQuery<BoardPreviewResponse | null, undefined>(
     { queryKey: [QueryKey.boardPreview] },
@@ -213,8 +217,15 @@ export const BoardPreviewSection = () => {
     queryClient.invalidateQueries({ queryKey: [QueryKey.boardPreview] });
   };
 
+  // In standalone mode (no tether widgets) the section is the only grid child,
+  // so keep it full width with the boards side by side. Otherwise it sits in
+  // the 3rd column at 4xl and stacks its boards vertically.
+  const wrapperClass = standalone
+    ? "md:col-span-2 flex flex-col md:flex-row gap-4"
+    : "md:col-span-2 4xl:col-span-1 flex flex-col md:flex-row 4xl:flex-col gap-4";
+
   return (
-    <div className="md:col-span-2 4xl:col-span-1 flex flex-col md:flex-row 4xl:flex-col gap-4">
+    <div className={wrapperClass}>
       {topics.map((topic) => (
         <div key={topic.id} className="flex-1 min-w-0 min-h-[300px]">
           <BoardPreviewWidget

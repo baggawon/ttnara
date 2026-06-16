@@ -49,9 +49,14 @@ export default async function Page() {
     ...tetherQueries,
   ]);
 
-  const gridColsClass = hasBoardPreview
-    ? "grid-cols-1 md:grid-cols-2 4xl:grid-cols-3"
-    : "grid-cols-1 md:grid-cols-2";
+  // The 3-column layout only makes sense when the tether widgets (Notice +
+  // Ranking) are present alongside the board preview. With tether disabled the
+  // board preview is the sole child, so keep it at 2 columns and let it span
+  // full width instead of collapsing into a 1/3-width column at 4xl.
+  const gridColsClass =
+    tetherEnabled && hasBoardPreview
+      ? "grid-cols-1 md:grid-cols-2 4xl:grid-cols-3"
+      : "grid-cols-1 md:grid-cols-2";
 
   return (
     <section className="flex-1 flex flex-col gap-4">
@@ -72,7 +77,9 @@ export default async function Page() {
               <RankingWidget />
             </div>
           )}
-          {hasBoardPreview && <BoardPreviewSection />}
+          {hasBoardPreview && (
+            <BoardPreviewSection standalone={!tetherEnabled} />
+          )}
         </div>
       </HydrationBoundary>
       <div className="xl:hidden">

@@ -44,9 +44,12 @@ export const SettingsSummaryCard = () => {
       label: "회원가입",
       value: generalData?.allow_user_registration ? "가능" : "불가능",
     },
-    { label: "최대 레벨", value: `${levelData?.max_system_level ?? 0}` },
     {
-      label: "기본 사용자 레벨",
+      label: "시스템 허용 최대 권한 레벨",
+      value: `${levelData?.max_system_level ?? 0}`,
+    },
+    {
+      label: "기본 사용자 권한 레벨",
       value: `${userData?.default_user_level ?? 0}`,
     },
     {

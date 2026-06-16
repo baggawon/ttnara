@@ -385,7 +385,7 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
           </Card>
           <Card className="mb-2">
             <CardHeader>
-              <CardTitle>게시판 접근 권한 기본값</CardTitle>
+              <CardTitle>게시판 접근 권한 레벨 기본값</CardTitle>
               <CardDescription className="text-xs w-full">
                 새 게시판을 만들 때 기본값으로 설정됩니다.
               </CardDescription>
@@ -394,7 +394,7 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
               <FormInput
                 type={InputType.number}
                 name="level_read"
-                label="글 읽기 레벨"
+                label="글 읽기 권한 레벨"
                 required
                 min={0}
                 max={100}
@@ -403,7 +403,7 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
               <FormInput
                 type={InputType.number}
                 name="level_create"
-                label="글 작성 레벨"
+                label="글 작성 권한 레벨"
                 required
                 min={1}
                 max={100}
@@ -412,7 +412,7 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
               <FormInput
                 type={InputType.number}
                 name="level_comment"
-                label="댓글 작성 레벨"
+                label="댓글 작성 권한 레벨"
                 required
                 min={1}
                 max={100}
@@ -422,7 +422,7 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
               <FormInput
                 type={InputType.number}
                 name="level_download"
-                label="파일 다운로드 레벨"
+                label="파일 다운로드 권한  레벨"
                 required
                 min={1}
                 max={100}
@@ -432,7 +432,7 @@ export const BoardGeneralForm = ({ className }: { className?: string }) => {
               <FormInput
                 type={InputType.number}
                 name="level_moderator"
-                label="게시판 관리자 레벨"
+                label="게시판 관리자 권한 레벨"
                 required
                 min={1}
                 max={100}

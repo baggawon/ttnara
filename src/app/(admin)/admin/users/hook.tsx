@@ -166,7 +166,7 @@ export const useAdminUsersListHook = () => {
       accessorKey: "auth_level",
       headerClassName: "!max-w-[40px]",
       cellClassName: "!max-w-[40px]",
-      headerTitle: "권한레벨",
+      headerTitle: "권한 레벨",
     },
     {
       accessorKey: "is_admin",

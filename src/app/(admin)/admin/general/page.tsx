@@ -27,7 +27,7 @@ export default function General() {
       </Card>
       <Card>
         <CardHeader>
-          <h3>레벨 설정</h3>
+          <h3>권한 레벨 설정</h3>
         </CardHeader>
         <CardContent>
           <LevelHandleForm />

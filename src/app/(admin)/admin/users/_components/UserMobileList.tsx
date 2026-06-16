@@ -74,7 +74,7 @@ export function UserMobileList({ users, pagination, onPageChange }: Props) {
                 <Row k="게시판 등급">
                   {user.profile?.current_board_rank_level ?? "-"}
                 </Row>
-                <Row k="권한레벨">{user.profile?.auth_level ?? "-"}</Row>
+                <Row k="권한 레벨">{user.profile?.auth_level ?? "-"}</Row>
                 {hasWarranty && (
                   <Row k="보증금">
                     {(

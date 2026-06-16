@@ -51,7 +51,7 @@ export default function RankCreateSheet() {
               <FormInput
                 name="rank_level"
                 type={InputType.number}
-                label="등급 레벨"
+                label="등급"
                 min={1}
                 validate={(value) => validateNumber({ value, min: 1 })}
               />

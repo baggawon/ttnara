@@ -285,13 +285,13 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
           </Card>
           <Card className="mb-2">
             <CardHeader>
-              <CardTitle>게시판 접근 권한</CardTitle>
+              <CardTitle>게시판 접근 권한 레벨</CardTitle>
             </CardHeader>
             <CardContent className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <FormInput
                 type={InputType.number}
                 name="level_read"
-                label="글 읽기 레벨"
+                label="글 읽기 권한 레벨"
                 required
                 min={0}
                 max={100}
@@ -301,7 +301,7 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
               <FormInput
                 type={InputType.number}
                 name="level_create"
-                label="글 작성 레벨"
+                label="글 작성 권한 레벨"
                 required
                 min={0}
                 max={100}
@@ -311,7 +311,7 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
               <FormInput
                 type={InputType.number}
                 name="level_comment"
-                label="댓글 레벨"
+                label="댓글 권한 레벨"
                 required
                 min={0}
                 max={100}
@@ -321,7 +321,7 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
               <FormInput
                 type={InputType.number}
                 name="level_download"
-                label="다운로드 레벨"
+                label="다운로드 권한 레벨"
                 required
                 min={0}
                 max={100}
@@ -331,7 +331,7 @@ export const BoardTopicsForm = ({ topic_id }: { topic_id: number }) => {
               <FormInput
                 type={InputType.number}
                 name="level_moderator"
-                label="주제 관리권한 레벨"
+                label="게시판 관리자 권한 레벨"
                 required
                 min={0}
                 max={100}

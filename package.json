@@ -1,6 +1,6 @@
 {
   "name": "platypus",
-  "version": "0.11.19",
+  "version": "0.11.20",
   "private": true,
   "scripts": {
     "secure": "node setup.mjs && prisma generate && next dev --experimental-https -p 3030 --turbopack",
@@ -160,6 +160,8 @@
     "react-dom": "^16.8 || ^17.0 || ^18.0 || ^19.0"
   },
   "overrides": {
-    "postcss": "8.5.14"
+    "postcss": "8.5.14",
+    "js-yaml": "^4.2.0",
+    "uuid": "^13.0.2"
   }
 }

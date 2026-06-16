@@ -155,7 +155,7 @@ export default function RanksAutoCreatePage() {
                         <XAxis
                           dataKey="x"
                           label={{
-                            value: "등급 레벨",
+                            value: "등급",
                             position: "insideBottom",
                             offset: -10,
                           }}
