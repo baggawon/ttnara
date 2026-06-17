@@ -99,6 +99,7 @@ class AppCache {
         this.refreshCache(CacheKey.TetherCategories),
         this.refreshCache(CacheKey.Tether),
         this.refreshCache(CacheKey.TradeRanks),
+        this.refreshCache(CacheKey.BoardRanks),
         this.refreshCache(CacheKey.Partners),
         this.refreshCache(CacheKey.Popups),
         this.refreshCache(CacheKey.Support),
@@ -298,6 +299,12 @@ class AppCache {
           );
           this.cache.set("tradeRanks", tradeRanks ?? []);
           break;
+        case "boardRanks":
+          const boardRanks = await handleConnect((prisma) =>
+            prisma.board_rank.findMany()
+          );
+          this.cache.set("boardRanks", boardRanks ?? []);
+          break;
         case "partners":
           const partners = await handleConnect((prisma) =>
             prisma.partner.findMany({
@@ -449,3 +456,22 @@ class AppCache {
 }
 
 export const appCache = AppCache.getInstance();
+
+/**
+ * Whether a rank system currently has at least one active tier, read from the
+ * in-memory cache at zero DB cost.
+ *
+ * Used as a display safety net: if a surface's chosen rank source points at a
+ * system with no tiers (e.g. p2p disabled → 0 trade ranks), serve no badge
+ * rather than a stale per-user snapshot. Returns `null` when the cache is not
+ * yet populated so callers can skip the guard instead of hiding valid badges.
+ */
+export function rankSystemHasActiveTiers(
+  system: "trade" | "board"
+): boolean | null {
+  const list = appCache.getByKey(
+    system === "trade" ? CacheKey.TradeRanks : CacheKey.BoardRanks
+  ) as Array<{ is_active?: boolean }> | undefined;
+  if (!Array.isArray(list)) return null;
+  return list.some((r) => r?.is_active);
+}

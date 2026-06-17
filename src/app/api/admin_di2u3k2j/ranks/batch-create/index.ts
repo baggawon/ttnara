@@ -6,6 +6,7 @@ import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import type { trade_rank } from "@prisma/client";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
+import { reevaluateAllUserRanks } from "@/helpers/server/rankEvaluator";
 
 export interface RankBatchCreateProps {
   ranks: Array<{
@@ -50,7 +51,12 @@ export const POST = async (json: RankBatchCreateProps) => {
           },
         });
 
-        // 4. Return the created ranks in correct order
+        // 4. Re-derive every profile's rank snapshot against the new rank set
+        //    so users don't keep names/badges (incl. deleted-rank "ghost"
+        //    images) from the old structure until their next trade.
+        await reevaluateAllUserRanks(tx);
+
+        // 5. Return the created ranks in correct order
         return await tx.trade_rank.findMany({
           orderBy: {
             rank_level: "asc",

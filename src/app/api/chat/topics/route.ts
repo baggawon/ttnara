@@ -1,5 +1,6 @@
 import { ResponseValues } from "@/helpers/server/serverResponse";
 import { handleConnect } from "@/helpers/server/prisma";
+import { rankSystemHasActiveTiers } from "@/helpers/server/serverCache";
 import type { ApiReturnProps } from "@/helpers/types";
 import type { NextRequest, NextResponse } from "next/server";
 
@@ -48,6 +49,19 @@ export const GET = async (_req: NextRequest): Promise<NextResponse> => {
     ),
   ]);
 
+  // Default to "none" so a missing/recreated setting row never shows an
+  // unintended badge. Also collapse to "none" when the chosen system has no
+  // active tiers (e.g. p2p disabled → 0 trade ranks) so the client hides badges
+  // instead of relying on stale per-user snapshots.
+  let rankSource =
+    (setting?.chat_rank_source as "trade" | "board" | "none") ?? "none";
+  if (
+    (rankSource === "trade" && rankSystemHasActiveTiers("trade") === false) ||
+    (rankSource === "board" && rankSystemHasActiveTiers("board") === false)
+  ) {
+    rankSource = "none";
+  }
+
   const data: ChatPublicConfig = {
     chat_server_url: setting?.chat_server_url ?? "",
     topics: topics ?? [],
@@ -57,8 +71,7 @@ export const GET = async (_req: NextRequest): Promise<NextResponse> => {
       spam_frequency_seconds: setting?.spam_frequency_seconds ?? 3,
       level_chat: setting?.level_chat ?? 1,
       level_moderator: setting?.level_moderator ?? 5,
-      rank_source:
-        (setting?.chat_rank_source as "trade" | "board" | "none") ?? "trade",
+      rank_source: rankSource,
     },
   };
 

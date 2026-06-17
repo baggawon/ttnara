@@ -5,6 +5,7 @@ import type { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/app/api/auth/[...nextauth]";
 import { handleConnect } from "@/helpers/server/prisma";
 import { signChatToken } from "@/helpers/server/chatToken";
+import { rankSystemHasActiveTiers } from "@/helpers/server/serverCache";
 import { ToastData } from "@/helpers/toastData";
 
 export interface ChatTokenResponse {
@@ -67,16 +68,21 @@ export const POST = async (_req: NextRequest): Promise<NextResponse> => {
 
   // Pick which rank system the badge beside the name reflects. "none" sends a
   // null image so the client renders no badge.
-  const rankSource = setting?.chat_rank_source ?? "trade";
+  const rankSource = setting?.chat_rank_source ?? "none";
+  // Safety net: if the chosen source's rank system has no active tiers (e.g.
+  // p2p disabled → 0 trade ranks), never serve a stale per-user snapshot.
+  const sourceEmpty =
+    (rankSource === "trade" && rankSystemHasActiveTiers("trade") === false) ||
+    (rankSource === "board" && rankSystemHasActiveTiers("board") === false);
   const rank_level =
     rankSource === "board"
       ? (user.profile.current_board_rank_level ?? 1)
       : (user.profile.current_rank_level ?? 1);
   const rank_image =
-    rankSource === "board"
-      ? (user.profile.current_board_rank_image ?? null)
-      : rankSource === "none"
-        ? null
+    rankSource === "none" || sourceEmpty
+      ? null
+      : rankSource === "board"
+        ? (user.profile.current_board_rank_image ?? null)
         : (user.profile.current_rank_image ?? null);
 
   try {

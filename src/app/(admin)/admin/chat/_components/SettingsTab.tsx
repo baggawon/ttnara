@@ -123,7 +123,7 @@ export default function SettingsTab() {
         <div className="space-y-2">
           <label className="text-sm font-medium">채팅 등급 아이콘</label>
           <Select
-            value={form.chat_rank_source ?? "trade"}
+            value={form.chat_rank_source ?? "none"}
             onValueChange={(v) =>
               update({ chat_rank_source: v as ChatSetting["chat_rank_source"] })
             }

@@ -6,6 +6,7 @@ import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import type { board_rank } from "@prisma/client";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
+import { reevaluateAllUserBoardRanks } from "@/helpers/server/boardRankEvaluator";
 
 // Create a new type that omits auto-generated fields
 export type BoardRankCreateProps = Omit<
@@ -17,9 +18,13 @@ export const POST = async (json: BoardRankCreateProps) => {
   try {
     await requestValidator([RequestValidator.Admin], json);
 
+    // Adding a tier can change which tier existing users fall into, so
+    // re-derive every profile snapshot atomically with the create.
     const createResult = await handleConnect((prisma) =>
-      prisma.board_rank.create({
-        data: json,
+      prisma.$transaction(async (tx) => {
+        const created = await tx.board_rank.create({ data: json });
+        await reevaluateAllUserBoardRanks(tx);
+        return created;
       })
     );
     if (!createResult) throw ToastData.unknown;

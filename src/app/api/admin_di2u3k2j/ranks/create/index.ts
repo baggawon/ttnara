@@ -6,6 +6,7 @@ import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import type { trade_rank } from "@prisma/client";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
+import { reevaluateAllUserRanks } from "@/helpers/server/rankEvaluator";
 
 // Create a new type that omits auto-generated fields
 export type RankCreateProps = Omit<
@@ -17,9 +18,13 @@ export const POST = async (json: RankCreateProps) => {
   try {
     await requestValidator([RequestValidator.Admin], json);
 
+    // Adding a tier can change which tier existing users fall into, so
+    // re-derive every profile snapshot atomically with the create.
     const createResult = await handleConnect((prisma) =>
-      prisma.trade_rank.create({
-        data: json,
+      prisma.$transaction(async (tx) => {
+        const created = await tx.trade_rank.create({ data: json });
+        await reevaluateAllUserRanks(tx);
+        return created;
       })
     );
     if (!createResult) throw ToastData.unknown;

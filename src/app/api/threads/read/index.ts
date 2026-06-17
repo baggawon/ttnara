@@ -9,7 +9,11 @@ import {
 import type { TopicSettings } from "@/app/api/topic/read";
 import { forEach } from "@/helpers/basic";
 import { handleConnect } from "@/helpers/server/prisma";
-import { appCache, CacheKey } from "@/helpers/server/serverCache";
+import {
+  appCache,
+  CacheKey,
+  rankSystemHasActiveTiers,
+} from "@/helpers/server/serverCache";
 import { paginationManager } from "@/helpers/server/serverFunctions";
 import { ToastData } from "@/helpers/toastData";
 import { SearchType, type PaginationInfo } from "@/helpers/types";
@@ -184,7 +188,16 @@ export const signThreadAuthorBoardBadges = (thread: any) => {
   const settings = appCache.getByKey(CacheKey.ThreadGeneralSettings) as
     | { rank_icon_source?: string | null }
     | undefined;
-  const source = (settings?.rank_icon_source as RankIconSource) ?? "board";
+  let source = (settings?.rank_icon_source as RankIconSource) ?? "none";
+  // Safety net: if the chosen source's rank system has no active tiers (e.g.
+  // p2p disabled → 0 trade ranks), render no badge instead of a stale per-user
+  // snapshot (which can hold a deleted rank's "ghost" image).
+  if (
+    (source === "board" && rankSystemHasActiveTiers("board") === false) ||
+    (source === "trade" && rankSystemHasActiveTiers("trade") === false)
+  ) {
+    source = "none";
+  }
   const adminBadgeImage = getSignedAdminBadgeImage();
   applyAuthorRankBadge(thread?.author?.profile, source, adminBadgeImage);
   for (const c of thread?.comments ?? [])

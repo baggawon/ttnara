@@ -9,8 +9,7 @@ use chrono::{NaiveDateTime, Utc};
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseBackend,
-    DatabaseConnection, DbErr, EntityTrait, FromQueryResult, QueryFilter, QueryOrder, QuerySelect,
-    Statement,
+    DatabaseConnection, DbErr, EntityTrait, FromQueryResult, QueryFilter, Statement,
 };
 use uuid::Uuid;
 
@@ -32,6 +31,11 @@ pub struct ChatSettingsRow {
     pub spam_penalty_third: i32,
     pub spam_penalty_last: i32,
     pub chat_delete_hours: i32,
+    /// Which rank system the badge beside a chat name reflects:
+    /// "trade", "board", or "none". Resolved at history-send time against the
+    /// author's CURRENT profile snapshot so changing it (or deleting a rank)
+    /// updates old messages instead of leaving stale per-message images.
+    pub chat_rank_source: String,
 }
 
 impl Default for ChatSettingsRow {
@@ -46,6 +50,8 @@ impl Default for ChatSettingsRow {
             spam_penalty_third: 5,
             spam_penalty_last: 30,
             chat_delete_hours: 24,
+            // Safe fallback: no badge when the setting is missing.
+            chat_rank_source: "none".to_string(),
         }
     }
 }
@@ -98,7 +104,7 @@ pub async fn load_settings(db: &DatabaseConnection) -> Result<ChatSettingsRow, D
         &format!(
             r#"SELECT "level_moderator","level_chat","max_chat_length","max_display_items",
                       "spam_frequency_seconds","spam_penalty_second","spam_penalty_third",
-                      "spam_penalty_last","chat_delete_hours"
+                      "spam_penalty_last","chat_delete_hours","chat_rank_source"
                FROM "{SCHEMA}"."chat_setting" ORDER BY "id" ASC LIMIT 1"#
         ),
         [],
@@ -275,33 +281,93 @@ pub async fn soft_delete_old_messages(db: &DatabaseConnection, hours: i32) -> Re
     Ok(db.execute(stmt).await?.rows_affected())
 }
 
+/// `chat_message` joined to the author's live `profile` rank snapshot. The
+/// per-message `rank_image`/`rank_level` are kept only as a fallback for
+/// authors whose profile row is gone (LEFT JOIN miss).
+#[derive(Debug, Clone, FromQueryResult)]
+struct ChatMessageJoinedRow {
+    id: String,
+    topic_id: i32,
+    uid: String,
+    displayname: String,
+    rank_level: i32,
+    rank_image: Option<String>,
+    content: String,
+    is_hidden: bool,
+    created_at: NaiveDateTime,
+    current_rank_level: Option<i32>,
+    current_rank_image: Option<String>,
+    current_board_rank_level: Option<i32>,
+    current_board_rank_image: Option<String>,
+}
+
 pub async fn latest_messages(
     db: &DatabaseConnection,
     topic_id: i32,
     limit: u64,
+    rank_source: &str,
 ) -> Result<Vec<ChatMessage>, DbErr> {
-    let mut rows = chat_message::Entity::find()
-        .filter(chat_message::Column::TopicId.eq(topic_id))
-        .order_by_desc(chat_message::Column::CreatedAt)
-        .limit(limit)
-        .all(db)
-        .await?;
+    // Resolve the badge from the author's CURRENT profile (not the value stored
+    // when the message was sent), so a changed rank source or a deleted/renamed
+    // rank is reflected in history instead of showing a stale "ghost" icon.
+    let stmt = Statement::from_sql_and_values(
+        DatabaseBackend::Postgres,
+        &format!(
+            r#"SELECT m."id", m."topic_id", m."uid", m."displayname",
+                      m."rank_level", m."rank_image", m."content", m."is_hidden",
+                      m."created_at",
+                      p."current_rank_level", p."current_rank_image",
+                      p."current_board_rank_level", p."current_board_rank_image"
+               FROM "{SCHEMA}"."chat_message" m
+               LEFT JOIN "{SCHEMA}"."profile" p ON p."uid" = m."uid"
+               WHERE m."topic_id" = $1
+               ORDER BY m."created_at" DESC
+               LIMIT $2"#
+        ),
+        [topic_id.into(), (limit as i64).into()],
+    );
+    let mut rows = ChatMessageJoinedRow::find_by_statement(stmt).all(db).await?;
     // Return oldest-first so the client appends in order.
     rows.reverse();
-    Ok(rows.into_iter().map(model_to_protocol).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| joined_to_protocol(r, rank_source))
+        .collect())
 }
 
-fn model_to_protocol(m: chat_message::Model) -> ChatMessage {
+fn joined_to_protocol(r: ChatMessageJoinedRow, rank_source: &str) -> ChatMessage {
+    // A LEFT JOIN miss (author's profile deleted) leaves both level columns
+    // NULL; fall back to the per-message snapshot persisted at send time.
+    let profile_missing =
+        r.current_rank_level.is_none() && r.current_board_rank_level.is_none();
+    // Mirror /api/chat/token: pick the snapshot for the configured source.
+    let (rank_level, rank_image) = if profile_missing {
+        (r.rank_level, r.rank_image)
+    } else {
+        match rank_source {
+            "none" => (r.rank_level, None),
+            "board" => (
+                r.current_board_rank_level.unwrap_or(r.rank_level),
+                r.current_board_rank_image,
+            ),
+            // "trade" and any unexpected value behave like trade (legacy default).
+            _ => (
+                r.current_rank_level.unwrap_or(r.rank_level),
+                r.current_rank_image,
+            ),
+        }
+    };
     ChatMessage {
-        id: m.id,
-        uid: m.uid,
-        displayname: m.displayname,
-        rank_level: m.rank_level,
-        rank_image: m.rank_image,
-        content: m.content,
-        topic_id: m.topic_id,
-        created_at: format_iso(m.created_at),
-        is_hidden: if m.is_hidden { Some(true) } else { None },
+        id: r.id,
+        uid: r.uid,
+        displayname: r.displayname,
+        rank_level,
+        // Unsigned here; ws.rs signs before delivery.
+        rank_image,
+        content: r.content,
+        topic_id: r.topic_id,
+        created_at: format_iso(r.created_at),
+        is_hidden: if r.is_hidden { Some(true) } else { None },
     }
 }
 

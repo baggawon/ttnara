@@ -77,3 +77,41 @@ export async function updateUserBoardRank(
     },
   });
 }
+
+/**
+ * Re-derives the denormalized board-rank snapshot (`current_board_rank_*`) on
+ * EVERY profile from the current `board_rank` table + each user's `point`.
+ *
+ * Mirrors {@link reevaluateAllUserRanks} for the board side. Per-user updates
+ * only run on a point change, so an admin change to the rank *structure* leaves
+ * existing profiles on stale names/badges (including deleted-rank "ghost"
+ * images). Call this after any board-rank structure mutation. `point` lives
+ * directly on `profile`, so the per-tier filter needs no relation join.
+ */
+export async function reevaluateAllUserBoardRanks(
+  prisma: PrismaClient | Prisma.TransactionClient
+): Promise<void> {
+  const ranks = await prisma.board_rank.findMany({
+    where: { is_active: true },
+    orderBy: { min_point: "asc" },
+  });
+
+  await prisma.profile.updateMany({
+    data: {
+      current_board_rank_level: 1,
+      current_board_rank_name: null,
+      current_board_rank_image: null,
+    },
+  });
+
+  for (const rank of ranks) {
+    await prisma.profile.updateMany({
+      where: { point: { gte: rank.min_point } },
+      data: {
+        current_board_rank_level: rank.rank_level,
+        current_board_rank_name: rank.name,
+        current_board_rank_image: rank.badge_image,
+      },
+    });
+  }
+}

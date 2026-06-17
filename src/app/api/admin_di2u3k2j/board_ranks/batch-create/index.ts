@@ -5,6 +5,7 @@ import {
 import { ToastData } from "@/helpers/toastData";
 import { handleConnect } from "@/helpers/server/prisma";
 import { appCache, CacheKey } from "@/helpers/server/serverCache";
+import { reevaluateAllUserBoardRanks } from "@/helpers/server/boardRankEvaluator";
 
 export interface BoardRankBatchCreateProps {
   ranks: Array<{
@@ -49,7 +50,12 @@ export const POST = async (json: BoardRankBatchCreateProps) => {
           },
         });
 
-        // 4. Return the created ranks in correct order
+        // 4. Re-derive every profile's board-rank snapshot against the new set
+        //    so users don't keep names/badges (incl. deleted-rank "ghost"
+        //    images) from the old structure until their next point change.
+        await reevaluateAllUserBoardRanks(tx);
+
+        // 5. Return the created ranks in correct order
         return await tx.board_rank.findMany({
           orderBy: {
             rank_level: "asc",

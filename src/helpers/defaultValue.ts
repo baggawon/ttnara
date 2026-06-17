@@ -191,7 +191,7 @@ export const threadSettingDefault = (
     thread_disable_delete: 0,
     default_topic_id: null,
     default_thumbnail_url: null,
-    rank_icon_source: "board",
+    rank_icon_source: "none",
     admin_badge_image_url: null,
     ...data,
   };

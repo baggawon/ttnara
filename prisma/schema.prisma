@@ -433,7 +433,9 @@ model thread_setting {
   default_thumbnail_url     String? @db.Text
   // Which rank badge shows beside a poster's nickname in the forum:
   // "board" (게시판 등급), "trade" (거래 등급), or "none" (hide icon).
-  rank_icon_source          String  @default("board") @db.VarChar(10)
+  // Defaults to "none" so a fresh/recreated row never shows an unintended
+  // (possibly stale) badge; the admin opts in to a system explicitly.
+  rank_icon_source          String  @default("none") @db.VarChar(10)
   // Badge shown beside the 관리자 label for masked admin/moderator posters,
   // whose own rank badge is suppressed. Stored unsigned; signed on read.
   admin_badge_image_url     String? @db.Text
@@ -543,7 +545,9 @@ model chat_setting {
   chat_delete_hours      Int      @default(24)
   // Which rank system's badge is shown beside chat names:
   // "trade" (거래 등급), "board" (게시판 등급), or "none" (hide icon).
-  chat_rank_source       String   @default("trade") @db.VarChar(10)
+  // Defaults to "none" so a fresh/recreated row never shows an unintended
+  // (possibly stale) badge; the admin opts in to a system explicitly.
+  chat_rank_source       String   @default("none") @db.VarChar(10)
   penalty_users          user[]   @relation("PenaltyUsers")
   banned_users           user[]   @relation("ChatBannedUsers")
   created_at             DateTime @default(now())

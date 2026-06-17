@@ -75,3 +75,46 @@ export async function updateUserRank(
     },
   });
 }
+
+/**
+ * Re-derives the denormalized trade-rank snapshot (`current_rank_*`) on EVERY
+ * profile from the current `trade_rank` table + each user's `trade_count`.
+ *
+ * Per-user updates only run when that user trades, so any admin change to the
+ * rank *structure* (batch replace, create, update, delete) leaves existing
+ * profiles pointing at now-stale names/badges — including images of deleted
+ * ranks ("ghost" badges). Call this after any such mutation so the snapshot
+ * stays a pure function of (trade_count, rank table).
+ *
+ * Cost is O(active tiers) queries, independent of user count: reset everyone to
+ * the no-rank baseline, then layer each tier on in ascending order so the
+ * highest tier a user qualifies for wins the final write. Run inside the same
+ * transaction as the rank mutation so it is atomic.
+ */
+export async function reevaluateAllUserRanks(
+  prisma: PrismaClient | Prisma.TransactionClient
+): Promise<void> {
+  const ranks = await prisma.trade_rank.findMany({
+    where: { is_active: true },
+    orderBy: { min_trade_count: "asc" },
+  });
+
+  await prisma.profile.updateMany({
+    data: {
+      current_rank_level: 1,
+      current_rank_name: null,
+      current_rank_image: null,
+    },
+  });
+
+  for (const rank of ranks) {
+    await prisma.profile.updateMany({
+      where: { user: { trade_count: { gte: rank.min_trade_count } } },
+      data: {
+        current_rank_level: rank.rank_level,
+        current_rank_name: rank.name,
+        current_rank_image: rank.badge_image,
+      },
+    });
+  }
+}
