@@ -36,6 +36,10 @@ pub struct ChatSettingsRow {
     /// author's CURRENT profile snapshot so changing it (or deleting a rank)
     /// updates old messages instead of leaving stale per-message images.
     pub chat_rank_source: String,
+    /// Dedicated badge for admin/moderator posters, shared with the forum
+    /// (`thread_setting.admin_badge_image_url`, stored unsigned). Replaces the
+    /// rank badge for authors who are app admins or at/above `level_moderator`.
+    pub admin_badge_image_url: Option<String>,
 }
 
 impl Default for ChatSettingsRow {
@@ -52,6 +56,7 @@ impl Default for ChatSettingsRow {
             chat_delete_hours: 24,
             // Safe fallback: no badge when the setting is missing.
             chat_rank_source: "none".to_string(),
+            admin_badge_image_url: None,
         }
     }
 }
@@ -102,10 +107,18 @@ pub async fn load_settings(db: &DatabaseConnection) -> Result<ChatSettingsRow, D
     let stmt = Statement::from_sql_and_values(
         DatabaseBackend::Postgres,
         &format!(
-            r#"SELECT "level_moderator","level_chat","max_chat_length","max_display_items",
-                      "spam_frequency_seconds","spam_penalty_second","spam_penalty_third",
-                      "spam_penalty_last","chat_delete_hours","chat_rank_source"
-               FROM "{SCHEMA}"."chat_setting" ORDER BY "id" ASC LIMIT 1"#
+            r#"SELECT cs."level_moderator", cs."level_chat", cs."max_chat_length",
+                      cs."max_display_items", cs."spam_frequency_seconds",
+                      cs."spam_penalty_second", cs."spam_penalty_third",
+                      cs."spam_penalty_last", cs."chat_delete_hours",
+                      cs."chat_rank_source", ts."admin_badge_image_url"
+               FROM "{SCHEMA}"."chat_setting" cs
+               LEFT JOIN LATERAL (
+                   SELECT "admin_badge_image_url"
+                   FROM "{SCHEMA}"."thread_setting"
+                   ORDER BY "id" ASC LIMIT 1
+               ) ts ON true
+               ORDER BY cs."id" ASC LIMIT 1"#
         ),
         [],
     );
@@ -299,13 +312,15 @@ struct ChatMessageJoinedRow {
     current_rank_image: Option<String>,
     current_board_rank_level: Option<i32>,
     current_board_rank_image: Option<String>,
+    is_app_admin: Option<bool>,
+    auth_level: Option<i32>,
 }
 
 pub async fn latest_messages(
     db: &DatabaseConnection,
     topic_id: i32,
     limit: u64,
-    rank_source: &str,
+    settings: &ChatSettingsRow,
 ) -> Result<Vec<ChatMessage>, DbErr> {
     // Resolve the badge from the author's CURRENT profile (not the value stored
     // when the message was sent), so a changed rank source or a deleted/renamed
@@ -317,7 +332,8 @@ pub async fn latest_messages(
                       m."rank_level", m."rank_image", m."content", m."is_hidden",
                       m."created_at",
                       p."current_rank_level", p."current_rank_image",
-                      p."current_board_rank_level", p."current_board_rank_image"
+                      p."current_board_rank_level", p."current_board_rank_image",
+                      p."is_app_admin", p."auth_level"
                FROM "{SCHEMA}"."chat_message" m
                LEFT JOIN "{SCHEMA}"."profile" p ON p."uid" = m."uid"
                WHERE m."topic_id" = $1
@@ -331,20 +347,21 @@ pub async fn latest_messages(
     rows.reverse();
     Ok(rows
         .into_iter()
-        .map(|r| joined_to_protocol(r, rank_source))
+        .map(|r| joined_to_protocol(r, settings))
         .collect())
 }
 
-fn joined_to_protocol(r: ChatMessageJoinedRow, rank_source: &str) -> ChatMessage {
+fn joined_to_protocol(r: ChatMessageJoinedRow, settings: &ChatSettingsRow) -> ChatMessage {
     // A LEFT JOIN miss (author's profile deleted) leaves both level columns
-    // NULL; fall back to the per-message snapshot persisted at send time.
+    // NULL; fall back to the per-message snapshot persisted at send time (which
+    // already had any admin-badge override baked in by /api/chat/token).
     let profile_missing =
         r.current_rank_level.is_none() && r.current_board_rank_level.is_none();
-    // Mirror /api/chat/token: pick the snapshot for the configured source.
     let (rank_level, rank_image) = if profile_missing {
         (r.rank_level, r.rank_image)
     } else {
-        match rank_source {
+        // Mirror /api/chat/token: pick the snapshot for the configured source...
+        let (lvl, base_image) = match settings.chat_rank_source.as_str() {
             "none" => (r.rank_level, None),
             "board" => (
                 r.current_board_rank_level.unwrap_or(r.rank_level),
@@ -355,7 +372,17 @@ fn joined_to_protocol(r: ChatMessageJoinedRow, rank_source: &str) -> ChatMessage
                 r.current_rank_level.unwrap_or(r.rank_level),
                 r.current_rank_image,
             ),
-        }
+        };
+        // ...then let the admin badge replace it for admin/moderator authors
+        // (mirrors the forum's BoardRankIcon). Independent of the rank source.
+        let is_admin = r.is_app_admin.unwrap_or(false)
+            || r.auth_level.unwrap_or(0) >= settings.level_moderator;
+        let image = if is_admin {
+            settings.admin_badge_image_url.clone()
+        } else {
+            base_image
+        };
+        (lvl, image)
     };
     ChatMessage {
         id: r.id,

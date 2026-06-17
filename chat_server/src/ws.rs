@@ -187,14 +187,7 @@ async fn send_session_init(state: &AppState, conn: &Connection, topic_id: i32) {
     let max_items = snapshot.settings.max_display_items.max(1) as u64;
 
     // messages_init
-    match crate::db::latest_messages(
-        &state.db,
-        topic_id,
-        max_items,
-        &snapshot.settings.chat_rank_source,
-    )
-    .await
-    {
+    match crate::db::latest_messages(&state.db, topic_id, max_items, &snapshot.settings).await {
         Ok(mut messages) => {
             // `rank_image` is stored unsigned; sign each before delivery so the
             // client can load the badge from CloudFront.

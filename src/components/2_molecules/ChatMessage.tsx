@@ -37,7 +37,6 @@ const ChatMessageItemImpl = ({
   );
   const hideUser = useChatStore((s) => s.hideUser);
   const unhideUser = useChatStore((s) => s.unhideUser);
-  const rankSource = useChatStore((s) => s.chatSettings.rankSource);
 
   if (isHiddenUser) return null;
   if (message.is_hidden) return null;
@@ -54,9 +53,12 @@ const ChatMessageItemImpl = ({
 
   return (
     <div className="flex items-start gap-1.5 px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-800/50 group text-xs">
-      {rankSource !== "none" && (
+      {/* The server decides whether a badge shows: it sends the rank image, the
+          admin badge for admins/moderators, or null (rank source "none", empty
+          system, or no assigned rank). Render whenever an image is present. */}
+      {message.rank_image && (
         <RankBadge
-          badgeName={message.rank_image ?? "bronze.png"}
+          badgeName={message.rank_image}
           className="!w-4 !h-4 shrink-0 mt-0.5"
         />
       )}

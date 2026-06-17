@@ -1,6 +1,6 @@
 {
   "name": "platypus",
-  "version": "0.11.21",
+  "version": "0.11.22",
   "private": true,
   "scripts": {
     "secure": "node setup.mjs && prisma generate && next dev --experimental-https -p 3030 --turbopack",

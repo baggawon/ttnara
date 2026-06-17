@@ -5,7 +5,11 @@ import type { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/app/api/auth/[...nextauth]";
 import { handleConnect } from "@/helpers/server/prisma";
 import { signChatToken } from "@/helpers/server/chatToken";
-import { rankSystemHasActiveTiers } from "@/helpers/server/serverCache";
+import {
+  appCache,
+  CacheKey,
+  rankSystemHasActiveTiers,
+} from "@/helpers/server/serverCache";
 import { ToastData } from "@/helpers/toastData";
 
 export interface ChatTokenResponse {
@@ -31,6 +35,7 @@ export const POST = async (_req: NextRequest): Promise<NextResponse> => {
           select: {
             displayname: true,
             auth_level: true,
+            is_app_admin: true,
             current_rank_level: true,
             current_rank_image: true,
             current_board_rank_level: true,
@@ -52,6 +57,7 @@ export const POST = async (_req: NextRequest): Promise<NextResponse> => {
       orderBy: { id: "asc" },
       select: {
         chat_rank_source: true,
+        level_moderator: true,
         banned_users: { where: { id: user.id }, select: { id: true } },
       },
     })
@@ -78,12 +84,26 @@ export const POST = async (_req: NextRequest): Promise<NextResponse> => {
     rankSource === "board"
       ? (user.profile.current_board_rank_level ?? 1)
       : (user.profile.current_rank_level ?? 1);
-  const rank_image =
+  const baseImage =
     rankSource === "none" || sourceEmpty
       ? null
       : rankSource === "board"
         ? (user.profile.current_board_rank_image ?? null)
         : (user.profile.current_rank_image ?? null);
+  // Admin/moderator authors show the dedicated admin badge (shared with the
+  // forum, stored unsigned in thread_setting) instead of their rank badge —
+  // mirrors the forum's BoardRankIcon. Independent of the rank source. The
+  // chat_server signs it on broadcast just like any rank image.
+  const threadSettings = appCache.getByKey(CacheKey.ThreadGeneralSettings) as
+    | { admin_badge_image_url?: string | null }
+    | undefined;
+  const levelModerator = setting?.level_moderator ?? Number.MAX_SAFE_INTEGER;
+  const isAdmin =
+    !!user.profile.is_app_admin ||
+    (user.profile.auth_level ?? 0) >= levelModerator;
+  const rank_image = isAdmin
+    ? (threadSettings?.admin_badge_image_url ?? null)
+    : baseImage;
 
   try {
     const { token, expiresAt } = signChatToken({
