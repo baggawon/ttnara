@@ -621,9 +621,9 @@ type TradeActionsProps = {
   tetherStatus: string;
   tetherProposalCount: number;
   ownerConfirm: any;
-  ownerCancel: () => void;
+  ownerCancel: (proposalId: number) => void;
   proposalConfirm: any;
-  proposalCancel: () => void;
+  proposalCancel: (proposalId: number) => void;
   dialogControllRef: any;
   isRating: boolean;
   isOwnerCancelling: boolean;
@@ -704,7 +704,7 @@ const TradeActions = ({
             <ConfirmDialog
               title="거래취소"
               description="거래를 취소하시려면 확인을 눌러주세요."
-              onConfirm={ownerCancel}
+              onConfirm={() => ownerCancel(proposal.id)}
             >
               <Button
                 type="button"
@@ -744,7 +744,7 @@ const TradeActions = ({
               <ConfirmDialog
                 title="거래 취소"
                 description="거래를 취소하시려면 확인을 눌러주세요."
-                onConfirm={proposalCancel}
+                onConfirm={() => proposalCancel(proposal.id)}
               >
                 <Button
                   type="button"

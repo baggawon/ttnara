@@ -9,13 +9,13 @@ import {
   AppRoute,
   QueryKey,
   TetherAddressTypes,
+  TetherProposalStatus,
   TetherStatus,
 } from "@/helpers/types";
 import useGetQuery from "@/helpers/customHook/useGetQuery";
 import type {
   TetherListResponse,
   TetherWithProfile,
-  TradeProposalWithProfile,
 } from "@/app/api/tethers/read";
 import { sessionGet, tethersGet } from "@/helpers/get";
 import type { Session } from "next-auth";
@@ -36,6 +36,16 @@ import type { TetherProposalRateUpdateProps } from "@/app/api/tethers/proposal/r
 import type { tethersDeleteProps } from "@/app/api/tethers/delete";
 
 export interface ProposalMethods extends tether_proposal {}
+
+// Only what the cancel endpoint actually needs. Posting the row the detail API
+// returned would drag its relations (user, tether_rate) along, and the API
+// rejects those.
+export interface CancelProposalProps
+  extends Pick<tether_proposal, "id" | "tether_id"> {
+  price: number;
+  qty: number;
+  status: TetherProposalStatus;
+}
 
 export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
   const { data: session } = useGetQuery<Session | null | undefined, undefined>(
@@ -238,31 +248,26 @@ export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
   const proposalConfirm = submitRate;
   const ownerConfirm = submitRate;
 
-  const buildCancelProps = (): TradeProposalWithProfile | null => {
-    if (!currentTether) return null;
-    const props: TradeProposalWithProfile = {
-      ...(currentTether.tether_proposals[0] as TradeProposalWithProfile),
-      status: TetherStatus.Cancel,
+  // Cancel targets the proposal whose button was pressed - a tether can carry
+  // more than one proposal row (a completed one alongside the open one), so
+  // indexing into the list would cancel the wrong trade.
+  const buildCancelProps = (proposalId: number): CancelProposalProps | null => {
+    const proposal = currentTether?.tether_proposals.find(
+      (item) => item.id === proposalId
+    );
+    if (!proposal) return null;
+
+    return {
+      id: proposal.id,
+      tether_id: proposal.tether_id,
+      price: decimalToNumber(proposal.price),
+      qty: decimalToNumber(proposal.qty),
+      status: TetherProposalStatus.Cancel,
     };
-
-    forEach(["price", "qty"], (key) => {
-      if ((props as any)[key] !== null) {
-        if (typeof (props as any)[key].toNumber === "function") {
-          (props as any)[key] = (props as any)[key].toNumber();
-        } else {
-          (props as any)[key] = Number((props as any)[key].replaceAll(",", ""));
-        }
-      }
-    });
-
-    if (props.user) {
-      props.user = null;
-    }
-    return props;
   };
 
-  const cancelProposalRequest = async (props: TradeProposalWithProfile) => {
-    const { isSuccess, hasMessage } = await postJson<TetherProposalUpdateProps>(
+  const cancelProposalRequest = async (props: CancelProposalProps) => {
+    const { isSuccess, hasMessage } = await postJson<CancelProposalProps>(
       ApiRoute.tethersProposalUpdate,
       props
     );
@@ -275,36 +280,29 @@ export const useTetherDetail = ({ tether_id }: { tether_id?: number }) => {
     }
   };
 
-  const proposalCancelMutation = useMutation({
-    mutationFn: async () => {
-      const props = buildCancelProps();
+  const cancelMutationOptions = {
+    mutationFn: async (proposalId: number) => {
+      const props = buildCancelProps(proposalId);
       if (!props) return;
       await cancelProposalRequest(props);
     },
     onError: () => {
       toast({ id: ToastData.unknown, type: "error" });
     },
-  });
-
-  const proposalCancel = () => {
-    if (proposalCancelMutation.isPending) return;
-    proposalCancelMutation.mutate();
   };
 
-  const ownerCancelMutation = useMutation({
-    mutationFn: async () => {
-      const props = buildCancelProps();
-      if (!props) return;
-      await cancelProposalRequest(props);
-    },
-    onError: () => {
-      toast({ id: ToastData.unknown, type: "error" });
-    },
-  });
+  const proposalCancelMutation = useMutation(cancelMutationOptions);
 
-  const ownerCancel = () => {
+  const proposalCancel = (proposalId: number) => {
+    if (proposalCancelMutation.isPending) return;
+    proposalCancelMutation.mutate(proposalId);
+  };
+
+  const ownerCancelMutation = useMutation(cancelMutationOptions);
+
+  const ownerCancel = (proposalId: number) => {
     if (ownerCancelMutation.isPending) return;
-    ownerCancelMutation.mutate();
+    ownerCancelMutation.mutate(proposalId);
   };
 
   const deleteMutation = useMutation({

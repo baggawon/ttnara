@@ -205,11 +205,12 @@ export const POST = async (json: OtpProps) => {
           },
         })
       );
-      const existSmsRequest = validateData && validateData.length > 0,
-        isSmsEqual = otp === validateData?.[0].validate_data;
+      // Guard before reading [0]: an unknown request_id must surface as
+      // ToastData.unknown, not a TypeError from indexing an empty result.
+      if (!(validateData && validateData.length > 0)) throw ToastData.unknown;
+      const isSmsEqual = otp === validateData[0].validate_data;
       let isValid = false,
         smsUpdateComplete = false;
-      if (!(existSmsRequest && validateData)) throw ToastData.unknown;
 
       const diffMinutes = now().diff(
         dayjs(validateData[0].updated_at).tz("Asia/Seoul"),
@@ -244,6 +245,11 @@ export const POST = async (json: OtpProps) => {
         const newAttemptCount = (validateData?.[0]?.attempt_count || 0) + 1;
         const shouldBlock = newAttemptCount >= 5;
 
+        // The row must stay in `progress`: the retry lookup above filters on
+        // that status, so flipping to `fail` here would make every retry on
+        // this request_id (even with the correct code) miss the row — which
+        // also made the 5-attempt block unreachable. Nothing reads a DB-side
+        // `fail` status; verification consumers only ever query `valid`.
         await handleConnect((prisma) =>
           prisma.validate.updateMany({
             where: {
@@ -256,7 +262,6 @@ export const POST = async (json: OtpProps) => {
               blocked_until: shouldBlock
                 ? now().add(5, "minutes").toDate()
                 : null,
-              status: ValidateStatus.fail,
             },
           })
         );

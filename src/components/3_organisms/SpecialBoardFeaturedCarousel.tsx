@@ -29,6 +29,7 @@ export interface FeaturedItem {
   action_url_1_label: string | null;
   action_url_2: string | null;
   action_url_2_label: string | null;
+  expired: boolean;
 }
 
 interface Props {
@@ -185,6 +186,9 @@ const FeaturedSlide = ({
             </p>
           )}
           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+            {item.expired && (
+              <span className="font-medium text-rose-500">만료</span>
+            )}
             <span className="inline-flex items-center gap-1">
               <MessageSquare className="h-3.5 w-3.5" />
               {item.comment_count}

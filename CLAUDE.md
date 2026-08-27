@@ -117,10 +117,11 @@ The application uses a comprehensive Prisma schema with:
 - Separate Rust service with Cargo configuration
 - Database schema import functionality
 
-### Email Builder
+### Email Templates
 
-- Standalone email template builder in `email_builder/`
-- HTML email templates with Tailwind styling
+- User-facing emails are admin-editable. Templates live in the `email_template` table and are edited at `/admin/email-templates` ("이메일 양식").
+- Rendered by `src/helpers/server/emailRender.ts` into an email-client-safe layout; `{{variables}}` (siteName, authCode, contactEmail, etc.) are substituted at send time.
+- From/sender addresses come from the `email_sender` registry (per-template selection); `{{contactEmail}}` is a separate per-template field.
 
 ## Deployment Notes
 

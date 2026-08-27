@@ -22,11 +22,22 @@ const customJestConfig = {
     "^lib/(.*)$": "<rootDir>/src/lib/$1",
     "^unitTest/(.*)$": "<rootDir>/__tests__/jest/$1",
     "^testHelper/(.*)$": "<rootDir>/__tests__/helpers/$1",
+    // "server-only" is a Next.js build-time marker with no runtime module;
+    // neutralize it so server modules can be imported under Jest.
+    "^server-only$": "<rootDir>/__tests__/jest/mocks/empty.ts",
+    // The jsdom env resolves bson (a prismock dep) via its "browser" export
+    // condition, which points at an ESM .mjs that Jest's transform doesn't
+    // cover. require.resolve runs in CJS, so it takes the package's
+    // "default" -> "require" condition and yields the CommonJS build.
+    "^bson$": require.resolve("bson"),
     uuid: require.resolve("uuid"),
   },
-  modulePaths: ["<rootDir>/src/, <rootDir>/node_modules"],
   testEnvironment: "<rootDir>/__tests__/jest/jest-environment-jsdom.ts",
   testMatch: ["**/*.test.ts?(x)"],
+  // Ignore build output so it does not collide with src (haste naming clashes)
+  // or get picked up as a test path.
+  modulePathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+  testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/e2e/"],
   // transformIgnorePatterns: ["<rootDir>/node_modules/.+.(js|jsx)$"],
 };
 

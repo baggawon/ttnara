@@ -28,6 +28,9 @@
       "@/*": [
         "./src/*"
       ],
+      "testHelper/*": [
+        "./__tests__/helpers/*"
+      ],
     }
   },
   "include": [
