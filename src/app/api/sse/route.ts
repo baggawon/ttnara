@@ -1,7 +1,8 @@
 import { userUpdateEmitter } from "@/lib/eventEmitter";
 
-// Track active connections globally
-const activeConnections = new Map<string, ReadableStreamDefaultController>();
+// A write to a dead socket is what makes the stream notice the client left, so
+// ping regularly; otherwise an idle connection's listener would live forever.
+const HEARTBEAT_MS = 25_000;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -11,50 +12,48 @@ export async function GET(request: Request) {
     return new Response("User ID is required", { status: 400 });
   }
 
+  let cleanup = () => {};
+
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
+      let closed = false;
 
-      // Register this connection
-      activeConnections.set(userId, controller);
-
-      // Send initial ping
-      controller.enqueue(encoder.encode(": ping\n\n"));
+      const send = (chunk: string) => {
+        try {
+          controller.enqueue(encoder.encode(chunk));
+        } catch {
+          cleanup();
+        }
+      };
 
       // Handle user updates
       const handleUserUpdate = (data: { userId: string; data: any }) => {
         if (data.userId === userId || data.userId === "관리자") {
-          try {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
-            );
-          } catch (error) {
-            console.error("Error in SSE:", error);
-            cleanup();
-          }
+          send(`data: ${JSON.stringify(data)}\n\n`);
         }
       };
 
-      const cleanup = () => {
-        // Remove from active connections
-        activeConnections.delete(userId);
+      const heartbeat = setInterval(() => send(": ping\n\n"), HEARTBEAT_MS);
 
-        // Remove event listener
+      // Runs from whichever fires first: cancel, abort, or a failed write.
+      cleanup = () => {
+        if (closed) return;
+        closed = true;
+        clearInterval(heartbeat);
         userUpdateEmitter.off("userUpdate", handleUserUpdate);
+        request.signal.removeEventListener("abort", cleanup);
       };
 
-      // Listen for user updates
       userUpdateEmitter.on("userUpdate", handleUserUpdate);
-
-      // Clean up on abort
       request.signal.addEventListener("abort", cleanup);
 
-      return cleanup;
+      // Send initial ping
+      send(": ping\n\n");
     },
 
     cancel() {
-      // Just remove from active connections
-      activeConnections.delete(userId);
+      cleanup();
     },
   });
 

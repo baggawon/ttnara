@@ -1,8 +1,10 @@
+import { getHeapStatistics } from "v8";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CircleCheck, CircleAlert, Database } from "lucide-react";
 
 import { handleConnect } from "@/helpers/server/prisma";
 import { now } from "@/helpers/basic";
+import { userUpdateEmitter } from "@/lib/eventEmitter";
 
 interface Row {
   name: string;
@@ -13,6 +15,14 @@ interface Row {
 // A background dispatcher is expected to drain notification_queue promptly; an
 // overdue item older than this suggests the dispatcher is stuck/down.
 const NOTIFICATION_STUCK_MIN = 15;
+
+// Leak diagnostics. The container is capped at 2GB (mem_limit), so warn well
+// before that. Compare heap vs. native over days to tell a JS leak (heap grows)
+// from a native one (images/buffers: only rss/native grows).
+const RSS_WARN_MB = 1400;
+// Every open /api/sse tab holds one listener; a count far above the number of
+// online users means closed connections are not being cleaned up.
+const SSE_LISTENER_WARN = 500;
 
 export async function RealSystemHealthCard() {
   const nowDate = now().toDate();
@@ -99,6 +109,31 @@ export async function RealSystemHealthCard() {
         : `대기 ${overdueCount.toLocaleString()}건 · 최대 ${overdueMin}분 지연`,
   });
 
+  const mem = process.memoryUsage();
+  const rssMb = toMb(mem.rss);
+  rows.push({
+    name: "서버 메모리",
+    ok: rssMb < RSS_WARN_MB,
+    detail: `${rssMb}MB · 가동 ${formatUptime(process.uptime())}`,
+  });
+  rows.push({
+    name: "JS 힙",
+    ok: true,
+    detail: `${toMb(mem.heapUsed)} / ${toMb(getHeapStatistics().heap_size_limit)}MB`,
+  });
+  rows.push({
+    name: "네이티브 메모리",
+    ok: true,
+    detail: `${toMb(mem.rss - mem.heapTotal)}MB · 버퍼 ${toMb(mem.arrayBuffers)}MB`,
+  });
+
+  const sseListeners = userUpdateEmitter.listenerCount("userUpdate");
+  rows.push({
+    name: "SSE 연결",
+    ok: sseListeners < SSE_LISTENER_WARN,
+    detail: `${sseListeners.toLocaleString()}개`,
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -128,6 +163,16 @@ export async function RealSystemHealthCard() {
       </CardContent>
     </Card>
   );
+}
+
+function toMb(bytes: number): number {
+  return Math.round(bytes / 1024 / 1024);
+}
+
+function formatUptime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  if (h < 24) return `${h}시간`;
+  return `${Math.floor(h / 24)}일 ${h % 24}시간`;
 }
 
 function formatRelative(when: Date): string {
