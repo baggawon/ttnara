@@ -110,6 +110,29 @@ export const dispatchPendingNotifications = async () => {
   let dispatched = 0;
 
   for (const item of pendingItems) {
+    // Claim the row before sending. The unique key (user_id, thread_id,
+    // dispatched) allows only one dispatched=true row per user+thread, so the
+    // previous batch's row must go first. The dispatched=false guard also
+    // stops a concurrent dispatcher from sending the same item twice.
+    const claimed = await handleConnect(
+      (prisma) =>
+        prisma.$transaction([
+          prisma.notification_queue.deleteMany({
+            where: {
+              user_id: item.user_id,
+              thread_id: item.thread_id,
+              dispatched: true,
+            },
+          }),
+          prisma.notification_queue.updateMany({
+            where: { id: item.id, dispatched: false },
+            data: { dispatched: true },
+          }),
+        ]),
+      { label: "notificationQueue.claim" }
+    );
+    if (!claimed || claimed[1].count === 0) continue;
+
     const user = await handleConnect((prisma) =>
       prisma.user.findUnique({
         where: { id: item.user_id },
@@ -133,13 +156,6 @@ export const dispatchPendingNotifications = async () => {
 
       await sendWebpush([payload], [user]);
     }
-
-    await handleConnect((prisma) =>
-      prisma.notification_queue.update({
-        where: { id: item.id },
-        data: { dispatched: true },
-      })
-    );
 
     dispatched++;
   }
